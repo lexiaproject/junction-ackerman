@@ -1,16 +1,8 @@
-// La IA (Claude) elige UNA acción del catálogo y escribe el mensaje de ejemplo para el mentor.
+// La IA (Gemini) elige UNA acción del catálogo y escribe el mensaje de ejemplo para el mentor.
 // Si no hay clave o falla, usamos una respuesta fija para que la demo nunca se rompa.
-import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { z } from "zod";
-import { CATALOG, fallbackSuggestion, type ActionKey, type Level, type Suggestion } from "@/lib/engine";
+import { CATALOG, fallbackSuggestion, type Level, type Suggestion } from "@/lib/engine";
 
-const SuggestionSchema = z.object({
-  action: z.enum(Object.keys(CATALOG) as [ActionKey, ...ActionKey[]]),
-  headline: z.string(),
-  message: z.string(),
-  explanation: z.string(),
-});
+const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 export async function POST(req: Request) {
   const { level, changes, learned } = (await req.json()) as {
@@ -19,7 +11,8 @@ export async function POST(req: Request) {
     learned: string[];
   };
   const fallback = fallbackSuggestion(level);
-  if (!process.env.ANTHROPIC_API_KEY) return Response.json(fallback);
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return Response.json(fallback);
 
   const prompt = `You support a peer-mentor programme for people who had TMS treatment for depression.
 A mentor (Mikko, a former patient) supports a pupil (Laura, currently in treatment).
@@ -39,22 +32,38 @@ Rules:
 - "explanation": for the clinic only, max 30 words, why this action fits these changes.`;
 
   try {
-    const client = new Anthropic({ timeout: 20_000, maxRetries: 1 });
-    const response = await client.beta.messages.parse({
-      model: "claude-opus-5-5",
-      max_tokens: 2000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default", // si el modelo rechazara la petición, otro modelo la responde
-      output_config: { effort: "low", format: betaZodOutputFormat(SuggestionSchema) },
-      messages: [{ role: "user", content: prompt }],
-    });
-    if (response.stop_reason === "refusal" || !response.parsed_output) throw new Error(`No usable output (${response.stop_reason})`);
-    const suggestion: Suggestion = { ...response.parsed_output, source: "claude" };
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        signal: AbortSignal.timeout(10000),
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                action: { type: "STRING", enum: Object.keys(CATALOG) },
+                headline: { type: "STRING" },
+                message: { type: "STRING" },
+                explanation: { type: "STRING" },
+              },
+              required: ["action", "headline", "message", "explanation"],
+            },
+          },
+        }),
+      },
+    );
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
+    if (!(parsed.action in CATALOG)) throw new Error("Unknown action " + parsed.action);
+    const suggestion: Suggestion = { ...parsed, source: "gemini" };
     return Response.json(suggestion);
   } catch (err) {
-    if (err instanceof Anthropic.AuthenticationError) console.error("[suggest] Clave de Claude no válida");
-    else if (err instanceof Anthropic.RateLimitError) console.error("[suggest] Límite de uso alcanzado");
-    else console.error("[suggest] Claude falló, usamos la respuesta de reserva:", err);
+    console.error("[suggest] Gemini failed, using fallback:", err);
     return Response.json(fallback);
   }
 }

@@ -50,7 +50,7 @@ export type Suggestion = {
   headline: string; // lo que lee el mentor (sin datos de salud)
   message: string; // mensaje de ejemplo que el mentor puede editar
   explanation: string; // por qué, solo para la clínica / la demo
-  source: "claude" | "fallback";
+  source: "gemini" | "fallback";
 };
 
 // Texto que se manda a la IA: solo cambios resumidos, sin identificar a nadie
@@ -64,7 +64,7 @@ export function describeChanges(statuses: SignalStatus[]) {
     });
 }
 
-// MOCK: respuesta de reserva si Claude no está disponible (sin clave, sin red o error)
+// MOCK: respuesta de reserva si Gemini no está disponible (sin clave, sin red o error)
 export function fallbackSuggestion(level: Level): Suggestion {
   if (level === "high")
     return {

@@ -173,7 +173,7 @@ export default function Demo() {
               >
                 {LEVEL_TEXT[level]}
               </span>
-              {loading && <span className="text-sm">Asking Claude for the right action…</span>}
+              {loading && <span className="text-sm">Asking Gemini for the right action…</span>}
             </div>
 
             {crisis ? (
@@ -183,7 +183,7 @@ export default function Demo() {
               alert && (
                 <div className="mt-3">
                   <p>
-                    <b>{sug.source === "claude" ? "Claude" : "Backup rules"} chose:</b> {CATALOG[sug.action]}
+                    <b>{sug.source === "gemini" ? "Gemini" : "Backup rules"} chose:</b> {CATALOG[sug.action]}
                   </p>
                   <p className="mt-1 text-pine/80">{sug.explanation}</p>
                 </div>
