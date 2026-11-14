@@ -43,3 +43,6 @@ next-env.d.ts
 
 # capturas y registros de Playwright (MCP); sin barra inicial: cubre también .claude/.playwright-mcp/
 .playwright-mcp/
+
+# Vídeo de la demo (pesa mucho; se comparte aparte)
+/video/
