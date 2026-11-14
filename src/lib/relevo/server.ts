@@ -10,7 +10,7 @@ export const ok = (data: unknown) => Response.json(data, { headers: { "Cache-Con
 
 // Qué puede hacer cada actor (el servidor lo comprueba; la interfaz no decide nada)
 export const ALLOWED: Record<string, string[]> = {
-  luis: ["onboard", "consent", "datatype", "notice", "plan", "plan_feedback", "help", "request"],
+  luis: ["onboard", "consent", "datatype", "notice", "plan", "plan_feedback", "help", "request", "support", "quiet"],
   pablo: ["worried", "m0_answer", "v1_answer", "idea", "notice", "rhythm", "help", "consent", "datatype", "copilot", "request", "leave", "plan", "plan_feedback"],
   marta: ["worried", "v1_answer", "idea", "notice", "rhythm", "help", "consent", "datatype", "copilot", "request", "leave"],
   clinic: ["call", "alert_take", "resolve", "ideas_pause", "ideas_reactivate", "clinic_rhythm", "match_propose", "match_cancel"],

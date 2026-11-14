@@ -24,6 +24,7 @@ export type MentorData = {
   sent: { menteeName: string } | null;
   plan: { id: string; title: string; when: string; whenT: number; icon: string; menteeName: string; status: string } | null;
   mentee: { id: string; name: string } | null;
+  menteeQuiet: { until: string } | null;
   myMentor: { id: string; name: string } | null;
   conversations: { mentee: NoteV[]; mentor: NoteV[] };
   copilot: { id: string; text: string; example: string } | null;
@@ -272,6 +273,14 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
       )}
 
       {/* M6 · La clínica se ocupa */}
+      {/* Pausa suave pedida por la persona acompañada: solo se ve que se toma un respiro, nunca por qué */}
+      {data.menteeQuiet && mentee && (
+        <div className="rv-card rv-in flex items-start gap-3 p-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="moon" size={20} /></span>
+          <p className="text-[15px] leading-snug"><span className="font-semibold">{mentee.name} is taking a breather until {data.menteeQuiet.until}.</span> No need to write. If you want, one short note is fine.</p>
+        </div>
+      )}
+
       {data.m6 && (
         <div className="rv-card rv-in p-5">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="shield" /></span>

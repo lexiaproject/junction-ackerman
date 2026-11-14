@@ -28,7 +28,9 @@ const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 function planWhen(now: number, p: Plan) {
   const day = dayOf(p.whenT);
   const dn = day - dayOf(now);
-  if (!/^(Today|Tomorrow)\b/.test(p.whenLabel) || dn === day - dayOf(p.created)) return p.whenLabel;
+  const rel = /^(Today|Tomorrow)\b/.test(p.whenLabel);
+  const weekday = WEEKDAY_LONG.some((d) => p.whenLabel.startsWith(d)); // "Saturday, 11:00": vale esa semana; luego, con fecha
+  if (rel ? dn === day - dayOf(p.created) : !(weekday && Math.abs(dn) >= 7)) return p.whenLabel;
   const wd = WEEKDAY_LONG[weekdayOf(day)];
   const label = dn === 0 ? "Today" : dn === 1 ? `Tomorrow, ${wd}` : dn === -1 ? "Yesterday" : Math.abs(dn) < 7 ? wd : dayLabel(day);
   return `${label}, ${hhmm(p.whenT)}`;
@@ -129,6 +131,8 @@ export function menteeView(sim: Sim, id: PersonId) {
     plans: plans.slice(-6).map(planView).reverse(),
     social: mentorId ? { label: `Plans with ${name(mentorId)} this month: ${social}` } : null,
     openHelp: s.openHelp,
+    quiet: s.quietUntil !== null && now < s.quietUntil ? { until: `${dayLabel(dayOf(s.quietUntil))}` } : null,
+    supportAsked: sim.alerts.some((a) => a.person === id && a.kind === "support" && a.status !== "resolved" && a.t <= now),
     helpNote: s.crisis?.source === "note" && s.openHelp === s.crisis.alertId, // K-29: la ayuda se abrió por una nota que ya avisó a la clínica
     devices: devices(sim, id),
     clinic: { name: "Aalto TMS Clinic", phone: "+358 9 4512 3300" },
@@ -186,6 +190,7 @@ export function mentorView(sim: Sim, id: PersonId) {
     sent: sent && !card ? { menteeName: name(sent.mentee) } : null,
     plan: running ? { id: running.id, title: running.title.replace(` with ${name(id)}`, ""), when: planWhen(now, running), whenT: running.whenT, icon: running.icon, menteeName: name(running.mentee), status: running.status } : null,
     mentee: menteeId ? { id: menteeId, name: name(menteeId) } : null,
+    menteeQuiet: menteeId && mentee?.quietUntil != null && now < mentee.quietUntil ? { until: dayLabel(dayOf(mentee.quietUntil)) } : null,
     together: menteeId ? together(sim, id, menteeId, s.pairSince) : null,
     myMentor: myMentor ? { id: myMentor, name: name(myMentor) } : null,
     conversations: {
@@ -288,6 +293,7 @@ export function clinicPanel(sim: Sim) {
     const lvl = s.level;
     const flags: string[] = [];
     if (s.noData48) flags.push("No data 48 h");
+    if (s.quietUntil !== null && sim.now < s.quietUntil) flags.push("Fewer messages (their choice)");
     const ignored = sim.notices.some((n) => n.status === "active" && ["V2", "V3"].includes(n.code) && n.to === p.id && now - n.t >= 2 * DAY);
     const v1Ignored = sim.cards.some((c) => c.mentee === p.id && c.twoStep?.status === "expired" && now - c.t < 3 * DAY) && !sim.notes.some((n) => n.from === p.id && now - n.t < 2 * DAY);
     if (lvl >= 1 && (ignored || v1Ignored)) flags.push("No response to notices");

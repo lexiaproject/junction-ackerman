@@ -1,6 +1,6 @@
 "use client";
 // App del acompañado (Luis): se puede usar sin hacer nada. Abrir, escuchar, aceptar un plan o cerrar.
-// Sin pestañas, sin contadores, sin rojos, sin gráficos. Nunca ve un número de salud.
+// Cuatro pestañas sencillas (Today, Conversation, My relay, Settings). Sin contadores, sin rojos, sin gráficos. Nunca ve un número de salud.
 import { useCallback, useEffect, useState } from "react";
 import { PROFILE } from "@/lib/relevo/profiles";
 import { revealNames } from "@/lib/relevo/pseudo";
@@ -26,20 +26,34 @@ export type MeData = {
   social: { label: string } | null;
   openHelp: string | null;
   helpNote: boolean;
+  quiet: { until: string } | null;
+  supportAsked: boolean;
   devices: { rows: DeviceRow[]; types: { key: string; label: string; purpose: string; on: boolean }[]; simulated: boolean };
   clinic: { name: string; phone: string };
   requests: { kind: string; when: string }[];
 };
 
+const TABS = [
+  { id: "today", label: "Today", icon: "today" },
+  { id: "chat", label: "Conversation", icon: "chat" },
+  { id: "relay", label: "My relay", icon: "chain" },
+  { id: "settings", label: "Settings", icon: "settings" },
+] as const;
+type Tab = (typeof TABS)[number]["id"];
+const PLAN_STATUS: Record<string, string> = { proposed: "Waiting for you", accepted: "You're in", other_day: "Another day", cant: "Couldn't make it", change_requested: "Asked for another time" };
+const FEEDBACK: Record<string, string> = { good: "Went well", ok: "So-so", didnt: "Didn't go" };
+
 export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }) {
   const { data } = useView<MeData>(`/api/relevo/me?w=${w}&as=${as}`);
   const player = usePlayer(w);
-  const [screen, setScreen] = useState<"home" | "chat" | "devices" | `plan:${string}`>("home");
+  const [tab, setTab] = useState<Tab>("today");
+  const [planId, setPlanId] = useState<string | null>(null);
   const [help, setHelp] = useState(false);
   const [seenHelp, setSeenHelp] = useState<string | null>(null);
   const [writeClinic, setWriteClinic] = useState(false);
   const [toast, setToast] = useState("");
   const [profile, setProfile] = useState(false);
+  const [support, setSupport] = useState(false);
   const openHelp = useCallback(() => setHelp(true), []);
   useLocalHelp(as, openHelp); // K-15: frase de la lista fija → ayuda en su propio móvil, aunque no haya red ni consentimiento
 
@@ -65,8 +79,14 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
   if (!data.onboarded) return <Welcome w={w} as={as} data={data} player={player} />;
   const mentor = data.mentor;
   const mName = mentor?.name ?? "your companion";
-  const go = (s: typeof screen) => {
-    setScreen(s);
+  const active = !!mentor && mentor.state !== "left";
+  const go = (t: Tab) => {
+    setTab(t);
+    setPlanId(null);
+    document.getElementById(`rv-scroll-${as}`)?.scrollTo({ top: 0 });
+  };
+  const openPlan = (id: string) => {
+    setPlanId(id);
     document.getElementById(`rv-scroll-${as}`)?.scrollTo({ top: 0 });
   };
 
@@ -79,22 +99,44 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
     if (choice === "note") go("chat");
     if (choice === "write") setWriteClinic(true);
     if (choice === "need_help") setHelp(true);
-    if (choice === "check") go("devices");
+    if (choice === "check") go("settings");
   }
 
-  const planScreen = screen.startsWith("plan:") ? data.plans.find((p) => p.id === screen.slice(5)) ?? null : null;
+  const planScreen = planId ? data.plans.find((p) => p.id === planId) ?? null : null;
+  const title = tab === "chat" ? mName : tab === "relay" ? "My relay" : tab === "settings" ? "Settings" : `Hi, ${data.me.name}`;
+  const profileBlock = active && (
+    <>
+      <PersonCard name={mName} role="Walks with you" me={data.me.name} big>
+        {data.intro && (
+          <div className="mt-3">
+            <p className="mb-1.5 text-[12.5px] font-semibold text-rv-teal">{mName}&apos;s hello</p>
+            <VoiceNote note={data.intro} player={player} />
+          </div>
+        )}
+        {data.together && <div className="mt-3"><Milestones together={data.together} other={mName} /></div>}
+      </PersonCard>
+    </>
+  );
+  const chainBlock = active && (
+    <div className="rv-card px-2 py-5">
+      <Chain a={data.together?.chainFrom ?? "Clinic"} b={mName} c={data.me.name} labels={[data.together?.chainFrom ? `${data.together.chainFrom} walked with ${mName}` : "Your clinic", `${mName} walks with you`, "You"]} />
+      <p className="mx-auto mt-4 max-w-[32ch] text-center text-[14px] leading-snug">
+        {data.together?.chainFrom ? `${data.together.chainFrom} walked with ${mName} after their TMS. Now ${mName} walks with you.` : `${mName} finished TMS a few months ago. Now ${mName} walks with you.`} One day, if you want, you could walk with someone too.
+      </p>
+    </div>
+  );
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      {/* Cabecera: saludo y ayuda siempre visible */}
+      {/* Cabecera: saludo o título de la pestaña, y ayuda siempre visible */}
       <header className="flex shrink-0 items-center justify-between px-5 pb-2 pt-2">
-        {screen === "home" ? (
-          <h1 className="text-[24px]">Hi, {data.me.name}</h1>
-        ) : (
-          <button onClick={() => go("home")} className="rv-btn rv-btn-ghost -ml-3 px-3" aria-label="Back to home">
+        {planScreen ? (
+          <button onClick={() => setPlanId(null)} className="rv-btn rv-btn-ghost -ml-3 px-3" aria-label="Back">
             <Icon name="back" />
-            <span className="text-[16px] text-rv-ink">{screen === "chat" ? mName : screen === "devices" ? "Devices and privacy" : "Plan"}</span>
+            <span className="text-[16px] text-rv-ink">Plan</span>
           </button>
+        ) : (
+          <h1 className="text-[24px]">{title}</h1>
         )}
         <button onClick={() => setHelp(true)} className="rv-btn rv-btn-help rv-btn-sm !min-h-[44px] gap-1.5">
           <Icon name="heart" size={16} />
@@ -103,8 +145,18 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
       </header>
 
       <div id={`rv-scroll-${as}`} className="rv-scroll min-h-0 flex-1 overflow-y-auto">
-        {screen === "home" && (
+        {planScreen && <PlanDetail w={w} as={as} plan={planScreen} player={player} onToast={setToast} />}
+
+        {!planScreen && tab === "today" && (
           <div className="flex flex-col gap-3 px-4 pb-6 pt-1">
+            {/* Pausa suave pedida por él: se ve primero y se puede quitar en un toque */}
+            {data.quiet && (
+              <div className="rv-card rv-in p-4">
+                <p className="flex items-center gap-2 text-[15px] font-semibold"><Icon name="moon" size={18} className="text-rv-teal" />Fewer messages until {data.quiet.until}</p>
+                <p className="rv-muted mt-1 text-[13.5px] leading-snug">{active ? `${mName} knows you're taking a breather. ` : ""}Your clinic still looks out for you.</p>
+                <button onClick={() => act(w, as, "quiet", { on: false })} className="rv-btn rv-btn-ghost rv-btn-sm mt-2 -ml-2">Turn messages back on</button>
+              </div>
+            )}
             {/* Avisos amables (V2, V3, V4, V7, V8) */}
             {data.notices.map((n) => (
               <div key={n.id} className="rv-notice rv-in p-4">
@@ -123,7 +175,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
             ))}
 
             {/* La persona que le acompaña: cara, una línea suya y, la primera semana, su saludo de voz */}
-            {mentor && mentor.state !== "left" && (
+            {active && (
               <div className="rv-card p-4">
                 <button onClick={() => setProfile(true)} className="flex w-full items-center gap-3 text-left" aria-label={`See ${mName}'s profile`}>
                   <Avatar name={mName} size={48} ring />
@@ -170,25 +222,26 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
             )}
 
             {/* Plan propuesto */}
-            {data.plan && <PlanCard w={w} as={as} plan={data.plan} onOpen={() => go(`plan:${data.plan!.id}`)} onToast={setToast} />}
+            {data.plan && <PlanCard w={w} as={as} plan={data.plan} onOpen={() => openPlan(data.plan!.id)} onToast={setToast} />}
 
             {/* Recuerdo social: habla de la relación, no de su salud */}
             {data.social && !data.social.label.endsWith(": 0") && <p className="rv-muted px-2 text-center text-[13.5px]">{data.social.label}</p>}
 
             {/* Botón grande de grabar */}
-            {mentor && mentor.state !== "left" && (
+            {active && (
               <div className="mt-3 pb-2">
-                <Recorder w={w} as={as} to={mentor.id} toName={mName} sub="Only if you feel like it. No need to reply." />
+                <Recorder w={w} as={as} to={mentor!.id} toName={mName} sub="Only if you feel like it. No need to reply." />
               </div>
             )}
 
-            <button onClick={() => go("devices")} className="rv-muted mx-auto mt-2 text-[13px] underline underline-offset-4">
-              My devices and privacy
+            {/* Más apoyo, sin urgencia: un toque y la clínica se pone en contacto (para lo urgente está Help) */}
+            <button onClick={() => setSupport(true)} className="rv-btn rv-btn-ghost rv-btn-sm mx-auto gap-1.5 text-rv-ink2">
+              <Icon name="users" size={16} />I&apos;d like more support
             </button>
           </div>
         )}
 
-        {screen === "chat" && mentor && (
+        {!planScreen && tab === "chat" && active && (
           <div className="flex min-h-full flex-col">
             <div className="flex flex-1 flex-col gap-2.5 px-4 pb-4 pt-2">
               {data.conversation.length === 0 && <p className="rv-muted py-10 text-center">No notes yet.</p>}
@@ -196,40 +249,93 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
                 <VoiceNote key={n.id} note={n} player={player} bubble />
               ))}
             </div>
-            <ChatBar w={w} as={as} to={mentor.id} toName={mName} />
+            <ChatBar w={w} as={as} to={mentor!.id} toName={mName} />
+          </div>
+        )}
+        {!planScreen && tab === "chat" && !active && <p className="rv-muted px-6 py-10 text-center">You&apos;ll be able to talk here once someone accompanies you.</p>}
+
+        {!planScreen && tab === "relay" && (
+          <div className="flex flex-col gap-3 px-4 pb-6 pt-1">
+            {profileBlock || (
+              <div className="rv-card p-5">
+                <p className="text-[16px] font-semibold">We&apos;re looking for the person who will accompany you.</p>
+                <p className="rv-muted mt-1">Meanwhile, your clinic is keeping an eye on you.</p>
+              </div>
+            )}
+            {/* Planes con su acompañante: próximos y pasados */}
+            <div className="rv-card p-4">
+              <p className="text-[17px] font-semibold">Plans with {mName}</p>
+              {data.plans.length === 0 ? (
+                <p className="rv-muted mt-1 text-[14px]">No plans yet. {active ? `${mName} may suggest something small together.` : ""}</p>
+              ) : (
+                <ul className="mt-2 divide-y divide-rv-line">
+                  {data.plans.map((p) => (
+                    <li key={p.id}>
+                      <button onClick={() => openPlan(p.id)} className="flex w-full items-center gap-3 py-2.5 text-left">
+                        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${p.past ? "bg-rv-bg text-rv-ink2" : "bg-rv-sage text-rv-teal"}`}>
+                          <Icon name={ICON_OF[p.icon] ?? "calendar"} size={20} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[15px] font-semibold leading-snug">{p.title}</span>
+                          <span className="rv-muted block text-[12.5px]">{p.when}</span>
+                        </span>
+                        <span className={`rv-chip shrink-0 text-[11.5px] ${p.status === "accepted" && !p.past ? "bg-rv-sage text-rv-teal" : "bg-rv-bg text-rv-ink2"}`}>
+                          {p.past && p.feedback ? FEEDBACK[p.feedback] : p.past && p.status === "accepted" ? "Done" : PLAN_STATUS[p.status] ?? p.status}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {chainBlock}
           </div>
         )}
 
-        {screen === "devices" && <Devices w={w} as={as} data={data} />}
-        {planScreen && <PlanDetail w={w} as={as} plan={planScreen} player={player} onToast={setToast} />}
+        {!planScreen && tab === "settings" && (
+          <div className="px-4 pb-6 pt-1">
+            {/* Pausa suave: menos mensajes durante una semana; la clínica sigue igual */}
+            <div className="rv-card p-4">
+              <label className="flex items-center gap-3">
+                <span className="flex-1">
+                  <span className="block text-[15px] font-semibold">Fewer messages for a week</span>
+                  <span className="rv-muted block text-[13px] leading-snug">
+                    {active ? `No nudges, and ${mName} won't get ideas to write to you. ${mName} will only see that you're taking a breather. ` : "No nudges for a week. "}Your clinic still looks out for you, and Help is always there.
+                  </span>
+                </span>
+                <Toggle on={!!data.quiet} onChange={(v) => act(w, as, "quiet", { on: v })} label="Fewer messages for a week" />
+              </label>
+              {data.quiet && <p className="mt-2 text-[13px] font-semibold text-rv-teal">On until {data.quiet.until}</p>}
+            </div>
+            <h3 className="mt-6 px-1 text-[17px]">Devices and privacy</h3>
+            <div className="mt-2"><Devices w={w} as={as} data={data} /></div>
+          </div>
+        )}
       </div>
 
+      <nav className="grid shrink-0 grid-cols-4 border-t border-rv-line bg-white/95 pb-3 pt-1.5 backdrop-blur" aria-label="Main">
+        {TABS.map((t) => (
+          <button key={t.id} onClick={() => go(t.id)} aria-current={tab === t.id && !planScreen ? "page" : undefined} className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${tab === t.id ? "text-rv-teal" : "text-[#7c8883]"}`}>
+            <Icon name={t.icon} size={22} />
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
       {toast && (
-        <div className="rv-in pointer-events-none absolute inset-x-6 bottom-6 z-30 rounded-full bg-rv-ink px-4 py-3 text-center text-[14px] font-semibold text-white shadow-lg" role="status">
+        <div className="rv-in pointer-events-none absolute inset-x-6 bottom-20 z-30 rounded-full bg-rv-ink px-4 py-3 text-center text-[14px] font-semibold text-white shadow-lg" role="status">
           {toast}
         </div>
       )}
-      {profile && mentor && (
+      {profile && active && (
         <Sheet onClose={() => setProfile(false)} label={`${mName}'s profile`}>
           <h2 className="sr-only">{mName}&apos;s profile</h2>
-          <PersonCard name={mName} role="Walks with you" me={data.me.name} big>
-            {data.intro && (
-              <div className="mt-3">
-                <p className="mb-1.5 text-[12.5px] font-semibold text-rv-teal">{mName}&apos;s hello</p>
-                <VoiceNote note={data.intro} player={player} />
-              </div>
-            )}
-            {data.together && <div className="mt-3"><Milestones together={data.together} other={mName} /></div>}
-          </PersonCard>
-          <div className="rv-card mt-3 px-2 py-5">
-            <Chain a={data.together?.chainFrom ?? "Clinic"} b={mName} c={data.me.name} labels={[data.together?.chainFrom ? `${data.together.chainFrom} walked with ${mName}` : "Your clinic", `${mName} walks with you`, "You"]} />
-            <p className="mx-auto mt-4 max-w-[32ch] text-center text-[14px] leading-snug">
-              {data.together?.chainFrom ? `${data.together.chainFrom} walked with ${mName} after their TMS. Now ${mName} walks with you.` : `${mName} finished TMS a few months ago. Now ${mName} walks with you.`} One day, if you want, you could walk with someone too.
-            </p>
-          </div>
+          {profileBlock}
+          <div className="mt-3">{chainBlock}</div>
         </Sheet>
       )}
-      {help && <HelpSheet w={w} as={as} mentorName={mentor && mentor.state !== "left" ? mName : null} clinic={data.clinic} clinicKnows={data.helpNote && !!data.openHelp} onClose={() => setHelp(false)} />}
+      {support && <SupportSheet w={w} as={as} already={data.supportAsked} onClose={() => setSupport(false)} onHelp={() => { setSupport(false); setHelp(true); }} />}
+      {help && <HelpSheet w={w} as={as} mentorName={active ? mName : null} clinic={data.clinic} clinicKnows={data.helpNote && !!data.openHelp} onClose={() => setHelp(false)} />}
       {writeClinic && (
         <Sheet onClose={() => setWriteClinic(false)} label="Write to your clinic">
           <h2 className="text-[22px]">Write to your clinic</h2>
@@ -243,6 +349,41 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
         </Sheet>
       )}
     </div>
+  );
+}
+
+/* ---------- "I'd like more support": aviso tranquilo a la clínica (lo urgente va por Help) ---------- */
+function SupportSheet({ w, as, already, onClose, onHelp }: { w: string; as: string; already: boolean; onClose: () => void; onHelp: () => void }) {
+  const [state, setState] = useState<"ask" | "sending" | "sent" | "error">(already ? "sent" : "ask");
+  const send = async () => {
+    setState("sending");
+    try {
+      await act(w, as, "support");
+      setState("sent");
+    } catch {
+      setState("error");
+    }
+  };
+  return (
+    <Sheet onClose={onClose} label="More support">
+      {state !== "sent" ? (
+        <>
+          <h2 className="pr-12 text-[22px] leading-tight">Would you like more support?</h2>
+          <p className="mt-2 flex items-start gap-2 text-[16px] leading-snug"><Avatar name="Anna" size={32} />We&apos;ll let Anna, your nurse, and your clinic team know. They&apos;ll get in touch. You don&apos;t need to explain anything.</p>
+          {state === "error" && <p className="mt-3 rounded-2xl bg-white p-3 text-[14px]">Couldn&apos;t send it. Try again, or use Help.</p>}
+          <button className="rv-btn rv-btn-primary rv-btn-lg mt-5 w-full" onClick={send} disabled={state === "sending"}>{state === "sending" ? "Sending…" : "Let my clinic know"}</button>
+          <button className="rv-btn rv-btn-ghost mt-2 w-full" onClick={onClose}>Not now</button>
+          <p className="rv-muted mt-3 text-center text-[13px]">If it feels urgent, <button className="font-semibold text-rv-help underline" onClick={onHelp}>use Help</button>.</p>
+        </>
+      ) : (
+        <>
+          <h2 className="pr-12 text-[22px] leading-tight">Your clinic knows</h2>
+          <p className="mt-2 text-[16px] leading-snug">Anna and your clinic team know you&apos;d like more support. They&apos;ll get in touch soon. You don&apos;t need to do anything else.</p>
+          <button className="rv-btn rv-btn-primary rv-btn-lg mt-5 w-full" onClick={onClose}>OK</button>
+          <p className="rv-muted mt-3 text-center text-[13px]">If it feels urgent, <button className="font-semibold text-rv-help underline" onClick={onHelp}>use Help</button>.</p>
+        </>
+      )}
+    </Sheet>
   );
 }
 

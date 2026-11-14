@@ -63,7 +63,7 @@ export type Note = {
   kind: string; scripted: boolean; analysis?: { indice_queja: number; afecto_negativo: number; repeticion: number; orientacion_accion: number; crisis: boolean; source: string };
 };
 export type Alert = {
-  id: string; person: PersonId; kind: "level2" | "severe" | "help" | "message" | "data_request" | "worried"; t: number; text: string;
+  id: string; person: PersonId; kind: "level2" | "severe" | "help" | "message" | "data_request" | "worried" | "support"; t: number; text: string;
   status: "new" | "in_progress" | "resolved"; assignee?: string; forwardedAt?: number; resolvedAt?: number; noteId?: string;
 };
 export type Copilot = { id: string; mentor: PersonId; mentee: PersonId; t: number; status: "active" | "used" | "dismissed"; indices: number[] };
@@ -76,6 +76,7 @@ export type PState = {
   rhythm: number; rhythmProposal: { rhythm: number; screen: "M5_pause" | "V6_M5" | "M5"; t: number; answer?: string } | null;
   reviewPace: boolean; ideasPausedLevel: boolean; ideasPausedM6: boolean; ideasPausedClinic: boolean; tookPause: boolean;
   l1Run: number; leftProgram: boolean; deviceIssue: { since: number; device: string } | null; openHelp: string | null;
+  quietUntil: number | null; // pausa suave pedida por el propio paciente: sin avisos blandos ni ideas sobre él hasta esa hora
 };
 export type Call = { id: string; person: PersonId; t: number; mode: "now" | "schedule"; scheduledFor?: number; done?: boolean };
 export type Log = { t: number; person: PersonId; kind: string; text: string; by?: string };
@@ -178,7 +179,7 @@ export function evaluate(world: World, nowIn?: number): Sim {
       onboarded: p.id !== "luis", disabled: new Set(), silence: 0, lastA1: null, noData48: false,
       mentorId: p.id === "luis" ? undefined : p.mentorId, menteeId: p.id === "pablo" ? undefined : p.menteeId, pairSince: p.id === "luis" || p.id === "pablo" ? undefined : 0,
       rhythm: p.rhythm ?? 2, rhythmProposal: null, reviewPace: false, ideasPausedLevel: false, ideasPausedM6: false, ideasPausedClinic: false,
-      tookPause: false, l1Run: 0, leftProgram: false, deviceIssue: null, openHelp: null,
+      tookPause: false, l1Run: 0, leftProgram: false, deviceIssue: null, openHelp: null, quietUntil: null,
     };
   }
   // Pablo ya era mentor de Marta-> Pablo; Luis llega el día 0 sin mentor (emparejamiento en C4)
@@ -237,6 +238,7 @@ export function evaluate(world: World, nowIn?: number): Sim {
     const who = P[n.to];
     const soft = ["V2", "V3", "V7"].includes(n.code);
     if (soft && who.level === 3) return void ((n.status = "discarded"), (n.why = "Level 3: no soft notices, help and the clinic instead"));
+    if (soft && who.quietUntil !== null && t < who.quietUntil) return void ((n.status = "discarded"), (n.why = "They asked for fewer messages for now"));
     const day = dayOf(t);
     const critical = n.code === "HELP" || n.code === "CRISIS";
     const inWindow = minOf(t) >= cfg.noticeFrom && minOf(t) <= cfg.noticeTo;
@@ -300,6 +302,7 @@ export function evaluate(world: World, nowIn?: number): Sim {
   }
   function newCard(mentor: PersonId, mentee: PersonId, day: number, t: number, level: number, twoStep: boolean, kind: Card["kind"] = "idea", context?: Domain): Card | null {
     if (ideasPaused(mentor) || !P[mentee].consents.ideas) return null;
+    if (P[mentee].quietUntil !== null && t < P[mentee].quietUntil!) return null; // el acompañado pidió menos mensajes
     const s = sim.runs[mentee]?.days[Math.min(day, dayOf(now))]?.s ?? {};
     const card: Card = {
       id: `card:${mentor}:${mentee}:${day}:${sim.cards.length}`, mentor, mentee, day, t, kind, level, excluded: [], attempt: 0,
@@ -665,6 +668,20 @@ export function evaluate(world: World, nowIn?: number): Sim {
           if (m) offer({ id: `HELP:${m}:${t}`, code: "HELP", to: m, about: by, text: NOTICE_TEXT.HELP_MENTOR(name(by)), buttons: [{ id: "note", label: "Send a note" }], created: t, validUntil: t + DAY }, t);
         }
         log(t, by, "help", p.type === "clinic" ? "Help: talk to my clinic" : `Help: asked ${name(P[by].mentorId ?? "")} to write`);
+        return true;
+      }
+      case "support": {
+        // "I'd like more support" del paciente: aviso tranquilo a la clínica (no es una crisis; para eso está Help)
+        sim.alerts.push({ id: `alert:support:${t}`, person: by as PersonId, kind: "support", t, status: "new", text: `${name(by)} asked for more support` });
+        log(t, by, "support", "Asked for more support", "clinic");
+        trace(t, name(by), "Asks the clinic for more support", scripted);
+        return true;
+      }
+      case "quiet": {
+        // Pausa suave: 7 días sin avisos blandos (V2, V3, V7) ni ideas para su acompañante. La clínica sigue igual.
+        P[by].quietUntil = p.on ? t + 7 * DAY : null;
+        log(t, by, "quiet", p.on ? "Asked for fewer messages for a week" : "Messages back to normal", "clinic");
+        trace(t, name(by), p.on ? "Asks for fewer messages for a week" : "Turns messages back on", scripted);
         return true;
       }
       case "worried": {

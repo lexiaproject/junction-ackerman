@@ -445,7 +445,7 @@ function PairReactivate({ w, mentorId }: { w: string; mentorId: string }) {
 
 /* ---------- C3 · Cola de alertas ---------- */
 function Alerts({ w, alerts, onOpen }: { w: string; alerts: Alert[]; onOpen: (id: string) => void }) {
-  const KIND: Record<string, string> = { level2: "Level 2 · High risk", severe: "Level 3 · Severe", help: "Help button", message: "Message from patient", data_request: "Data request", worried: "Companion is worried" };
+  const KIND: Record<string, string> = { level2: "Level 2 · High risk", severe: "Level 3 · Severe", help: "Help button", message: "Message from patient", data_request: "Data request", worried: "Companion is worried", support: "Asked for more support" };
   return (
     <>
       <h1 className="text-[28px]">Alerts</h1>
