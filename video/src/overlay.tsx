@@ -1,7 +1,7 @@
 // Textos de pantalla en estilo Apple: Inter grande, interlineado justo, sin contornos ni adornos.
 // Cada plano entra de una forma distinta (máscara, corte, escala, letra a letra, palabra a palabra,
 // revelado por un objeto, subida desde máscara, enfoque), siempre suave y limpia.
-import React from "react";
+import React, { useId } from "react";
 import { AbsoluteFill, Freeze, useCurrentFrame } from "remotion";
 import { INTER, GROTESK, clamp01, prog, ramp, smooth } from "./lib";
 
@@ -107,6 +107,20 @@ export const SweepReveal: React.FC<{ children: React.ReactNode; p: number; style
 export const Logo: React.FC<{ size?: number; color?: string }> = ({ size = 150, color = "#16211C" }) => (
   <span style={{ fontFamily: GROTESK, fontWeight: 700, fontSize: size, letterSpacing: "-0.035em", color, lineHeight: 1 }}>Relevo</span>
 );
+
+// Desenfoque direccional para los barridos rápidos (whip pan): estela limpia en una sola dirección
+export const DirBlur: React.FC<{ x?: number; y?: number; children: React.ReactNode }> = ({ x = 0, y = 0, children }) => {
+  const id = "db" + useId().replace(/[^a-zA-Z0-9]/g, "");
+  const on = x > 0.3 || y > 0.3;
+  return (
+    <AbsoluteFill>
+      <svg width="0" height="0" style={{ position: "absolute" }}>
+        <filter id={id} x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB"><feGaussianBlur stdDeviation={`${x} ${y}`} edgeMode="duplicate" /></filter>
+      </svg>
+      <AbsoluteFill style={{ filter: on ? `url(#${id})` : "none" }}>{children}</AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
 
 // Desenfoque de movimiento: varias muestras del mismo plano en instantes cercanos, promediadas
 export const MotionBlur: React.FC<{ on: boolean; samples?: number; shutter?: number; children: React.ReactNode }> = ({ on, samples = 10, shutter = 0.7, children }) => {

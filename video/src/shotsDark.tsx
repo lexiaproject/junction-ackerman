@@ -5,7 +5,7 @@ import { AbsoluteFill, Easing, useCurrentFrame } from "remotion";
 import { ThreeCanvas } from "@remotion/three";
 import * as THREE from "three";
 import { Cam, Brain, BRAIN_PULSE, Glow, Dust, Chair, Pts, PtsLive, Phone, LightStroke, ParticleText, Env, Backdrop, Bokeh, PHONE_H } from "./kit";
-import { Block, Wipe, Cut, ScaleIn, TypeIn, MotionBlur } from "./overlay";
+import { Block, Wipe, Cut, ScaleIn, TypeIn, MotionBlur, DirBlur } from "./overlay";
 import { C, prog, mix, key, hit, ramp, smooth, rng, clamp01, neuronPoints, personPoints, GROTESK, INTER, useFontsReady } from "./lib";
 
 type V3 = [number, number, number];
@@ -18,7 +18,7 @@ export const Stage: React.FC<{ bg: string; children: React.ReactNode; shadows?: 
 );
 
 // ---------- 1 · "TMS works." ----------
-export const Shot1 = () => { const f = useCurrentFrame(); return <MotionBlur on={f >= 76}><Shot1In /></MotionBlur>; };
+export const Shot1 = () => { const f = useCurrentFrame(); return <DirBlur y={46 * Math.pow(prog(f, 76, 90), 2)}><Shot1In /></DirBlur>; };
 const Shot1In = () => {
   const f = useCurrentFrame();
   const rot: V3 = [0.12, 0.55 - f * 0.0035, 0];
@@ -68,7 +68,7 @@ const LightCone: React.FC<{ op: number; h: number; r: number; position: V3 }> = 
   mat.uniforms.uOp.value = op;
   return <mesh position={position} material={mat}><coneGeometry args={[r, h, 64, 1, true]} /></mesh>;
 };
-export const Shot2 = () => { const f = useCurrentFrame(); return <MotionBlur on={f < 14}><Shot2In /></MotionBlur>; };
+export const Shot2 = () => { const f = useCurrentFrame(); return <DirBlur y={46 * Math.pow(1 - prog(f, 0, 13), 2)}><Shot2In /></DirBlur>; };
 const Shot2In = () => {
   const f = useCurrentFrame();
   const on = f < 60;
@@ -141,7 +141,7 @@ const Node3: React.FC<{ i: number; morph: number; dim: number; focus: number; t:
   }
   return <Pts positions={src} target={dst} morph={morph} position={NODES[i]} scale={0.95} color={C.glow} colorB="#3B4946" mix={1 - dim} opacity={1 - 0.55 * dim} size={0.012} focus={focus} aperture={0.03} time={t} twinkle={0.4} spread={1} />;
 };
-export const Shot3 = () => { const f = useCurrentFrame(); return <MotionBlur on={(f >= 5 && f < 26) || f >= 70}><Shot3In /></MotionBlur>; };
+export const Shot3 = () => { const f = useCurrentFrame(); return <MotionBlur on={(f >= 5 && f < 26) || f >= 70} samples={12}><Shot3In /></MotionBlur>; };
 const Shot3In = () => {
   const f = useCurrentFrame();
   const z = f < 6 ? mix(0.7, 0.9, f / 6) : mix(0.9, 15, ramp(prog(f, 6, 62)));
@@ -250,7 +250,7 @@ const Shot4In = () => {
           if (p <= 0) return null;
           const after = beats.slice(i + 1).reduce((a, bb) => a + prog(f, bb, bb + 7, ramp), 0);
           return (
-            <group key={i} position={[0, 0.42 + after * 0.36 + (1 - p) * -0.15, 0]} rotation={[0, az, 0]} scale={0.85 + 0.15 * p}>
+            <group key={i} position={[0, 0.34 + after * 0.33 + (1 - p) * -0.15, 0]} rotation={[0, az, 0]} scale={0.85 + 0.15 * p}>
               <mesh renderOrder={10 + i}><planeGeometry args={[1.5, 0.35]} /><meshBasicMaterial map={texs[i]} transparent opacity={p * (1 - 0.25 * after)} depthWrite={false} toneMapped={false} /></mesh>
             </group>
           );
@@ -288,7 +288,7 @@ const Shot5In = () => {
   const flash = hit(f, 30, 10);
   const cp = prog(f, 0, 30, ramp);
   const dive = prog(f, 30, 41, Easing.in(Easing.cubic));
-  const pos: V3 = [mix(1.75, 0.0, cp), mix(0.55, 1.6, cp) - dive * 1.58, mix(2.4, 0.18, cp) - dive * 0.17];
+  const pos: V3 = [mix(2.6, 0.0, cp), mix(1.6, 3.6, cp) - dive * 3.58, mix(3.4, 0.3, cp) - dive * 0.29];
   return (
     <AbsoluteFill>
       <Stage bg={on ? "#0B1311" : "#060A09"} shadows env={0.35}>

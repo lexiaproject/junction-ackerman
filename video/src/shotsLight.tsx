@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { AbsoluteFill, Easing, useCurrentFrame } from "remotion";
 import * as THREE from "three";
 import { Cam, Chair, Person, Phone, LightStroke, ShotPanel, onScreen, PtsLive, Backdrop, Bokeh, Env, Heart3D, Glow, Pts } from "./kit";
-import { Block, Words, PassReveal, Rise, Focus, ScaleIn, SweepReveal, Logo, MotionBlur } from "./overlay";
+import { Block, Words, PassReveal, Rise, Focus, ScaleIn, SweepReveal, Logo, MotionBlur, DirBlur } from "./overlay";
 import { Stage } from "./shotsDark";
 import { C, prog, mix, key, hit, ramp, smooth, rng, clamp01, INTER, uvOf } from "./lib";
 import series from "../public/shots/pablo-series.json";
@@ -46,7 +46,7 @@ export function ecg(D: number, grow = 1, n = 260, spike = 1): V3[] {
 const ringPts: V3[] = Array.from({ length: 64 }, (_, i) => [Math.cos((i / 63) * Math.PI * 2), Math.sin((i / 63) * Math.PI * 2), 0]);
 
 // ---------- 6 · "Those who recovered…" ----------
-export const Shot6 = () => { const f = useCurrentFrame(); return <MotionBlur on={f < 18 || f >= 160}><Shot6In /></MotionBlur>; };
+export const Shot6 = () => { const f = useCurrentFrame(); return <DirBlur x={60 * Math.pow(prog(f, 160, 180), 2)}><MotionBlur on={f < 18} samples={14}><Shot6In /></MotionBlur></DirBlur>; };
 const Wave: React.FC<{ f: number; center: V3; rise: number; gather: number }> = ({ f, center, rise, gather }) => {
   const n = 26;
   return (
@@ -62,10 +62,10 @@ const Wave: React.FC<{ f: number; center: V3; rise: number; gather: number }> = 
 };
 const Shot6In = () => {
   const f = useCurrentFrame();
-  const out = ramp(prog(f, 0, 22));
+  const out = Easing.bezier(0.3, 0.55, 0.15, 1)(prog(f, 1, 24));
   const az = mix(-0.55, 0.35, prog(f, 0, 165, smooth));
   const r = mix(0.16, 3.9, out);
-  const startPt = onScreen(195, 600, 0);
+  const startPt = onScreen(195, 740, 0);
   const tgt: V3 = [mix(startPt[0], 0.75, out), mix(startPt[1], 0.05, out), 0];
   const pos: V3 = [tgt[0] + r * Math.sin(az * out), tgt[1] + 0.2 * out, r * Math.cos(az * out)];
   const gather = prog(f, 150, 162, smooth);
@@ -94,7 +94,7 @@ const Shot6In = () => {
 };
 
 // ---------- 7 · "…walk with the next." ----------
-export const Shot7 = () => { const f = useCurrentFrame(); return <MotionBlur on={f < 16}><Shot7In /></MotionBlur>; };
+export const Shot7 = () => { const f = useCurrentFrame(); return <DirBlur x={60 * Math.pow(1 - prog(f, 0, 15), 2)}><Shot7In /></DirBlur>; };
 const D7 = 2.2;
 const heartAt = (f: number, L: V3, P: V3): V3 => {
   const a = prog(f, 90, 135, Easing.bezier(0.35, 0.05, 0.2, 1));
@@ -143,7 +143,7 @@ const Shot7In = () => {
         {f >= 135 && f < 168 && [135, 150].map((b) => f >= b && <LightStroke key={b} points={ringPts} closed color={C.green} width={0.003} additive={false} opacity={0.8 * (1 - prog(f, b, b + 16))} position={[landed[0], landed[1], 0.07]} scale={0.12 + prog(f, b, b + 16, Easing.out(Easing.cubic)) * 0.5} />)}
         {f >= 158 && <group position={[landed[0], landed[1], landed[2] + 0.01]}><LightStroke points={ecg(D7, grow)} color={C.green} width={0.0075} additive={false} /></group>}
       </Stage>
-      <Block x={textLeft} y={108}><PassReveal text={[{ t: "…walk with " }, { t: "the next.", c: C.green }]} x={revealX} left={textLeft} dir={-1} size={100} /></Block>
+      <Block x={textLeft} y={108} style={{ opacity: 1 - prog(f, 150, 160) }}><PassReveal text={[{ t: "…walk with " }, { t: "the next.", c: C.green }]} x={revealX} left={textLeft} dir={-1} size={100} /></Block>
     </AbsoluteFill>
   );
 };
@@ -184,10 +184,10 @@ const Shot8In = () => {
   });
   const others = ["sueno", "movilidad", "ritmo", "fisiologia"].map((k) => Array.from({ length: 81 }, (_, j) => { const u = (j / 80) * p; return [-CH_W / 2 + u * CH_W, vy(at(S.domains[k], u)), -0.005] as V3; }));
   const crossed = f >= 120;
-  const e = prog(f, 30, 100, smooth); // despiece
+  const e = prog(f, 18, 96, smooth); // despiece
   const panel = prog(f, 12, 44, ramp);
-  const az = key(f, [26, 100], [0, -0.5], smooth);
-  const rr = f < 100 ? mix(D8, 4.5, e) : f < 188 ? mix(4.5, 1.9, prog(f, 100, 188, smooth)) : mix(1.9, -0.3, prog(f, 188, 210, Easing.in(Easing.cubic)));
+  const az = key(f, [16, 96], [0, -0.5], smooth);
+  const rr = f < 100 ? mix(D8, 4.5, e) : f < 188 ? mix(mix(D8, 4.5, e), 1.9, prog(f, 100, 188, smooth)) : mix(1.9, -0.3, prog(f, 188, 210, Easing.in(Easing.cubic)));
   const chartZ = 0.1 + e * 0.8;
   const focusPt: V3 = [mix(0, CROSS_PT[0], prog(f, 100, 170, smooth)), mix(0, CROSS_PT[1], prog(f, 100, 170, smooth)), chartZ];
   const pos: V3 = [focusPt[0] + rr * Math.sin(az) + 0.08 * Math.sin(f * 0.05) * (1 - e), focusPt[1] + rr * 0.12 * e + 0.04 * prog(f, 0, 30), focusPt[2] + rr * Math.cos(az)];
@@ -290,6 +290,7 @@ const Shot9In = () => {
 const IN_BTN: [number, number] = [128, 573];
 const CHECK: [number, number] = [41, 561];
 const FINGER: V3[] = [[-0.11, -1.2, 0], [-0.11, -0.25, 0], [-0.1, -0.06, 0], [-0.05, 0.03, 0], [0, 0.05, 0], [0.05, 0.03, 0], [0.1, -0.06, 0], [0.11, -0.25, 0], [0.11, -1.2, 0]];
+const fingerGeo = (() => { const s = new THREE.Shape(); s.moveTo(-0.11, -1.2); s.lineTo(-0.11, -0.25); s.bezierCurveTo(-0.11, -0.05, -0.06, 0.05, 0, 0.05); s.bezierCurveTo(0.06, 0.05, 0.11, -0.05, 0.11, -0.25); s.lineTo(0.11, -1.2); s.lineTo(-0.11, -1.2); return new THREE.ShapeGeometry(s, 24); })();
 const NAIL: V3[] = [[-0.055, -0.14, 0], [-0.05, -0.04, 0], [0, -0.01, 0], [0.05, -0.04, 0], [0.055, -0.14, 0]];
 // Mano de Luis hecha de partículas (palma bajo el móvil, pulgar a la izquierda y dedos a la derecha)
 let handCache: Float32Array | null = null;
@@ -306,11 +307,11 @@ const handPts = () => {
   handCache = new Float32Array(out);
   return handCache;
 };
-export const Shot10 = () => { const f = useCurrentFrame(); return <MotionBlur on={(f >= 76 && f < 98) || f >= 130}><Shot10In /></MotionBlur>; };
+export const Shot10 = () => { const f = useCurrentFrame(); return <DirBlur y={50 * Math.pow(prog(f, 132, 150), 2)}><MotionBlur on={f >= 76 && f < 98} samples={14}><Shot10In /></MotionBlur></DirBlur>; };
 const Shot10In = () => {
   const f = useCurrentFrame();
   const btn = onScreen(...IN_BTN, 0.056);
-  const pull = ramp(prog(f, 76, 106));
+  const pull = Easing.bezier(0.3, 0.55, 0.15, 1)(prog(f, 76, 108));
   const rise = prog(f, 130, 152, Easing.in(Easing.cubic));
   const phoneRot: V3 = [mix(-0.05, -0.16, pull), mix(0.0, 0.26, pull), mix(0, 0.04, pull)];
   const macroPos: V3 = [btn[0] + 0.02 * Math.sin(f * 0.05) + 0.03, btn[1] - 0.05 + 0.03 * prog(f, 0, 60), 0.34 - 0.04 * prog(f, 0, 60)];
@@ -334,8 +335,9 @@ const Shot10In = () => {
           {f >= 60 && f < 80 && <LightStroke points={ringPts} closed color={C.green} width={0.0012} additive={false} opacity={1 - prog(f, 60, 78)} position={btn} scale={0.05 + prog(f, 60, 78, Easing.out(Easing.cubic)) * 0.2} />}
           {f >= 64 && <LightStroke points={[[-0.012, 0, 0], [-0.003, -0.01, 0], [0.016, 0.013, 0]]} color={C.green} width={0.0018} additive={false} progress={done} position={ck} />}
           {f < 90 && <group position={fingerPos} rotation={[0.2, 0, 0.72]} scale={0.32}>
-            <LightStroke points={FINGER} color={C.greenDark} width={0.008} additive={false} opacity={0.9 * (1 - prog(f, 78, 88))} />
-            <LightStroke points={NAIL} color={C.greenDark} width={0.005} additive={false} opacity={0.5 * (1 - prog(f, 78, 88))} />
+            <mesh geometry={fingerGeo} position={[0, 0, -0.005]}><meshBasicMaterial color={C.sage} transparent opacity={0.55 * (1 - prog(f, 78, 88))} depthWrite={false} /></mesh>
+            <LightStroke points={FINGER} color={C.green} width={0.0035} additive={false} opacity={0.8 * (1 - prog(f, 78, 88))} />
+            <LightStroke points={NAIL} color={C.green} width={0.0025} additive={false} opacity={0.35 * (1 - prog(f, 78, 88))} />
           </group>}
           {handP > 0 && <Pts positions={handPts()} color={C.green} size={0.012} opacity={0.55 * handP} additive={false} focus={4.9} aperture={0.004} time={f / 30} spread={1} />}
         </group>
@@ -375,7 +377,7 @@ const getHills = () => {
 };
 const WIN = { cx: 1.75, cy: 0.75, w: 2.3, h: 2.7 };
 const SNOW_N = 900;
-export const Shot11 = () => { const f = useCurrentFrame(); return <MotionBlur on={f < 10}><Shot11In /></MotionBlur>; };
+export const Shot11 = () => { const f = useCurrentFrame(); return <DirBlur y={50 * Math.pow(1 - prog(f, 0, 10), 2)}><Shot11In /></DirBlur>; };
 const Shot11In = () => {
   const f = useCurrentFrame();
   const dawn = prog(f, 14, 112, smooth);
@@ -437,9 +439,9 @@ export const Shot12 = () => {
         <Env intensity={0.6} />
         <hemisphereLight args={["#ffffff", "#DDE5E1", 1.1]} />
         <directionalLight position={[3, 6, 4]} intensity={1.6} castShadow shadow-mapSize={[2048, 2048]} />
-        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[200, 200]} /><meshStandardMaterial color="#E6EAE6" roughness={0.95} /></mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[200, 200]} /><meshStandardMaterial color="#EEF1EE" roughness={0.95} /></mesh>
         <group rotation={[0, 0.5, 0]}>
-          <Chair color="#D2DAD6" />
+          <Chair color="#B3C0BA" />
           <Person kind="bust" seed={90} n={3400} position={[0, 1.3, -0.22]} scale={0.95} color="#55635D" opacity={0.95} size={0.011} focus={6.3} aperture={0.006} additive={false} time={f / 30} spread={1} />
         </group>
         <Person kind="stand" seed={31} n={6000} position={[1.35, 0.95, 0.55]} scale={1.9} color={C.green} opacity={0.95} size={0.011} focus={6.3} aperture={0.006} additive={false} time={f / 30} spread={1} />
