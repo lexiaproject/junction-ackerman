@@ -233,7 +233,7 @@ export default function DemoPage() {
       {/* Las tres superficies a la vez */}
       <div data-rv-demo className="grid grid-cols-1 gap-6 px-5 pt-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.6fr)] lg:gap-4">
         <Column title="Luis" sub="accompanied · just finished TMS">
-          <Fit width={390} height={844} pad={14}><Phone time={c.time} label="Luis's phone"><MenteeApp w={w} /></Phone></Fit>
+          <Fit width={390} height={844} pad={14}><Phone time={c.time} label="Luis's phone"><MenteeApp w={w} resetKey={data.index} /></Phone></Fit>
         </Column>
         <Column
           title={mentor === "pablo" ? "Pablo" : "Marta"}

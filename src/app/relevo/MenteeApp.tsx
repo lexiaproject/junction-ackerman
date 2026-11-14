@@ -43,7 +43,7 @@ type Tab = (typeof TABS)[number]["id"];
 const PLAN_STATUS: Record<string, string> = { proposed: "Waiting for you", accepted: "You're in", other_day: "Another day", cant: "Couldn't make it", change_requested: "Asked for another time" };
 const FEEDBACK: Record<string, string> = { good: "Went well", ok: "So-so", didnt: "Didn't go" };
 
-export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }) {
+export default function MenteeApp({ w, as = "luis", resetKey }: { w: string; as?: string; resetKey?: number }) {
   const { data } = useView<MeData>(`/api/relevo/me?w=${w}&as=${as}`);
   const player = usePlayer(w);
   const [tab, setTab] = useState<Tab>("today");
@@ -56,6 +56,17 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
   const [support, setSupport] = useState(false);
   const openHelp = useCallback(() => setHelp(true), []);
   useLocalHelp(as, openHelp); // K-15: frase de la lista fija → ayuda en su propio móvil, aunque no haya red ni consentimiento
+  // Como el móvil del mentor: al pasar de momento en la demo vuelve a Today y se cierran las hojas
+  // (la ayuda de crisis no se toca: la abren y cierran los datos)
+  const [seenKey, setSeenKey] = useState(resetKey);
+  if (seenKey !== resetKey) {
+    setSeenKey(resetKey);
+    setTab("today");
+    setPlanId(null);
+    setWriteClinic(false);
+    setProfile(false);
+    setSupport(false);
+  }
 
   // A3 se abre sola si una nota activa el filtro de crisis (o si pide ayuda desde V7)
   useEffect(() => {
