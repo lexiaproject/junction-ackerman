@@ -291,10 +291,17 @@ function Column({ title, sub, right, children }: { title: string; sub: string; r
 }
 
 function Timeline({ data, onPick, onMoment }: { data: DemoData; onPick: (t: number) => void; onMoment: (m: DemoData["moments"][number]) => void }) {
+  // Una sola línea: la barra que se arrastra, el progreso y los momentos comparten la misma escala (día 0 → día 62)
   const c = data.clock;
   const pct = (t: number) => (t / END) * 100;
+  const rail = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<number | null>(null);
-  const day = drag ?? c.day;
+  const at = drag !== null ? drag * DAY + (c.t % DAY) : c.t;
+  const dayAt = (x: number) => {
+    const r = rail.current!.getBoundingClientRect();
+    return Math.max(0, Math.min(62, Math.round(((x - r.left) / r.width) * (END / DAY))));
+  };
+  const pick = (d: number) => onPick(d * DAY + (c.t % DAY));
   // Un punto por día (los momentos del mismo día se solapaban): lleva al primer momento de ese día
   const days: { first: number; list: DemoData["moments"] }[] = [];
   data.moments.forEach((m, i) => {
@@ -302,51 +309,56 @@ function Timeline({ data, onPick, onMoment }: { data: DemoData; onPick: (t: numb
     if (g && data.moments[g.first].day === m.day) g.list.push(m);
     else days.push({ first: i, list: [m] });
   });
+  const marks: [number, string][] = [[0, "Day 0 · 7 Sep"], [28, "Baseline ends · day 27"], [35, "Prodrome starts · day 35"], [62, "Day 62 · 8 Nov"]];
   return (
-    <div className="relative mt-2 pb-1">
-      <div className="relative h-5">
-        {/* Línea base de Luis (días 0-27) */}
-        <div className="absolute top-2 h-1 rounded-full bg-rv-sage" style={{ left: 0, width: `${pct(28 * DAY)}%` }} title="Luis's baseline: days 0-27" />
-        {days.map(({ first, list }) => {
+    <div className="relative mt-3 select-none px-2">
+      <div
+        ref={rail}
+        role="slider"
+        tabIndex={0}
+        aria-label="Day of the demo"
+        aria-valuemin={0}
+        aria-valuemax={62}
+        aria-valuenow={drag ?? c.day}
+        aria-valuetext={`Day ${drag ?? c.day}`}
+        className="relative h-7 cursor-pointer touch-none rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-teal"
+        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); setDrag(dayAt(e.clientX)); }}
+        onPointerMove={(e) => drag !== null && setDrag(dayAt(e.clientX))}
+        onPointerUp={() => { if (drag !== null) pick(drag); setDrag(null); }}
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+          e.preventDefault();
+          e.stopPropagation(); // aquí las flechas mueven de día, no de momento
+          pick(Math.max(0, Math.min(62, c.day + (e.key === "ArrowRight" ? 1 : -1))));
+        }}
+      >
+        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-rv-line" />
+        <div className="absolute left-0 top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-rv-teal" style={{ width: `${pct(at)}%` }} />
+        {marks.slice(1, 3).map(([d]) => (
+          <div key={d} className="absolute top-1/2 h-3 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rv-ink2/40" style={{ left: `${pct(d * DAY)}%` }} />
+        ))}
+        {days.map(({ list }) => {
           const m = list[0];
-          const all = list.map((x) => `${x.time} · ${x.label}`).join("\n");
           return (
             <button
               key={m.key}
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={() => onMoment(m)}
-              title={`Day ${m.day}\n${all}`}
+              title={`Day ${m.day}\n${list.map((x) => `${x.time} · ${x.label}`).join("\n")}`}
               aria-label={`Day ${m.day}: ${list.map((x) => `${x.time} ${x.label}`).join("; ")}`}
-              className={`absolute top-0.5 h-4 w-4 -translate-x-1/2 rounded-full border-2 transition-transform hover:scale-125 ${first <= data.index ? "border-rv-teal bg-rv-teal" : "border-rv-teal bg-white"}`}
+              className={`absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-rv-teal transition-transform hover:scale-125 ${m.t <= at ? "bg-rv-teal ring-2 ring-white" : "bg-white"}`}
               style={{ left: `${pct(m.t)}%` }}
             />
           );
         })}
+        <div className="absolute top-1/2 h-5 w-5 cursor-grab active:cursor-grabbing -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-rv-teal bg-white shadow-md" style={{ left: `${pct(at)}%` }} />
+        {drag !== null && <p className="rv-num pointer-events-none absolute -top-5 -translate-x-1/2 rounded-md bg-rv-ink px-1.5 text-[11px] text-white" style={{ left: `${pct(at)}%` }}>day {drag}</p>}
       </div>
-      <input
-        type="range"
-        min={0}
-        max={62}
-        step={1}
-        value={day}
-        aria-label="Day of the demo"
-        aria-valuetext={`Day ${day}`}
-        onChange={(e) => setDrag(Number(e.target.value))}
-        onPointerUp={(e) => {
-          if (drag !== null) {
-            onPick(drag * DAY + (c.t % DAY));
-            setDrag(null);
-          }
-          e.currentTarget.blur(); // tras arrastrar, las flechas vuelven a mover de momento (no de día)
-        }}
-        onKeyUp={() => drag !== null && (onPick(drag * DAY + (c.t % DAY)), setDrag(null))}
-        className="w-full accent-[#0E6B5C]"
-      />
-      <div className="rv-muted relative h-4 text-[11.5px]">
-        {[[0, "Day 0 · 7 Sep"], [27, "Baseline ends · day 27"], [35, "Prodrome starts · day 35"], [62, "Day 62 · 8 Nov"]].map(([d, l]) => (
-          <span key={d} className={`absolute whitespace-nowrap ${d === 0 ? "" : d === 62 ? "-translate-x-full" : "-translate-x-1/2 max-sm:hidden"}`} style={{ left: `${((d as number) / 62) * 100}%` }}>{l}</span>
+      <div className="rv-muted relative mt-0.5 h-4 text-[11.5px]">
+        {marks.map(([d, l]) => (
+          <span key={d} className={`absolute whitespace-nowrap ${d === 0 ? "" : d === 62 ? "-translate-x-full" : "-translate-x-1/2 max-sm:hidden"}`} style={{ left: d === 62 ? "100%" : `${pct(d * DAY)}%` }}>{l}</span>
         ))}
       </div>
-      {drag !== null && <p className="rv-num absolute -top-1 rounded-md bg-rv-ink px-1.5 text-[11px] text-white" style={{ left: `${(drag / 62) * 100}%` }}>day {drag}</p>}
     </div>
   );
 }
