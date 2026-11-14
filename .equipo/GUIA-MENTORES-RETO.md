@@ -27,7 +27,12 @@ Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses despu�
   **Este es el momento clave para ellos.** Leer en voz alta el recuadro "What's not on you".
 > "Before accepting, the mentor sees what is not on them: they're not a therapist, they never see health data,
 > anything serious goes to the clinic, and they can pause or stop at any time. A companion, not a guide."
-- **No** pulsar "Sounds good" ni "Accompany Luis": seguir con →.
+- Pulsar **Sounds good**: salen las 4 tarjetas de **"Companion basics"** (escuchar sin arreglar, qué decir y qué
+  evitar, cuándo pasárselo a la clínica, cuidarse). Enseñar una o dos con **Next**.
+> "Before their first buddy, every companion goes through a short training: listening without fixing, what to say and
+> what to avoid, when to hand over to the clinic, and looking after themselves. The clinic adds a short in-person
+> session."
+- **No** pulsar "Accompany Luis": seguir con →.
 - **Si alguien pulsa "Propose" en Sara por error:** en la clínica, Matching → **Cancel proposal** (o tecla **+**).
 
 ### 2 · Consentimiento y línea base (→ 3 veces, 20 s)
@@ -40,7 +45,9 @@ Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses despu�
 > "If the mentor doesn't know what to say, they can ask for ideas. These are warm peer-support techniques, like
 > validation or suggesting a small shared step. Never clinical advice. If there's any sign of crisis, it doesn't
 > suggest anything: the clinic takes over."
-- Cerrar la hoja de ideas.
+- Cerrar la hoja de ideas. Debajo del botón está **"I'm worried about Luis"** (no hace falta pulsarlo):
+> "And if Pablo is ever worried, one tap tells the clinic. They take it from here; he doesn't have to decide anything.
+> The same guidelines from the training are always available in his app."
 
 ### 4 · Detección tranquila: primero se pregunta al mentor (→ 5 veces + 3 más para el paseo, días 43-48, 1 min)
 - Un pico de un día no dispara nada. Tres días seguidos → Luis en nivel 1 (solo lo ve la clínica).
@@ -76,6 +83,10 @@ Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses despu�
   > "Today the prototype simulates several signals, but we're focusing on the ones that match how relapses start:
   > sleep, activity and social contact. Everything else is optional."
 - **"¿Y si el mentor recae?"** → Paso 6: pausa, ideas paradas, su mentora pregunta, la clínica asigna un mentor temporal.
+- **"¿Qué formación tienen los acompañantes?"**
+  > "A short in-app training before their first buddy, the same guidelines always available in the app, reply ideas
+  > that name the peer-support technique they use, and an 'I'm worried' button that hands things to the clinic. In a
+  > real rollout, the clinic adds an in-person session and a monthly group check-in."
 - **"¿Quién puede ser mentor?"**
   > "Only people the clinic invites once they're stable. It's an invitation, and they can say no or stop at any time."
 - **"¿La IA decide algo clínico?"**

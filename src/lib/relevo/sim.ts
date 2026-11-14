@@ -63,7 +63,7 @@ export type Note = {
   kind: string; scripted: boolean; analysis?: { indice_queja: number; afecto_negativo: number; repeticion: number; orientacion_accion: number; crisis: boolean; source: string };
 };
 export type Alert = {
-  id: string; person: PersonId; kind: "level2" | "severe" | "help" | "message" | "data_request"; t: number; text: string;
+  id: string; person: PersonId; kind: "level2" | "severe" | "help" | "message" | "data_request" | "worried"; t: number; text: string;
   status: "new" | "in_progress" | "resolved"; assignee?: string; forwardedAt?: number; resolvedAt?: number; noteId?: string;
 };
 export type Copilot = { id: string; mentor: PersonId; mentee: PersonId; t: number; status: "active" | "used" | "dismissed"; indices: number[] };
@@ -663,6 +663,15 @@ export function evaluate(world: World, nowIn?: number): Sim {
           if (m) offer({ id: `HELP:${m}:${t}`, code: "HELP", to: m, about: by, text: NOTICE_TEXT.HELP_MENTOR(name(by)), buttons: [{ id: "note", label: "Send a note" }], created: t, validUntil: t + DAY }, t);
         }
         log(t, by, "help", p.type === "clinic" ? "Help: talk to my clinic" : `Help: asked ${name(P[by].mentorId ?? "")} to write`);
+        return true;
+      }
+      case "worried": {
+        // "I'm worried about …" del acompañante: la clínica recibe un aviso y se ocupa (puede retirarse: ver Companion.tsx)
+        const mentee = P[by].menteeId;
+        if (!mentee) return false;
+        sim.alerts.push({ id: `alert:worried:${t}`, person: mentee, kind: "worried", t, status: "new", text: `${name(by)}, ${name(mentee)}'s companion, is worried about them` });
+        log(t, mentee, "worried", `${name(by)} told the clinic they're worried`, "clinic");
+        trace(t, name(by), `Tells the clinic they're worried about ${name(mentee)}`, scripted);
         return true;
       }
       case "rhythm": {

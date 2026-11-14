@@ -3,6 +3,7 @@
 // tanto como al acompañado. Nunca ve datos ni niveles de nadie, tampoco los suyos.
 import { useCallback, useEffect, useState } from "react";
 import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, useLocalHelp, usePlayer, useView, type NoteV } from "./kit";
+import { CompanionGuide, TrainingCards, WorriedButton, WorriedSheet } from "./Companion";
 import { CONSENT_TEXT, Chain, DataRights, DeviceList, HelpSheet, Toggle, ics, type MeData } from "./MenteeApp";
 
 type Card = { id: string; menteeName: string; kind: string; question: string | null; title: string; reason: string; message: string; aiDrafted: boolean; icon: string; prepared: boolean };
@@ -47,6 +48,7 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
   const openHelp = useCallback(() => setHelp(true), []);
   useLocalHelp(as, openHelp); // K-15: si el propio mentor escribe una frase de la lista fija, su móvil le abre la ayuda
   const [ideasOpen, setIdeasOpen] = useState(false);
+  const [worriedOpen, setWorriedOpen] = useState(false);
   const [compose, setCompose] = useState<{ to: string; toName: string; script?: string; cardId?: string; kind?: string; title: string } | null>(null);
   const [m5Open, setM5Open] = useState(true);
   // La demo cambia resetKey al pasar de momento: el teléfono vuelve a Today y se cierran las hojas abiertas
@@ -59,6 +61,7 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
     setCompose(null);
     setHelp(false);
     setIdeasOpen(false);
+    setWorriedOpen(false);
   }
   if (!data) return <div className="flex flex-1 items-center justify-center rv-muted">Loading…</div>;
   const mentee = data.mentee;
@@ -125,10 +128,11 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
                   <div className="sticky bottom-0 border-t border-rv-line bg-rv-bg/95 px-4 pb-4 pt-3 backdrop-blur">
                     {/* Solo para mentores: ideas de respuesta privadas, basadas en técnicas de apoyo entre iguales */}
                     {thread === "mentee" && mentee && (
-                      <button className="rv-btn rv-btn-secondary rv-btn-sm mb-3 w-full gap-1.5" onClick={() => setIdeasOpen(true)}>
+                      <button className="rv-btn rv-btn-secondary rv-btn-sm mb-1.5 w-full gap-1.5" onClick={() => setIdeasOpen(true)}>
                         <Icon name="bulb" size={16} className="text-rv-teal" />Not sure what to say? Get reply ideas
                       </button>
                     )}
+                    {thread === "mentee" && mentee && <WorriedButton mentee={mentee.name} onClick={() => setWorriedOpen(true)} />}
                     <div className="flex items-center gap-3">
                       <Recorder w={w} as={as} to={other.id} toName={other.name} compact />
                       <p className="rv-muted flex-1 text-[13px]">Hold to talk to {other.name}</p>
@@ -140,7 +144,7 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
             })()}
           </div>
         )}
-        {tab === "relay" && <Relay w={w} as={as} data={data} player={player} onTalk={() => go("chat", "mentor")} />}
+        {tab === "relay" && <Relay w={w} as={as} data={data} player={player} onTalk={() => go("chat", "mentor")} onWorried={() => setWorriedOpen(true)} />}
         {tab === "settings" && (
           <div className="px-4 pb-6 pt-1">
             <DeviceList w={w} as={as} devices={data.devices} />
@@ -176,6 +180,7 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
       {data.m0 && <M0 w={w} as={as} m0={data.m0} />}
       {data.m5 && m5Open && !data.m0 && <M5 w={w} as={as} m5={data.m5} onLater={() => setM5Open(false)} />}
       {help && <HelpSheet w={w} as={as} mentorName={mine?.name ?? null} clinic={{ phone: "+358 9 4512 3300" }} onClose={() => setHelp(false)} />}
+      {worriedOpen && mentee && <WorriedSheet w={w} as={as} mentee={mentee.name} onClose={() => setWorriedOpen(false)} />}
       {ideasOpen && mentee && (
         <ReplyIdeas
           w={w}
@@ -368,7 +373,7 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
 }
 
 /* ---------- M3 · Mi relevo ---------- */
-function Relay({ w, as, data, player, onTalk }: { w: string; as: string; data: MentorData; player: ReturnType<typeof usePlayer>; onTalk: () => void }) {
+function Relay({ w, as, data, player, onTalk, onWorried }: { w: string; as: string; data: MentorData; player: ReturnType<typeof usePlayer>; onTalk: () => void; onWorried: () => void }) {
   const mine = data.myMentor;
   const mentee = data.mentee;
   const PACE = [
@@ -411,13 +416,14 @@ function Relay({ w, as, data, player, onTalk }: { w: string; as: string; data: M
           </>
         )}
       </div>
+      <CompanionGuide mentee={mentee?.name ?? null} onWorried={onWorried} />
     </div>
   );
 }
 
 /* ---------- M0 · Invitación y emparejamiento ---------- */
 function M0({ w, as, m0 }: { w: string; as: string; m0: NonNullable<MentorData["m0"]> }) {
-  const [step, setStep] = useState<"invite" | "role" | "meet">("invite");
+  const [step, setStep] = useState<"invite" | "role" | "train" | "meet">("invite");
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-rv-bg px-6 pb-7 pt-4">
       {step === "invite" ? (
@@ -450,9 +456,11 @@ function M0({ w, as, m0 }: { w: string; as: string; m0: NonNullable<MentorData["
               </ul>
             </div>
           </div>
-          <button className="rv-btn rv-btn-primary rv-btn-lg mt-4 w-full" onClick={() => setStep("meet")}>Sounds good</button>
+          <button className="rv-btn rv-btn-primary rv-btn-lg mt-4 w-full" onClick={() => setStep("train")}>Sounds good</button>
           <button className="rv-btn rv-btn-ghost mt-2 w-full" onClick={() => act(w, as, "m0_answer", { choice: "decline" })}>Not now</button>
         </div>
+      ) : step === "train" ? (
+        <TrainingCards mentee={m0.menteeName} onDone={() => setStep("meet")} />
       ) : (
         <div className="rv-in flex flex-1 flex-col">
           <div className="flex-1 pt-6 text-center">
