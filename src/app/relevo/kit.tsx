@@ -137,8 +137,6 @@ const PATHS: Record<string, string> = {
   undo: "M9 7 4 12l5 5M4 12h11a5 5 0 0 1 0 10h-2",
   plus: "M12 5v14M5 12h14",
   pin: "M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11zM12 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4",
-  volume: "M11 5 6 9H3v6h3l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13",
-  mute: "M11 5 6 9H3v6h3l5 4V5zM22 9l-6 6M16 9l6 6",
 };
 export function Icon({ name, size = 20, className = "", filled = false }: { name: string; size?: number; className?: string; filled?: boolean }) {
   return (

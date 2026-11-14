@@ -4,12 +4,6 @@ Para quien presenta. Las frases entre comillas son para decirlas en inglés; lo 
 Ellos no son el jurado: son expertos y ya nos dijeron qué les preocupa. Objetivo: que vean que hemos
 escuchado su feedback (1) **el mentor no carga con la salud mental del otro** y (2) **pocos datos, bien elegidos**.
 
-## Atajo: la visita guiada automática
-Si no quieres presentarla tú: en la demo pulsa **G** (o "More → Play the guided tour"). Se abre una demo nueva y,
-al pulsar **Start the tour**, recorre sola esta misma guía en unos 5 minutos: resalta la columna de la que habla,
-hace los clics importantes y enseña cada frase en inglés (y la lee en voz alta; el icono del altavoz la apaga).
-Barra espaciadora pausa · ← → pasos · Esc termina. En la crisis nunca reproduce la nota de Luis.
-
 ## Antes de empezar (5 minutos antes)
 1. Abrir https://junction-ackerman.vercel.app/relevo/demo en Chrome, pantalla grande.
 2. Pulsar **+** para empezar desde cero. Recorrer la demo una vez con la flecha → para "calentarla" y volver a pulsar **+**.

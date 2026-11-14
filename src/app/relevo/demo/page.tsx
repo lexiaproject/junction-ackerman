@@ -9,7 +9,6 @@ import ClinicWeb, { LevelTag } from "../ClinicWeb";
 import { Fit, Icon, Phone, act, useOfflineQueue, useView, useWid } from "../kit";
 import MenteeApp from "../MenteeApp";
 import MentorApp from "../MentorApp";
-import { TourBar, type TourCol } from "./Tour";
 
 type Today = { date: string; baselineDone: boolean; level: number; cand: number; streak: number; Rs: number | null; R: number | null; domains: { key: string; label: string; s: number | null; smooth: number | null; feats: number }[]; top: { key: string; name: string; z: number | null }[] };
 type Series = { labels: string[]; Rs: (number | null)[]; level: number[]; cand: number[]; domains: Record<string, (number | null)[]> };
@@ -41,16 +40,6 @@ export default function DemoPage() {
   // Ficha que la capa pide abrir en la clínica; n cuenta los clics para que funcione también la segunda vez
   const [focus, setFocus] = useState<{ id: string | null; n: number } | undefined>(undefined);
   const [busy, setBusy] = useState(false);
-  // Visita guiada: se pide con ?tour=1 (botón en More o tecla G, que antes crean una demo nueva)
-  const [tour, setTour] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("tour"));
-  const [col, setCol] = useState<TourCol>(null);
-  useEffect(() => {
-    const u = new URL(window.location.href);
-    if (u.searchParams.has("tour")) {
-      u.searchParams.delete("tour");
-      window.history.replaceState(null, "", u.pathname + u.search);
-    }
-  }, []);
   const [lost, setLost] = useState(false);
   useOfflineQueue();
   const { data, error } = useView<DemoData>(w ? `/api/relevo/demo?w=${w}` : null, 5000);
@@ -119,7 +108,7 @@ export default function DemoPage() {
   // Tecla "+": empieza de cero con un mundo NUEVO, como quien abre la demo por primera vez. Limpiar el mundo de siempre
   // no bastaba: un guardado que llegaba justo después (un botón de un móvil, la ficha de la clínica, un borrador de la IA)
   // volvía a escribir el mundo viejo encima. Lo que llegue tarde ahora va al mundo viejo y no molesta.
-  const fresh = useCallback((withTour: boolean) => {
+  const restart = useCallback(() => {
     const id = (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 12);
     let stored = false;
     try {
@@ -128,23 +117,8 @@ export default function DemoPage() {
       stored = localStorage.getItem("relevo:w") === id;
     } catch {}
     // Sin ?w= en la dirección (no se proyecta el enlace que permite mover la demo), salvo que el navegador no guarde nada
-    const q = new URLSearchParams();
-    if (!stored) q.set("w", id);
-    if (withTour) q.set("tour", "1");
-    window.location.replace(`${window.location.pathname}${q.size ? `?${q}` : ""}`);
+    window.location.replace(stored ? window.location.pathname : `${window.location.pathname}?w=${id}`);
   }, []);
-  const restart = useCallback(() => fresh(false), [fresh]);
-  const startTour = useCallback(() => fresh(true), [fresh]);
-  // La visita mueve la demo por la clave del momento; lee siempre los datos más recientes sin rehacer el paso
-  const momentsRef = useRef<DemoData["moments"]>([]);
-  useEffect(() => {
-    if (data) momentsRef.current = data.moments;
-  }, [data]);
-  const tourMoment = useCallback((key: string) => {
-    const m = momentsRef.current.find((x) => x.key === key);
-    if (m) pickMoment(m);
-  }, [pickMoment]);
-  const endTour = useCallback(() => { setTour(false); setCol(null); }, []);
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -152,7 +126,6 @@ export default function DemoPage() {
       const tag = el.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable) return;
       if (e.key === "+" && !e.repeat) return restart(); // también con una hoja abierta, por si algo se queda pillado
-      if ((e.key === "g" || e.key === "G") && !e.repeat && !tour) return startTour();
       if (el.closest?.('[role="dialog"],[role="radiogroup"]')) return;
       if (e.key === "ArrowRight") next();
       if (e.key === "ArrowLeft") prev();
@@ -160,7 +133,7 @@ export default function DemoPage() {
     };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
-  }, [next, prev, restart, startTour, tour]);
+  }, [next, prev, restart]);
 
   // Al llegar hacia delante a un momento de "match" o "close" la capa se abre sola; si se cierra con E no se reabre en ese grupo
   const [seen, setSeen] = useState<{ t: number; g: string | null } | null>(null);
@@ -191,12 +164,8 @@ export default function DemoPage() {
           </div>
           <div className="ml-auto flex items-center gap-2">
             {(error || lost) && <span role="status" className="rv-chip bg-rv-notice text-rv-notice-ink">Connection lost · retrying…</span>}
-            {!tour && (
-              <>
-                <button className="rv-btn rv-btn-ghost rv-btn-sm" onClick={prev} disabled={busy} aria-label="Previous moment"><Icon name="back" size={18} /></button>
-                <button className="rv-btn rv-btn-primary" onClick={next} disabled={busy || data.index >= data.moments.length - 1}>Next moment<Icon name="chevron" size={18} /></button>
-              </>
-            )}
+            <button className="rv-btn rv-btn-ghost rv-btn-sm" onClick={prev} disabled={busy} aria-label="Previous moment"><Icon name="back" size={18} /></button>
+            <button className="rv-btn rv-btn-primary" onClick={next} disabled={busy || data.index >= data.moments.length - 1}>Next moment<Icon name="chevron" size={18} /></button>
             <details
               className="relative"
               onKeyDown={(e) => {
@@ -232,7 +201,6 @@ export default function DemoPage() {
                 </label>
                 <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={() => setClock(8 * 60)}>Go back to day 0</button>
                 <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={restart}>Restart the whole demo <span className="rv-muted">(key +)</span></button>
-                <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={startTour}>Play the guided tour <span className="rv-muted">(key G)</span></button>
                 <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={() => act(w, "demo", "reset").catch(flagLost)}>Reset everything people did (keep the time)</button>
                 <a className="block rounded-lg px-2 py-2 hover:bg-rv-bg" href={`/relevo/app?w=${w}&as=luis`} target="_blank">Open Luis&apos;s app on its own</a>
                 <a className="block rounded-lg px-2 py-2 hover:bg-rv-bg" href={`/relevo/clinic?w=${w}`} target="_blank">Open the clinic web on its own</a>
@@ -241,13 +209,9 @@ export default function DemoPage() {
             </details>
           </div>
         </div>
-        {tour ? (
-          <TourBar index={data.index} moments={data.moments} onMoment={tourMoment} onExplain={setExplain} onCol={setCol} onExit={endTour} />
-        ) : (
-          <Timeline data={data} onPick={setClock} onMoment={pickMoment} />
-        )}
+        <Timeline data={data} onPick={setClock} onMoment={pickMoment} />
         {/* J-08 · Antes del primer momento: por qué hace falta Relevo (sin cifras clínicas) */}
-        {data.index < 0 && !tour && (
+        {data.index < 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-2xl bg-rv-sage px-4 py-3">
             <p className="text-[19px] font-semibold text-rv-teal" style={{ fontFamily: "var(--rv-display)" }}>Beyond the clinic</p>
             <ul className="min-w-0 flex-1 text-[14px] leading-snug">
@@ -268,11 +232,10 @@ export default function DemoPage() {
 
       {/* Las tres superficies a la vez */}
       <div data-rv-demo className="grid grid-cols-1 gap-6 px-5 pt-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.6fr)] lg:gap-4">
-        <Column dim={!!col && col !== "luis"} title="Luis" sub="accompanied · just finished TMS">
+        <Column title="Luis" sub="accompanied · just finished TMS">
           <Fit width={390} height={844} pad={14}><Phone time={c.time} label="Luis's phone"><MenteeApp w={w} /></Phone></Fit>
         </Column>
         <Column
-          dim={!!col && col !== "mentor"}
           title={mentor === "pablo" ? "Pablo" : "Marta"}
           sub={mentor === "pablo" ? "Luis's mentor · 4 months after TMS" : "Pablo's mentor"}
           right={
@@ -285,7 +248,7 @@ export default function DemoPage() {
         >
           <Fit width={390} height={844} pad={14}><Phone time={c.time} label={`${mentor}'s phone`}><MentorApp key={mentor} w={w} as={mentor} resetKey={data.index} /></Phone></Fit>
         </Column>
-        <Column dim={!!col && col !== "clinic"} title="Clinic" sub="Aalto TMS Clinic · desktop web" right={<span className="rv-chip bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</span>}>
+        <Column title="Clinic" sub="Aalto TMS Clinic · desktop web" right={<span className="rv-chip bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</span>}>
           <Fit width={1100} height={820}>
             <div className="h-[820px] w-[1100px] overflow-hidden rounded-2xl shadow-[0_0_0_1px_var(--color-rv-line),0_20px_40px_-24px_rgb(0_0_0/0.35)]">
               <ClinicWeb w={w} onFocusPerson={focus} resetKey={data.index} />
@@ -295,7 +258,7 @@ export default function DemoPage() {
       </div>
 
       {/* Capa de explicación: solo existe en la demo */}
-      <section className={`relative z-10 shrink-0 border-t border-rv-line transition-colors duration-500 ${col === "layer" ? "bg-rv-sage" : "bg-white"} ${explain ? "lg:h-[292px]" : ""}`}>
+      <section className={`relative z-10 shrink-0 border-t border-rv-line bg-white ${explain ? "lg:h-[292px]" : ""}`}>
         <div className="flex items-center gap-3 px-5 py-2">
           <label className="flex cursor-pointer items-center gap-2.5 font-semibold">
             <button role="switch" aria-checked={explain} onClick={() => setExplain((e) => !e)} className={`relative h-6 w-10 rounded-full transition-colors ${explain ? "bg-rv-teal" : "bg-[#cdd3ce]"}`}>
@@ -318,9 +281,9 @@ export default function DemoPage() {
   );
 }
 
-function Column({ title, sub, right, dim = false, children }: { title: string; sub: string; right?: React.ReactNode; dim?: boolean; children: React.ReactNode }) {
+function Column({ title, sub, right, children }: { title: string; sub: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className={`flex h-[640px] min-h-0 flex-col transition-opacity duration-500 last:sm:col-span-2 last:h-[440px] lg:h-auto last:lg:col-span-1 last:lg:h-auto ${dim ? "opacity-30" : ""}`}>
+    <div className="flex h-[640px] min-h-0 flex-col last:sm:col-span-2 last:h-[440px] lg:h-auto last:lg:col-span-1 last:lg:h-auto">
       <div className="mb-2 flex items-center gap-2">
         <p className="font-semibold" style={{ fontFamily: "var(--rv-display)" }}>{title}</p>
         <p className="rv-muted truncate text-[12.5px]">{sub}</p>

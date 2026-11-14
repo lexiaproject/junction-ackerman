@@ -49,18 +49,6 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
   const [ideasOpen, setIdeasOpen] = useState(false);
   const [compose, setCompose] = useState<{ to: string; toName: string; script?: string; cardId?: string; kind?: string; title: string } | null>(null);
   const [m5Open, setM5Open] = useState(true);
-  // Visita guiada de la demo: abre las ideas de respuesta en la conversación con el acompañado
-  useEffect(() => {
-    const on = (e: Event) => {
-      const d = (e as CustomEvent<{ as: string; do: string }>).detail;
-      if (d?.as !== as || d.do !== "ideas") return;
-      setTab("chat");
-      setThread("mentee");
-      setIdeasOpen(true);
-    };
-    window.addEventListener("relevo:tour", on);
-    return () => window.removeEventListener("relevo:tour", on);
-  }, [as]);
   // La demo cambia resetKey al pasar de momento: el teléfono vuelve a Today y se cierran las hojas abiertas
   // (así no se puede enviar dos veces la nota del paseo con una hoja que se quedó abierta)
   const [seenKey, setSeenKey] = useState(resetKey);
@@ -430,15 +418,6 @@ function Relay({ w, as, data, player, onTalk }: { w: string; as: string; data: M
 /* ---------- M0 · Invitación y emparejamiento ---------- */
 function M0({ w, as, m0 }: { w: string; as: string; m0: NonNullable<MentorData["m0"]> }) {
   const [step, setStep] = useState<"invite" | "role" | "meet">("invite");
-  // Visita guiada de la demo: enseña la pantalla de lo que no le toca al acompañante
-  useEffect(() => {
-    const on = (e: Event) => {
-      const d = (e as CustomEvent<{ as: string; do: string }>).detail;
-      if (d?.as === as && d.do === "m0-role") setStep("role");
-    };
-    window.addEventListener("relevo:tour", on);
-    return () => window.removeEventListener("relevo:tour", on);
-  }, [as]);
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-rv-bg px-6 pb-7 pt-4">
       {step === "invite" ? (
