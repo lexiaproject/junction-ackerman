@@ -44,9 +44,3 @@ next-env.d.ts
 # capturas y registros de Playwright (MCP); sin barra inicial: cubre también .claude/.playwright-mcp/
 .playwright-mcp/
 
-# Vídeos (pesan mucho; se comparten aparte). El código del anuncio en /video sí se sube.
-/video/node_modules/
-/video/out/
-/video/public/music.wav
-/video/relevo-demo.webm
-/video/herramientas/
