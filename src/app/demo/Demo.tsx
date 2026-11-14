@@ -19,15 +19,15 @@ export default function Demo() {
           <p className="text-pine/70">Simulated sensor data. Pattern detection, AI suggestions, chat and screens are real.</p>
           <p className="mt-2">
             Open on a phone:{" "}
-            <a className="font-bold underline" href="/mentor" target="_blank">
+            <a className="font-bold underline" href="/demo/mentor" target="_blank">
               mentor
             </a>
             ,{" "}
-            <a className="font-bold underline" href="/pupil" target="_blank">
+            <a className="font-bold underline" href="/demo/pupil" target="_blank">
               pupil
             </a>{" "}
             or{" "}
-            <a className="font-bold underline" href="/clinic" target="_blank">
+            <a className="font-bold underline" href="/demo/clinic" target="_blank">
               clinic
             </a>
             .
@@ -39,7 +39,7 @@ export default function Demo() {
         <Loading />
       ) : (
         <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-[300px_1fr_300px] xl:items-start">
-          <Phone caption={`${PUPIL}'s phone`} sub="In TMS treatment. Doesn't need to do anything." href="/pupil">
+          <Phone caption={`${PUPIL}'s phone`} sub="In TMS treatment. Doesn't need to do anything." href="/demo/pupil">
             <PupilScreen w={w} v={v} dispatch={dispatch} />
           </Phone>
 
@@ -50,7 +50,7 @@ export default function Demo() {
             </div>
           </section>
 
-          <Phone caption={`${MENTOR}'s phone`} sub="Finished TMS in September. Mentors Laura." href="/mentor">
+          <Phone caption={`${MENTOR}'s phone`} sub="Finished TMS in September. Mentors Laura." href="/demo/mentor">
             <MentorScreen w={w} v={v} dispatch={dispatch} />
           </Phone>
         </div>
