@@ -13,6 +13,17 @@ export default function Landing() {
   return (
     <main className="topo w-full overflow-x-clip">
       <div className="brand-rule" />
+      {/* Acceso a Relevo (versión v3 completa) para el jurado */}
+      <Link href="/relevo/demo" className="block bg-pine text-white transition-colors hover:bg-pine-deep">
+        <span className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-5 py-2.5 text-center text-sm sm:justify-between sm:text-left">
+          <span>
+            <strong className="font-semibold">Relevo</strong>
+            <span className="text-white/80 sm:hidden"> · the full version</span>
+            <span className="hidden text-white/80 sm:inline"> · the full version: risk engine, voice notes, mentor protection and the clinic, with a day-by-day demo</span>
+          </span>
+          <span className="font-semibold underline underline-offset-4">Open the Relevo demo</span>
+        </span>
+      </Link>
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5">
         <Logo className="text-2xl" />
         <nav className="flex items-center gap-2">
