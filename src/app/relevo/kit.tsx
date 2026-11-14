@@ -146,20 +146,64 @@ export function Icon({ name, size = 20, className = "", filled = false }: { name
   );
 }
 
-/* ---------- Avatares (iniciales con color fijo por persona) ---------- */
+/* ---------- Avatares: retratos ilustrados (personajes ficticios de la demo); si no hay retrato, la inicial ---------- */
 const HUE: Record<string, [string, string]> = {
-  Luis: ["#dbe8f6", "#24466e"], Pablo: ["#d9efe7", "#0e5a4c"], Marta: ["#f6e3d6", "#7a3a14"], Sara: ["#ece3f5", "#4c2f72"],
+  Luis: ["#dbe8f6", "#24466e"], Pablo: ["#d9efe7", "#0e5a4c"], Marta: ["#f6e3d6", "#7a3a14"], Sara: ["#ece3f5", "#4c2f72"], Anna: ["#e3f1ef", "#1f5c57"],
   Clinic: ["#e6e8e4", "#3b4642"], Helmi: ["#f3e9cf", "#6b4e0d"], Eero: ["#dfe9ee", "#2a4c5c"], Sanna: ["#e8f0dc", "#3e5a1d"], Juho: ["#f1dfe3", "#6b2737"], Noora: ["#e0ecf1", "#22566a"],
 };
+type Look = { skin: string; hair: string; style: "short" | "beard" | "long" | "bob" | "bun" | "curly"; shirt: string; glasses?: boolean };
+const LOOKS: Record<string, Look> = {
+  Luis: { skin: "#e9b892", hair: "#2b2018", style: "short", shirt: "#3b6ea8" },
+  Pablo: { skin: "#d39c76", hair: "#3a2a1e", style: "beard", shirt: "#0e6b5c" },
+  Marta: { skin: "#f1c9aa", hair: "#8a4a2a", style: "long", shirt: "#b45a2a", glasses: true },
+  Sara: { skin: "#c08a66", hair: "#1d1512", style: "bun", shirt: "#6b4c9a" },
+  Anna: { skin: "#f3d2b8", hair: "#cfa660", style: "bob", shirt: "#3f8f88" },
+  Helmi: { skin: "#f0cdb0", hair: "#b9b4ad", style: "bun", shirt: "#a07a1c", glasses: true },
+  Eero: { skin: "#f2cfb3", hair: "#d8b878", style: "short", shirt: "#2a4c5c" },
+  Sanna: { skin: "#f4d3bb", hair: "#a8452a", style: "long", shirt: "#4f6f2a" },
+  Juho: { skin: "#e8bf9c", hair: "#5a3d26", style: "beard", shirt: "#7a2f42", glasses: true },
+  Noora: { skin: "#b97f5c", hair: "#1f1712", style: "curly", shirt: "#22566a" },
+};
+function Face({ name, look, bg }: { name: string; look: Look; bg: string }) {
+  const { skin, hair, style, shirt, glasses } = look;
+  const clip = `rv-face-${name}-${useId().replace(/[^a-z0-9]/gi, "")}`;
+  const longBack = style === "long" || style === "bob";
+  return (
+    <svg viewBox="0 0 64 64" width="100%" height="100%">
+      <defs><clipPath id={clip}><circle cx="32" cy="32" r="32" /></clipPath></defs>
+      <g clipPath={`url(#${clip})`}>
+        <rect width="64" height="64" fill={bg} />
+        {longBack && <path d={style === "long" ? "M17 30c0-12 6.5-19 15-19s15 7 15 19v22H17z" : "M18 30c0-11 6-18 14-18s14 7 14 18v10H18z"} fill={hair} />}
+        <path d="M9 64c1.5-11 10.5-17 23-17s21.5 6 23 17z" fill={shirt} />
+        <rect x="27.5" y="37" width="9" height="11" rx="4" fill={skin} />
+        <circle cx="21.3" cy="30.5" r="2.4" fill={skin} />
+        <circle cx="42.7" cy="30.5" r="2.4" fill={skin} />
+        <ellipse cx="32" cy="29.5" rx="10.8" ry="12.3" fill={skin} />
+        {(style === "short" || style === "beard") && <path d="M21 28c-.8-8.5 4.3-14 11-14s11.8 5.5 11 14c-1.8-4.4-5.6-7-11-7s-9.2 2.6-11 7z" fill={hair} />}
+        {(style === "long" || style === "bob" || style === "bun") && <path d="M20.5 29.5c-1-9.5 4.4-15.5 11.5-15.5s12.5 6 11.5 15.5c-2.8-5.3-6.6-8.4-11.5-8.9-4.9.5-8.7 3.6-11.5 8.9z" fill={hair} />}
+        {style === "bun" && <circle cx="32" cy="13" r="5" fill={hair} />}
+        {style === "curly" && [21.5, 25.5, 29.5, 33.5, 37.5, 41.5, 23.5, 32, 40.5].map((x, i) => <circle key={i} cx={x} cy={i < 6 ? 21 : 17} r="4.6" fill={hair} />)}
+        {style === "beard" && <path d="M21.6 31.5c.9 7.6 4.9 11.6 10.4 11.6s9.5-4 10.4-11.6c-1.2 2.4-2.9 3.8-4.6 3.8-1.6-1.3-3.6-1.9-5.8-1.9s-4.2.6-5.8 1.9c-1.7 0-3.4-1.4-4.6-3.8z" fill={hair} />}
+        <circle cx="27.6" cy="30" r="1.3" fill="#1b2420" />
+        <circle cx="36.4" cy="30" r="1.3" fill="#1b2420" />
+        <circle cx="25" cy="34.2" r="2" fill="#e0806a" opacity="0.18" />
+        <circle cx="39" cy="34.2" r="2" fill="#e0806a" opacity="0.18" />
+        <path d="M28.7 35.6q3.3 2.4 6.6 0" stroke={style === "beard" ? "#f6e6d8" : "#1b2420"} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+        {glasses && <g stroke="#1b2420" strokeWidth="1.1" fill="none"><circle cx="27.6" cy="30" r="3.5" /><circle cx="36.4" cy="30" r="3.5" /><path d="M31.1 30h1.8" /></g>}
+      </g>
+    </svg>
+  );
+}
 export function Avatar({ name, size = 40, ring = false }: { name: string; size?: number; ring?: boolean }) {
   const [bg, fg] = HUE[name] ?? ["#e6e8e4", "#3b4642"];
+  const look = LOOKS[name];
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full font-semibold"
+      className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold"
       style={{ width: size, height: size, background: bg, color: fg, fontSize: size * 0.4, fontFamily: "var(--rv-display)", boxShadow: ring ? "0 0 0 3px #fff, 0 0 0 4.5px " + fg + "33" : undefined }}
       aria-hidden
     >
-      {name.slice(0, 1)}
+      {look ? <Face name={name} look={look} bg={bg} /> : name.slice(0, 1)}
     </span>
   );
 }

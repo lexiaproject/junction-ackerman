@@ -89,7 +89,7 @@ export const NOTICE_TEXT = {
   V3: (mentor: string) => `Fancy sending ${mentor} a note? ${mentor} would love to hear from you`,
   // K-11: si ese día el mentor dijo "Can't today", V3 no afirma nada sobre él (texto de f1-clinica C-08)
   V3_CANT: (mentor: string) => `Fancy sending ${mentor} a note? A few words are enough.`,
-  V4: () => "Your clinic team will call you soon to see how you are",
+  V4: () => "Anna, your nurse, will call you soon to see how you are",
   V4_LOCK: "Relevo: you have a notice",
   V5: (mentor: string) => `${mentor} would like to talk to you`,
   V7: () => "We haven't heard from you for a few days. All good?",

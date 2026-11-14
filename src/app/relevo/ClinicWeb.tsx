@@ -84,7 +84,7 @@ export default function ClinicWeb({ w, clockLabel, onFocusPerson, resetKey }: { 
         </nav>
         <div className="mt-auto px-2">
           <p className="rv-chip bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</p>
-          <p className="rv-muted mt-2 text-[12px]">Nurse Virtanen · on duty</p>
+          <p className="rv-muted mt-2 flex items-center gap-2 text-[12px]"><Avatar name="Anna" size={24} />Anna Virtanen · nurse on duty</p>
         </div>
       </aside>
       <main className="rv-scroll min-w-0 flex-1 overflow-y-auto px-7 py-6">
@@ -446,7 +446,7 @@ function Matching({ w, matching }: { w: string; matching: Match[] }) {
 
 /* ---------- C5 · Configuración ---------- */
 const NOTICE_TEXTS = [
-  ["V1", "Would you like to talk to Luis today?"], ["V2", "Pablo would like to talk to you"], ["V3", "Fancy sending Pablo a note? Pablo would love to hear from you"], ["V4", "Your clinic team will call you soon to see how you are"],
+  ["V1", "Would you like to talk to Luis today?"], ["V2", "Pablo would like to talk to you"], ["V3", "Fancy sending Pablo a note? Pablo would love to hear from you"], ["V4", "Anna, your nurse, will call you soon to see how you are"],
   ["V5", "Marta would like to talk to you"], ["V6", "This week, a lighter pace"], ["V7", "We haven't heard from you for a few days. All good?"], ["V8", "Your ring hasn't synced. Could you check it when you can?"],
 ];
 function Settings({ w, config }: { w: string; config: ClinicData["config"] }) {

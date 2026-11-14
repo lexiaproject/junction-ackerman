@@ -701,7 +701,7 @@ export function evaluate(world: World, nowIn?: number): Sim {
           log(t, who, "call", `Call scheduled for ${dateOf(dayOf(when)).slice(5)} ${hhmm(when)}`, "clinic");
           trace(t, "clinic", `“Schedule call” for ${name(who)} → ${hhmm(when)}`, scripted);
           if (P[who].level >= 2)
-            offer({ id: `V4:${who}:${t}`, code: "V4", to: who, text: NOTICE_TEXT.V4(), lock: NOTICE_TEXT.V4_LOCK, buttons: [{ id: "ok", label: "OK" }, { id: "write", label: "I'd rather write to them" }], created: t, validUntil: when }, t);
+            offer({ id: `V4:${who}:${t}`, code: "V4", to: who, text: NOTICE_TEXT.V4(), lock: NOTICE_TEXT.V4_LOCK, buttons: [{ id: "ok", label: "OK" }, { id: "write", label: "I'd rather write to Anna" }], created: t, validUntil: when }, t);
         } else {
           const sched = sim.calls.find((c) => c.person === who && c.mode === "schedule" && !c.done);
           if (scripted && !sched) return false;
@@ -717,7 +717,7 @@ export function evaluate(world: World, nowIn?: number): Sim {
         const a = sim.alerts.find((x) => x.id === p.alertId);
         if (!a || a.status !== "new") return false;
         a.status = "in_progress";
-        a.assignee = str("assignee") ?? "Nurse Virtanen";
+        a.assignee = str("assignee") ?? "Anna Virtanen";
         return true;
       }
       case "resolve": {
@@ -725,7 +725,7 @@ export function evaluate(world: World, nowIn?: number): Sim {
         if (!a || a.status === "resolved") return false;
         a.status = "resolved";
         a.resolvedAt = t;
-        a.assignee ??= "Nurse Virtanen";
+        a.assignee ??= "Anna Virtanen";
         const s = P[a.person];
         if (a.kind === "severe" || a.kind === "help") {
           // K-05: resolver cierra también las demás alertas graves abiertas de esa persona (p. ej. nota + "Talk to my clinic")

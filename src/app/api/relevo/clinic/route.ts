@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     const last = world.audit.at(-1);
     const what = `Opened ${PERSON[person].name}'s file`;
     if (!last || last.what !== what || last.t !== world.clock) {
-      world.audit.push({ t: world.clock, who: "Nurse Virtanen", what });
+      world.audit.push({ t: world.clock, who: "Anna Virtanen", what });
       world.audit = world.audit.slice(-200);
       await saveWorld(w, world);
     }

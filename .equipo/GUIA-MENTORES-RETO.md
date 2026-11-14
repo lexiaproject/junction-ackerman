@@ -71,7 +71,7 @@ Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses despu�
 > the message."
 - **No** reproducir la nota de Luis.
 > "A phrase from a fixed list goes straight to level 3: help opens on Luis's phone and the clinic gets a severe alert.
-> Pablo doesn't even receive the message. He's told: 'Luis's clinic team has been told. You don't need to do
+> Pablo doesn't even receive the message. He's told: 'Anna, Luis's nurse, and the clinic team have been told. You don't need to do
 > anything else.'"
 
 ### 8 · Cierre (→ 4 veces hasta el final, días 59-62, 30 s)

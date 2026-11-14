@@ -65,7 +65,7 @@ Close the layer (E).
 
 **Step 5 · Days 54-55 · Level 2, the clinic steps in (presses 14-19).**
 Press 14: clinic column, Luis at **2 · High risk**, with "Call today". Press 15: Pablo says "Can't today" and gets
-nothing to do for Luis that day. Press 16: Luis reads "Your clinic team will call you soon to see how you are".
+nothing to do for Luis that day. Press 16: Luis reads "Anna, your nurse, will call you soon to see how you are".
 Press 17: (optional E) the layer shows the next notice postponed: "Luis already got a notice today". Press 18, the next
 day: Luis gets a gentle prompt to send Pablo a note, and Pablo gets "Call Luis or meet up for a while today". Press 19:
 the clinic calls Luis.
@@ -83,7 +83,7 @@ itself: she is asked first about Pablo. Press 21: back on Pablo, he reads "Marta
 Do **not** press the play button on Luis's note, and do not read the note aloud.
 Press 22. Left column: the help sheet opens on Luis's phone ("Need help right now?": 112, the MIELI crisis line, his
 clinic, ask Pablo to write). Right column: **1 Severe alert**, Luis at **3 · Severe** with "Call now". Middle column:
-Pablo reads "Luis's clinic team has been told. You don't need to do anything else." (and sees "This note was passed to Luis's clinic team." instead of the note itself)
+Pablo reads "Anna, Luis's nurse, and the clinic team have been told. You don't need to do anything else." (and sees "This note was passed to Luis's clinic team." instead of the note itself)
 > "A phrase from a fixed list moves Luis to level 3 immediately. Help opens on his phone, the clinic gets a severe
 > alert, and Pablo is told he doesn't have to carry this."
 

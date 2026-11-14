@@ -2,8 +2,10 @@
 // App del acompañado (Luis): se puede usar sin hacer nada. Abrir, escuchar, aceptar un plan o cerrar.
 // Sin pestañas, sin contadores, sin rojos, sin gráficos. Nunca ve un número de salud.
 import { useCallback, useEffect, useState } from "react";
+import { PROFILE } from "@/lib/relevo/profiles";
 import { revealNames } from "@/lib/relevo/pseudo";
 import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, useLocalHelp, usePlayer, useView, type NoteV } from "./kit";
+import { Milestones, PersonCard, type Together } from "./People";
 
 type Notice = { id: string; code: string; text: string; buttons: { id: string; label: string }[]; from: string | null; noteId: string | null };
 type PlanV = { id: string; title: string; icon: string; when: string; whenT: number; status: string; feedback: string | null; past: boolean; askFeedback: boolean; mentorName: string; note: NoteV | null; place: string | null };
@@ -15,6 +17,7 @@ export type MeData = {
   consents: { data: boolean; notes: boolean; ideas: boolean };
   mentor: { id: string; name: string; state: string; story: string } | null;
   intro: NoteV | null;
+  together: Together | null;
   notices: Notice[];
   last: NoteV | null;
   conversation: NoteV[];
@@ -36,6 +39,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
   const [seenHelp, setSeenHelp] = useState<string | null>(null);
   const [writeClinic, setWriteClinic] = useState(false);
   const [toast, setToast] = useState("");
+  const [profile, setProfile] = useState(false);
   const openHelp = useCallback(() => setHelp(true), []);
   useLocalHelp(as, openHelp); // K-15: frase de la lista fija → ayuda en su propio móvil, aunque no haya red ni consentimiento
 
@@ -60,7 +64,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
   if (!data) return <div className="flex flex-1 items-center justify-center rv-muted">Loading…</div>;
   if (!data.onboarded) return <Welcome w={w} as={as} data={data} player={player} />;
   const mentor = data.mentor;
-  const mName = mentor?.name ?? "your mentor";
+  const mName = mentor?.name ?? "your companion";
   const go = (s: typeof screen) => {
     setScreen(s);
     document.getElementById(`rv-scroll-${as}`)?.scrollTo({ top: 0 });
@@ -105,7 +109,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
             {data.notices.map((n) => (
               <div key={n.id} className="rv-notice rv-in p-4">
                 <div className="flex items-start gap-3">
-                  {n.from ? <Avatar name={n.from} size={38} /> : <span className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/70"><Icon name={n.code === "V8" ? "ring" : n.code === "V4" ? "phone" : "heart"} size={18} /></span>}
+                  {n.from || n.code === "V4" ? <Avatar name={n.from ?? "Anna"} size={38} /> : <span className="flex h-[38px] w-[38px] items-center justify-center rounded-full bg-white/70"><Icon name={n.code === "V8" ? "ring" : n.code === "V4" ? "phone" : "heart"} size={18} /></span>}
                   <p className="pt-1.5 text-[16px] font-semibold leading-snug">{n.text}</p>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -117,6 +121,23 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
                 </div>
               </div>
             ))}
+
+            {/* La persona que le acompaña: cara, una línea suya y, la primera semana, su saludo de voz */}
+            {mentor && mentor.state !== "left" && (
+              <div className="rv-card p-4">
+                <button onClick={() => setProfile(true)} className="flex w-full items-center gap-3 text-left" aria-label={`See ${mName}'s profile`}>
+                  <Avatar name={mName} size={48} ring />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[16px] font-semibold">{mName} walks with you</span>
+                    <span className="rv-muted block truncate text-[13px]">{PROFILE[mName]?.bio ?? "Finished TMS a few months ago."}</span>
+                  </span>
+                  <Icon name="chevron" className="text-rv-ink2" />
+                </button>
+                {data.intro && data.together && data.together.days < 7 && data.last?.id !== data.intro.id && (
+                  <button onClick={() => player.play(data.intro!)} className="rv-btn rv-btn-secondary mt-3 w-full"><Icon name="play" filled size={16} />Hear {mName} say hello</button>
+                )}
+              </div>
+            )}
 
             {/* Última nota del mentor */}
             {!mentor ? (
@@ -134,7 +155,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
                 <button onClick={() => go("chat")} className="mb-2 flex w-full items-center gap-3 text-left" aria-label={`Open conversation with ${mName}`}>
                   <Avatar name={mName} size={36} />
                   <span className="min-w-0">
-                    <span className="block font-semibold">{mName} left you a note</span>
+                    <span className="block font-semibold">{mName} thought of you</span>
                     <span className="rv-muted block text-[12.5px]">{data.last.when}</span>
                   </span>
                   <Icon name="chevron" className="ml-auto text-rv-ink2" />
@@ -188,11 +209,31 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
           {toast}
         </div>
       )}
+      {profile && mentor && (
+        <Sheet onClose={() => setProfile(false)} label={`${mName}'s profile`}>
+          <h2 className="sr-only">{mName}&apos;s profile</h2>
+          <PersonCard name={mName} role="Walks with you" me={data.me.name} big>
+            {data.intro && (
+              <div className="mt-3">
+                <p className="mb-1.5 text-[12.5px] font-semibold text-rv-teal">{mName}&apos;s hello</p>
+                <VoiceNote note={data.intro} player={player} />
+              </div>
+            )}
+            {data.together && <div className="mt-3"><Milestones together={data.together} other={mName} /></div>}
+          </PersonCard>
+          <div className="rv-card mt-3 px-2 py-5">
+            <Chain a={data.together?.chainFrom ?? "Clinic"} b={mName} c={data.me.name} labels={[data.together?.chainFrom ? `${data.together.chainFrom} walked with ${mName}` : "Your clinic", `${mName} walks with you`, "You"]} />
+            <p className="mx-auto mt-4 max-w-[32ch] text-center text-[14px] leading-snug">
+              {data.together?.chainFrom ? `${data.together.chainFrom} walked with ${mName} after their TMS. Now ${mName} walks with you.` : `${mName} finished TMS a few months ago. Now ${mName} walks with you.`} One day, if you want, you could walk with someone too.
+            </p>
+          </div>
+        </Sheet>
+      )}
       {help && <HelpSheet w={w} as={as} mentorName={mentor && mentor.state !== "left" ? mName : null} clinic={data.clinic} clinicKnows={data.helpNote && !!data.openHelp} onClose={() => setHelp(false)} />}
       {writeClinic && (
         <Sheet onClose={() => setWriteClinic(false)} label="Write to your clinic">
           <h2 className="text-[22px]">Write to your clinic</h2>
-          <p className="rv-muted mt-1">Your clinic team will read it before they call.</p>
+          <p className="rv-muted mt-1 flex items-center gap-2"><Avatar name="Anna" size={28} />Anna, your nurse, will read it before calling you.</p>
           <div className="mt-5">
             <Recorder w={w} as={as} to="clinic" toName="your clinic" label="Hold to record a note" onSent={() => setTimeout(() => setWriteClinic(false), 1600)} />
           </div>
@@ -352,7 +393,7 @@ export function HelpSheet({ w, as, mentorName, clinic, onClose, clinicKnows = fa
       <h2 className="text-[26px] leading-tight">Need help right now?</h2>
       <p className="rv-muted mt-1 text-[15px]">You&apos;re not alone. Choose what you need.</p>
       {/* K-29: solo cuando es verdad (la nota activó la alerta a la clínica) */}
-      {clinicKnows && <p className="mt-2 text-[15px] font-semibold text-rv-teal">Your clinic team has been told about your note.</p>}
+      {clinicKnows && <p className="mt-2 text-[15px] font-semibold text-rv-teal">Anna and your clinic team have been told about your note.</p>}
       <div className="mt-5 flex flex-col gap-2.5">
         <a href="tel:112" className={`${big} rv-btn-emergency`}><Icon name="phone" />Emergency · 112</a>
         <a href="tel:+358925250111" className={`${big} rv-btn-secondary`}>
@@ -372,7 +413,7 @@ export function HelpSheet({ w, as, mentorName, clinic, onClose, clinicKnows = fa
             }}
           >
             <Icon name="users" className="text-rv-help" />
-            <span className="text-left leading-tight">Talk to my clinic</span>
+            <span className="text-left leading-tight">Talk to my clinic<span className="rv-muted block text-[13px] font-normal">Anna or the nurse on duty</span></span>
           </button>
           <p role="status" className="px-5 text-[14px] font-semibold text-rv-teal">{done.clinic &&<span className="block pt-1.5">They&apos;ll call you as soon as possible</span>}</p>
         </div>
@@ -407,7 +448,7 @@ export function DeviceList({ w, as, devices }: { w: string; as: string; devices:
   const [connected, setConnected] = useState<Record<string, boolean>>({});
   return (
     <>
-      <p className="px-1 text-[15px]">Your clinic uses this data to know when a little company might do you good. You and your mentor won&apos;t see any numbers.</p>
+      <p className="px-1 text-[15px]">Your clinic uses this data to know when a little company might do you good. You and the person who walks with you won&apos;t see any numbers.</p>
       <p className="mt-2 px-1"><span className="rv-chip bg-[#f1ede4] text-[#6b5a2e]">Simulated data</span></p>
       <div className="rv-card mt-3 divide-y divide-rv-line">
         {devices.rows.map((d) => {
@@ -534,8 +575,8 @@ function Welcome({ w, as, data, player }: { w: string; as: string; data: MeData;
         {step === 1 && (
           <div className="rv-in flex flex-col items-center pt-6 text-center">
             <Avatar name={m ?? "?"} size={104} ring />
-            <h1 className="mt-5 text-[28px]">{m ?? "Your mentor"}</h1>
-            {data.mentor?.story && <p className="rv-muted mt-1 max-w-[28ch]">{data.mentor.story}</p>}
+            <h1 className="mt-5 text-[28px]">{m ?? "Your companion"}</h1>
+            {m && (PROFILE[m]?.bio ?? data.mentor?.story) && <p className="rv-muted mt-1 max-w-[30ch]">{PROFILE[m]?.bio ?? data.mentor?.story}</p>}
             {data.intro ? (
               <>
                 <div className="rv-card mt-6 w-full p-3 text-left"><VoiceNote note={data.intro} player={player} /></div>

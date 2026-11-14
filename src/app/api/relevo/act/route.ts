@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     for (const k of ["l1_R", "l2_R", "domain_hi"]) if (Number.isFinite(Number(p[k]))) t[k] = Number(p[k]);
     if (p.clear) delete world.config.person[id];
     else world.config.person[id] = t;
-    world.audit.push({ t: world.clock, who: "Nurse Virtanen", what: p.clear ? `Thresholds for ${PERSON[id].name} back to defaults` : `Thresholds for ${PERSON[id].name}: ${Object.entries(t).map(([k, v]) => `${k} ${v}`).join(", ")}` });
+    world.audit.push({ t: world.clock, who: "Anna Virtanen", what: p.clear ? `Thresholds for ${PERSON[id].name} back to defaults` : `Thresholds for ${PERSON[id].name}: ${Object.entries(t).map(([k, v]) => `${k} ${v}`).join(", ")}` });
     await saveWorld(w!, world);
     return ok({ ok: true });
   }
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
   addEvent(world, as as Who, type, p);
   if (as === "clinic" && ["call", "resolve", "clinic_rhythm", "ideas_pause", "ideas_reactivate", "match_propose", "match_cancel"].includes(type)) {
     const who = String(p.person ?? p.mentor ?? p.mentee ?? "");
-    world.audit.push({ t: world.clock, who: "Nurse Virtanen", what: `${type.replace("_", " ")}${Object.hasOwn(PERSON, who) ? ` · ${PERSON[who].name}` : ""}` });
+    world.audit.push({ t: world.clock, who: "Anna Virtanen", what: `${type.replace("_", " ")}${Object.hasOwn(PERSON, who) ? ` · ${PERSON[who].name}` : ""}` });
   }
   await saveWorld(w!, world);
   return ok({ ok: true });

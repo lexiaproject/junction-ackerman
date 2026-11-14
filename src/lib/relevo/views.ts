@@ -79,6 +79,15 @@ function devices(sim: Sim, id: PersonId) {
 }
 
 /* ---------- App del acompañado (A0-A5) ---------- */
+// Hitos de la relación (sin datos de salud): desde cuándo, cuántos días y cuántos planes hechos juntos
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const shortDate = (day: number) => { const [, m, d] = dateOf(day).split("-"); return `${Number(d)} ${MONTHS[Number(m) - 1]}`; };
+function together(sim: Sim, mentor: PersonId, mentee: PersonId, since: number | undefined) {
+  if (since === undefined) return null;
+  const plans = sim.plans.filter((p) => p.mentor === mentor && p.mentee === mentee && p.status === "accepted" && p.whenT <= sim.now).length;
+  return { since: shortDate(since), days: Math.max(0, dayOf(sim.now) - since), plans };
+}
+
 export function menteeView(sim: Sim, id: PersonId) {
   const s = sim.people[id];
   const now = sim.now;
@@ -114,6 +123,7 @@ export function menteeView(sim: Sim, id: PersonId) {
     clock: clock(sim), me: { id, name: name(id) }, onboarded: s.onboarded, consents: { data: s.consents.data, notes: s.consents.notes, ideas: s.consents.ideas },
     mentor: mentorId ? { id: mentorId, name: name(mentorId), state: mentorState, story: mentorId === "pablo" ? "Finished TMS in May. Walks by the shore every morning." : "" } : null,
     intro: mentorId ? conv.find((n) => n.kind === "intro") ?? null : null,
+    together: mentorId ? (() => { const t = together(sim, mentorId, id, s.pairSince); return t && { ...t, chainFrom: m?.mentorId ? name(m.mentorId) : null }; })() : null,
     notices, last, conversation: conv,
     plan: proposed ? planView(proposed) : feedback ? planView(feedback) : upcoming ? planView(upcoming) : null,
     plans: plans.slice(-6).map(planView).reverse(),
@@ -176,6 +186,7 @@ export function mentorView(sim: Sim, id: PersonId) {
     sent: sent && !card ? { menteeName: name(sent.mentee) } : null,
     plan: running ? { id: running.id, title: running.title.replace(` with ${name(id)}`, ""), when: planWhen(now, running), whenT: running.whenT, icon: running.icon, menteeName: name(running.mentee), status: running.status } : null,
     mentee: menteeId ? { id: menteeId, name: name(menteeId) } : null,
+    together: menteeId ? together(sim, id, menteeId, s.pairSince) : null,
     myMentor: myMentor ? { id: myMentor, name: name(myMentor) } : null,
     conversations: {
       mentee: menteeId ? conversation(sim, id, menteeId) : [],

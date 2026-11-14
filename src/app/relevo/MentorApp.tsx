@@ -3,6 +3,8 @@
 // tanto como al acompañado. Nunca ve datos ni niveles de nadie, tampoco los suyos.
 import { useCallback, useEffect, useState } from "react";
 import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, useLocalHelp, usePlayer, useView, type NoteV } from "./kit";
+import { PROFILE, inCommon } from "@/lib/relevo/profiles";
+import { Milestones, PersonCard, type Together } from "./People";
 import { CompanionGuide, TrainingCards, WorriedButton, WorriedSheet } from "./Companion";
 import { CONSENT_TEXT, Chain, DataRights, DeviceList, HelpSheet, Toggle, ics, type MeData } from "./MenteeApp";
 
@@ -13,6 +15,7 @@ export type MentorData = {
   me: { id: string; name: string };
   greeting: string;
   m0: { menteeId: string; menteeName: string; percent: number; reasons: string[] } | null;
+  together: Together | null;
   self: Self[];
   mentorNote: NoteV | null;
   m5: { variant: "pause" | "light"; mentorName: string | null; menteeName: string | null } | null;
@@ -177,7 +180,7 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
         ))}
       </nav>
 
-      {data.m0 && <M0 w={w} as={as} m0={data.m0} />}
+      {data.m0 && <M0 w={w} as={as} me={data.me.name} m0={data.m0} />}
       {data.m5 && m5Open && !data.m0 && <M5 w={w} as={as} m5={data.m5} onLater={() => setM5Open(false)} />}
       {help && <HelpSheet w={w} as={as} mentorName={mine?.name ?? null} clinic={{ phone: "+358 9 4512 3300" }} onClose={() => setHelp(false)} />}
       {worriedOpen && mentee && <WorriedSheet w={w} as={as} mentee={mentee.name} onClose={() => setWorriedOpen(false)} />}
@@ -272,7 +275,7 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
       {data.m6 && (
         <div className="rv-card rv-in p-5">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="shield" /></span>
-          <p className="mt-3 text-[17px] font-semibold leading-snug">{data.m6.menteeName}&apos;s clinic team has been told. You don&apos;t need to do anything else.</p>
+          <p className="mt-3 text-[17px] font-semibold leading-snug">Anna, {data.m6.menteeName}&apos;s nurse, and the clinic team have been told. You don&apos;t need to do anything else.</p>
           {mine && <button onClick={() => onTab("chat", "mentor")} className="rv-btn rv-btn-secondary mt-4 w-full">Talk to {mine.name}</button>}
         </div>
       )}
@@ -386,12 +389,16 @@ function Relay({ w, as, data, player, onTalk, onWorried }: { w: string; as: stri
       <div className="rv-card px-2 py-6">
         <Chain a={mine?.name ?? "Clinic"} b={data.me.name} c={mentee?.name ?? "…"} labels={[mine ? `${mine.name} walks with you` : "Your clinic supports you", "You", mentee ? `You walk with ${mentee.name}` : "Someone soon"]} />
       </div>
+      {mentee && (
+        <PersonCard name={mentee.name} role={`You walk with ${mentee.name}`} me={data.me.name}>
+          {data.together && <div className="mt-3"><Milestones together={data.together} other={mentee.name} /></div>}
+        </PersonCard>
+      )}
       {mine && (
-        <div className="rv-card p-4">
-          <p className="text-[17px] font-semibold">Your mentor</p>
-          {data.mentorNote ? <div className="mt-2"><VoiceNote note={data.mentorNote} player={player} /></div> : <p className="rv-muted mt-1">{mine.name} will write to you soon.</p>}
+        <PersonCard name={mine.name} role="Walks with you" me={data.me.name}>
+          {data.mentorNote ? <div className="mt-3"><VoiceNote note={data.mentorNote} player={player} /></div> : <p className="rv-muted mt-3">{mine.name} will write to you soon.</p>}
           <button className="rv-btn rv-btn-secondary mt-3 w-full" onClick={onTalk}><Icon name="chat" size={18} />Talk to {mine.name}</button>
-        </div>
+        </PersonCard>
       )}
       <div className="rv-card p-4">
         <p className="text-[17px] font-semibold">Your pace</p>
@@ -422,7 +429,7 @@ function Relay({ w, as, data, player, onTalk, onWorried }: { w: string; as: stri
 }
 
 /* ---------- M0 · Invitación y emparejamiento ---------- */
-function M0({ w, as, m0 }: { w: string; as: string; m0: NonNullable<MentorData["m0"]> }) {
+function M0({ w, as, me, m0 }: { w: string; as: string; me: string; m0: NonNullable<MentorData["m0"]> }) {
   const [step, setStep] = useState<"invite" | "role" | "train" | "meet">("invite");
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-rv-bg px-6 pb-7 pt-4">
@@ -467,8 +474,9 @@ function M0({ w, as, m0 }: { w: string; as: string; m0: NonNullable<MentorData["
             <Avatar name={m0.menteeName} size={96} ring />
             <h1 className="mt-4 text-[28px]">Meet {m0.menteeName}</h1>
             <p className="mt-2"><span className="rv-chip bg-rv-sage text-[14px] text-rv-teal">Affinity {m0.percent}%</span></p>
-            <ul className="mx-auto mt-6 flex max-w-[30ch] flex-col gap-2.5 text-left">
-              {m0.reasons.map((r) => (
+            {PROFILE[m0.menteeName] && <p className="mx-auto mt-4 max-w-[32ch] rounded-2xl bg-white px-4 py-3 text-[15px] italic leading-snug">“{PROFILE[m0.menteeName].bio}”</p>}
+            <ul className="mx-auto mt-5 flex max-w-[30ch] flex-col gap-2.5 text-left">
+              {[...m0.reasons, ...inCommon(me, m0.menteeName)].map((r) => (
                 <li key={r} className="flex items-start gap-2.5 text-[15px]"><Icon name="check" size={18} className="mt-0.5 text-rv-teal" />{r}</li>
               ))}
             </ul>
