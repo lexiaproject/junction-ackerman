@@ -150,10 +150,11 @@ export function TourBar({
 
   const btn = "rv-btn rv-btn-ghost rv-btn-sm !min-h-9 !px-2.5";
   return (
-    <div className="mt-2 rounded-2xl bg-rv-sage px-4 py-3" role="region" aria-label="Guided tour">
+    <div className="mt-2 rounded-2xl bg-rv-sage px-4 py-2.5" role="region" aria-label="Guided tour">
       <div className="flex items-center gap-3">
         <p className="shrink-0 text-[13px] font-semibold text-rv-teal">Guided tour</p>
         <p className="rv-num rv-muted shrink-0 text-[12.5px]">{started ? `Step ${i + 1} of ${TOUR.length}` : `${TOUR.length} steps · about 5 minutes`}</p>
+        {started && <p className="shrink-0 truncate text-[12.5px] font-semibold text-rv-ink">{step.look}{!ready && " · getting there…"}</p>}
         <div className="h-1.5 min-w-0 flex-1 rounded-full bg-white" aria-hidden>
           <div className="h-full rounded-full bg-rv-teal transition-[width] duration-500" style={{ width: `${started ? ((i + 1) / TOUR.length) * 100 : 0}%` }} />
         </div>
@@ -174,12 +175,9 @@ export function TourBar({
         </div>
       </div>
       {started ? (
-        <div className="mt-2" aria-live="polite">
-          <p className="rv-muted text-[12.5px]">{step.look}{!ready && " · getting there…"}</p>
-          <p className="mt-0.5 max-w-[95ch] text-[17px] leading-snug text-rv-ink" style={{ textWrap: "pretty" }}>{step.say}</p>
-        </div>
+        <p className="mt-1 max-w-[110ch] text-[16px] leading-snug text-rv-ink" style={{ textWrap: "pretty" }} aria-live="polite">{step.say}</p>
       ) : (
-        <div className="mt-2 flex flex-wrap items-center gap-3">
+        <div className="mt-1 flex flex-wrap items-center gap-3">
           <p className="text-[15px] text-rv-ink">The demo runs by itself and explains each moment.{canSpeak ? " The voice reads it aloud; you can turn it off." : ""} Space pauses, arrows skip, Esc ends.</p>
           <button className="rv-btn rv-btn-primary ml-auto" onClick={() => { setStarted(true); setPlaying(true); }}>Start the tour<Icon name="play" size={16} filled /></button>
         </div>

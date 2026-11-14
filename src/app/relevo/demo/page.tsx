@@ -269,7 +269,7 @@ export default function DemoPage() {
       {/* Las tres superficies a la vez */}
       <div data-rv-demo className="grid grid-cols-1 gap-6 px-5 pt-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.6fr)] lg:gap-4">
         <Column dim={!!col && col !== "luis"} title="Luis" sub="accompanied · just finished TMS">
-          <Fit width={390} height={844}><Phone time={c.time} label="Luis's phone"><MenteeApp w={w} /></Phone></Fit>
+          <Fit width={390} height={844} pad={14}><Phone time={c.time} label="Luis's phone"><MenteeApp w={w} /></Phone></Fit>
         </Column>
         <Column
           dim={!!col && col !== "mentor"}
@@ -283,7 +283,7 @@ export default function DemoPage() {
             </div>
           }
         >
-          <Fit width={390} height={844}><Phone time={c.time} label={`${mentor}'s phone`}><MentorApp key={mentor} w={w} as={mentor} resetKey={data.index} /></Phone></Fit>
+          <Fit width={390} height={844} pad={14}><Phone time={c.time} label={`${mentor}'s phone`}><MentorApp key={mentor} w={w} as={mentor} resetKey={data.index} /></Phone></Fit>
         </Column>
         <Column dim={!!col && col !== "clinic"} title="Clinic" sub="Aalto TMS Clinic · desktop web" right={<span className="rv-chip bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</span>}>
           <Fit width={1100} height={820}>
@@ -295,7 +295,7 @@ export default function DemoPage() {
       </div>
 
       {/* Capa de explicación: solo existe en la demo */}
-      <section className={`shrink-0 border-t border-rv-line bg-white ${explain ? "lg:h-[292px]" : ""}`}>
+      <section className={`relative z-10 shrink-0 border-t border-rv-line transition-colors duration-500 ${col === "layer" ? "bg-rv-sage" : "bg-white"} ${explain ? "lg:h-[292px]" : ""}`}>
         <div className="flex items-center gap-3 px-5 py-2">
           <label className="flex cursor-pointer items-center gap-2.5 font-semibold">
             <button role="switch" aria-checked={explain} onClick={() => setExplain((e) => !e)} className={`relative h-6 w-10 rounded-full transition-colors ${explain ? "bg-rv-teal" : "bg-[#cdd3ce]"}`}>

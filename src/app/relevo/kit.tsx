@@ -679,22 +679,23 @@ export function Phone({ time, children, label }: { time: string; children: React
 }
 
 /** Escala un bloque de tamaño fijo para que quepa en su columna (la demo enseña los tres a la vez). */
-export function Fit({ width, height, children, max = 1 }: { width: number; height: number; children: React.ReactNode; max?: number }) {
+// pad: margen (en px sin escalar) para lo que se dibuja fuera de la caja, como el marco del móvil; así no se sale del hueco
+export function Fit({ width, height, children, max = 1, pad = 0 }: { width: number; height: number; children: React.ReactNode; max?: number; pad?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.7);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      const s = Math.min(max, el.clientWidth / width, (el.clientHeight || height) / height);
+      const s = Math.min(max, el.clientWidth / (width + 2 * pad), (el.clientHeight || height) / (height + 2 * pad));
       setScale(Math.max(0.3, s));
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [width, height, max]);
+  }, [width, height, max, pad]);
   return (
     <div ref={ref} className="relative h-full w-full">
-      <div className="absolute left-1/2 top-0 origin-top" style={{ width, height, transform: `translateX(-50%) scale(${scale})` }}>
+      <div className="absolute left-1/2 origin-top" style={{ top: pad * scale, width, height, transform: `translateX(-50%) scale(${scale})` }}>
         {children}
       </div>
     </div>
