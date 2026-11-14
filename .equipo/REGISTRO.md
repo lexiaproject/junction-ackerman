@@ -32,3 +32,6 @@
 - 12:59 · Integrador · ciclo 2 confirmado: eb68636 B2, 1a6972a D2, 87ae2ce F2, 7a1bb6a memoria (puerta en verde).
 - 12:59 · Director · fases 3 y 4 en paralelo: Verificador de ojos frescos, QA x3, Rendimiento y Seguridad finales, Juez (repuntuación), Redactor (docs/DEMO.md).
 - 13:14 · Director · el usuario pide publicar ya: anonimizadas rutas de .equipo; puerta 33/33 y 19/19; fusión squash en main y push.
+- 13:16 · Director · publicado: main f36bd07 (squash) en GitHub; Vercel desplegado; recorrido 19/19 contra producción; Gemini redacta en producción (~3 s, sin bloquear); Relay 200.
+- 13:20 · Verificador de ojos frescos · 7,5/10: números de paso 1 y cierre solo con E; desincronización si se sale del guion; frase partida en la conversación; README promete ritmo ligero; letra pequeña a 1440 con capa abierta. Lanzado ciclo 3 corto (Frontend: demo/page.tsx + Recorder; Redactor: README).
+- 13:30 · Director · ciclo 3 revisado (aprobado) e integrado (91b1eea, puerta 33/33 + build + 19/19). Informe final escrito. Publicación en main.

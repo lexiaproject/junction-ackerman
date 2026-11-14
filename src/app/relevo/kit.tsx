@@ -509,7 +509,7 @@ export function Recorder({
 
   const ringSize = compact ? 56 : size;
   return (
-    <div className="flex w-full flex-col items-center">
+    <div className={`flex flex-col items-center ${compact && state !== "review" ? "w-auto shrink-0" : "w-full"}`}>
       {script && state === "idle" && <p className="rv-muted mb-3 max-w-[30ch] text-center text-[13px]">Read the message out loud, or say it your own way.</p>}
       <button
         type="button"

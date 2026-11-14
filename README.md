@@ -13,7 +13,7 @@ private nudge to reach out. **Only the clinic ever sees health data.** Mentors o
 
 Three surfaces side by side (Luis's phone, his mentor Pablo's phone, the clinic web), a day slider, and a
 **"Show how Relevo decides"** layer that shows what the engine computed behind each screen.
-Press **Next moment** (or the arrow keys) to walk through the story.
+Press **Next moment** (or the arrow keys) to walk through the story: 27 moments, grouped into the 8 steps below.
 Presenting it? See the 3-minute script, checklist and plan B in [docs/DEMO.md](docs/DEMO.md).
 
 ## The problem
@@ -42,7 +42,8 @@ Day 0 is 7 September, the day after Luis's last TMS session. The contract number
    a severe alert appears at the clinic, and Pablo gets a calm message telling him he doesn't need to do anything else. Unattended for 15 minutes, it goes
    to the on-call lead.
 7. **Days 56-60 · Protecting the mentor.** Pablo starts to drift himself → his own mentor Marta is asked first, Pablo is
-   offered a lighter pace and then a pause, and the clinic sees "Review pace".
+   offered a pause, and the clinic sees "Review pace". (A lighter pace is proposed after 5 days at level 1; Pablo
+   reaches level 2 after 4, so the demo goes straight to the pause.)
 8. **Close · What the simulation shows.** Level 1 catches **88 %** of simulated relapses with a median of **5 days** of
    notice and **2.45 false alarms per person-year**, on **200 synthetic people** (100 simulated relapses). Level 2 is much
    stricter: 48 %, 1 day, 0.5 false alarms.

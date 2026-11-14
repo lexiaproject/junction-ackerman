@@ -120,6 +120,15 @@ export default function DemoPage() {
     return () => window.removeEventListener("keydown", k);
   }, [next, prev]);
 
+  // Al llegar hacia delante a un momento de "match" o "close" la capa se abre sola; si se cierra con E no se reabre en ese grupo
+  const [seen, setSeen] = useState<{ t: number; g: string | null } | null>(null);
+  if (data && (!seen || seen.t !== data.clock.t)) {
+    const mm = data.index >= 0 ? data.moments[data.index] : null;
+    const g = mm && (mm.group === "match" || mm.group === "close") ? mm.group : null;
+    if (seen && data.clock.t > seen.t && g && seen.g !== g) setExplain(true);
+    setSeen({ t: data.clock.t, g });
+  }
+
   if (!w || !data)
     return <div className="rv-muted flex flex-1 items-center justify-center" role="status">{error ? "Can't reach Relevo right now · retrying…" : "Loading the demo…"}</div>;
   const c = data.clock;
@@ -359,7 +368,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
     return (
       <div className="grid grid-cols-2 gap-6">
         <div>
-          <H>1 · Matching by how relapses started</H>
+          <H>Matching by how relapses started</H>
           <p className="rv-muted mt-1 text-[13.5px]">Entry questionnaire: what changed in their last relapse (0 no, 1 a bit, 2 a lot; sleep direction +1 more, −1 less).</p>
           <table className="mt-2 w-full text-[13px]">
             <thead><tr><th className="py-1 text-left"></th>{dims.map((d) => <th key={d} className="rv-muted px-1 py-1 text-center text-[11.5px] font-semibold">{d}</th>)}</tr></thead>
@@ -386,7 +395,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
   if (g === "baseline")
     return (
       <div className="max-w-3xl">
-        <H>2 · Learning Luis&apos;s usual</H>
+        <H>Learning Luis&apos;s usual</H>
         <Quote>Relevo doesn&apos;t compare Luis with anyone. It learns his usual for four weeks: the median and a robust scale of each of his 16 features.</Quote>
         <p className="mt-3 text-[14px]">From day 28, each feature is expressed as how far it is from <em>his</em> usual (robust z, clipped at ±4). Areas: sleep 0.30 · mobility 0.25 · phone &amp; connection 0.20 · rhythm 0.15 · physiology 0.10.</p>
         <p className="rv-muted mt-2 text-[13px]">The phones look exactly the same as before: there is nothing for Luis or Pablo to see.</p>
@@ -417,7 +426,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
     return (
       <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-6">
         <div>
-          <H>{g === "detect" ? "3 · Detecting the prodrome" : g === "high" ? "5 · High risk: the clinic steps in" : "6 · Severe protocol"}</H>
+          <H>{g === "detect" ? "Detecting the prodrome" : g === "high" ? "High risk: the clinic steps in" : "Severe protocol"}</H>
           <p className="rv-muted mb-1 mt-1 text-[12.5px]">Luis · smoothed deviation by area (EWMA, λ 0.3) and level since day 28</p>
           <LineChart ariaLabel="Luis: smoothed deviation by area" labels={L.series.labels} height={170} lines={Object.entries(L.series.domains).filter(([, v]) => v.some((x) => x !== null)).map(([k, v]) => ({ values: v, color: DOM_COLOR[k], label: DOM_LABEL[k] }))} thresholds={[{ v: 1.5, label: "area threshold 1.5" }]} steps={L.series.level} digits={2} />
           <div className="mt-1 flex flex-wrap gap-3 text-[12px]">{Object.keys(DOM_LABEL).map((k) => <span key={k} className="flex items-center gap-1.5"><span className="h-0.5 w-3.5 rounded" style={{ background: DOM_COLOR[k] }} />{DOM_LABEL[k]}</span>)}</div>
@@ -466,7 +475,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
     return (
       <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-6">
         <div>
-          <H>4 · A personal solution: Thompson sampling</H>
+          <H>A personal solution: Thompson sampling</H>
           <p className="rv-muted mt-1 text-[13px]">Context = Luis&apos;s most changed area today ({b.contextLabel}). Only actions offered in that context compete; each has a Beta probability of “working” for this pair.</p>
           <table className="mt-2 w-full text-[13px]">
             <thead className="text-[11.5px] text-rv-ink2"><tr><th className="py-1 text-left">Action</th>{cols.map(([h]) => <th key={h} className="px-1 font-semibold">{h}</th>)}</tr></thead>
@@ -495,7 +504,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
     return (
       <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-6">
         <div>
-          <H>7 · Protecting the mentor</H>
+          <H>Protecting the mentor</H>
           <p className="rv-muted mb-1 mt-1 text-[12.5px]">Pablo is watched exactly like Luis: smoothed deviation by area and level</p>
           <LineChart ariaLabel="Pablo: smoothed deviation by area" labels={Pb.series.labels} height={170} lines={Object.entries(Pb.series.domains).filter(([, v]) => v.some((x) => x !== null)).map(([k, v]) => ({ values: v, color: DOM_COLOR[k], label: DOM_LABEL[k] }))} thresholds={[{ v: 1.5, label: "area threshold 1.5" }]} steps={Pb.series.level} digits={2} />
         </div>
@@ -511,7 +520,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
   const e = data.evaluation;
   return (
     <div className="grid grid-cols-3 gap-4">
-      <div className="col-span-3"><H>8 · What the simulation shows</H><p className="rv-muted mt-1 text-[13px]">{e.people} synthetic people we generated, {e.relapses} simulated relapses, default thresholds. This checks that the logic works as designed, not that it predicts relapse in real patients.</p></div>
+      <div className="col-span-3"><H>What the simulation shows</H><p className="rv-muted mt-1 text-[13px]">{e.people} synthetic people we generated, {e.relapses} simulated relapses, default thresholds. This checks that the logic works as designed, not that it predicts relapse in real patients.</p></div>
       {[["Level 1 catches", `${Math.round(e.l1.sensitivity * 100)}%`, "of simulated relapses"], ["Median lead time", `${e.l1.lead} days`, `IQR ${e.l1.iqr[0]}–${e.l1.iqr[1]} days`], ["False alarms, level 1", `${e.l1.fa}`, "per person per year: a walk with the mentor"]].map(([a, b, cc]) => (
         <div key={a} className="rounded-2xl bg-rv-bg p-4"><p className="rv-num text-[30px] font-semibold text-rv-teal" style={{ fontFamily: "var(--rv-display)" }}>{b}</p><p className="font-semibold">{a}</p><p className="rv-muted text-[12.5px]">{cc}</p></div>
       ))}
