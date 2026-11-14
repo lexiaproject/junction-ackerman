@@ -138,4 +138,5 @@ MIT — see [LICENSE](LICENSE). The code is MIT; the profile photos are not (see
 The people in the demo are fictional characters. Their profile photos (`public/relevo/people/`) are stock photos licensed
 by the team and are **not** covered by the MIT license: Shutterstock #2605781241 (Luis) and #2734807253 (Sara),
 Depositphotos #279989456 (Pablo), iStock #1386479313 (Marta), Freepik 273609-5677 (Juho), 273609-12356 (Eero) and
-23-2148856070 (Sanna), and one more stock portrait (Anna). Helmi and Noora use illustrated portraits.
+23-2148856070 (Sanna), Unsplash photo-1566616213894 (Helmi), and one more stock portrait (Anna). Noora uses an
+illustrated portrait.

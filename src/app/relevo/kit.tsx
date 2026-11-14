@@ -198,6 +198,7 @@ function Face({ name, look, bg }: { name: string; look: Look; bg: string }) {
 const PHOTOS: Record<string, string> = {
   Luis: "/relevo/people/luis.jpg", Pablo: "/relevo/people/pablo.jpg", Marta: "/relevo/people/marta.jpg", Anna: "/relevo/people/anna.jpg",
   Sara: "/relevo/people/sara.jpg", Juho: "/relevo/people/juho.jpg", Eero: "/relevo/people/eero.jpg", Sanna: "/relevo/people/sanna.jpg",
+  Helmi: "/relevo/people/helmi.jpg",
 };
 export function Avatar({ name, size = 40, ring = false }: { name: string; size?: number; ring?: boolean }) {
   const [bg, fg] = HUE[name] ?? ["#e6e8e4", "#3b4642"];
