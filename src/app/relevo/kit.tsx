@@ -194,16 +194,25 @@ function Face({ name, look, bg }: { name: string; look: Look; bg: string }) {
     </svg>
   );
 }
+// Fotos de perfil (fotos de banco con licencia del equipo; ver README). Quien no tiene foto lleva su retrato ilustrado.
+const PHOTOS: Record<string, string> = {
+  Luis: "/relevo/people/luis.jpg", Pablo: "/relevo/people/pablo.jpg", Marta: "/relevo/people/marta.jpg", Anna: "/relevo/people/anna.jpg",
+  Sara: "/relevo/people/sara.jpg", Juho: "/relevo/people/juho.jpg", Eero: "/relevo/people/eero.jpg", Sanna: "/relevo/people/sanna.jpg",
+};
 export function Avatar({ name, size = 40, ring = false }: { name: string; size?: number; ring?: boolean }) {
   const [bg, fg] = HUE[name] ?? ["#e6e8e4", "#3b4642"];
   const look = LOOKS[name];
+  const photo = PHOTOS[name];
   return (
     <span
       className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold"
       style={{ width: size, height: size, background: bg, color: fg, fontSize: size * 0.4, fontFamily: "var(--rv-display)", boxShadow: ring ? "0 0 0 3px #fff, 0 0 0 4.5px " + fg + "33" : undefined }}
       aria-hidden
     >
-      {look ? <Face name={name} look={look} bg={bg} /> : name.slice(0, 1)}
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element -- avatar pequeño y fijo; no compensa next/image
+        <img src={photo} alt="" width={size} height={size} className="h-full w-full object-cover" draggable={false} />
+      ) : look ? <Face name={name} look={look} bg={bg} /> : name.slice(0, 1)}
     </span>
   );
 }
