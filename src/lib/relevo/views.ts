@@ -154,7 +154,7 @@ export function mentorView(sim: Sim, id: PersonId) {
     m0, self, mentorNote, m5, m6,
     card: card ? cardView(card) : null,
     sent: sent && !card ? { menteeName: name(sent.mentee) } : null,
-    plan: running ? { id: running.id, title: running.title.replace(` with ${name(id)}`, ""), when: running.whenLabel, icon: running.icon, menteeName: name(running.mentee), status: running.status } : null,
+    plan: running ? { id: running.id, title: running.title.replace(` with ${name(id)}`, ""), when: running.whenLabel, whenT: running.whenT, icon: running.icon, menteeName: name(running.mentee), status: running.status } : null,
     mentee: menteeId ? { id: menteeId, name: name(menteeId) } : null,
     myMentor: myMentor ? { id: myMentor, name: name(myMentor) } : null,
     conversations: {

@@ -2,7 +2,7 @@
 // App móvil de Relevo (acompañado y mentor en una sola web app de 390 x 844, con selector de rol)
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Phone, useOfflineQueue, useView, useWid } from "../kit";
+import { Fit, Phone, useOfflineQueue, useView, useWid } from "../kit";
 import MenteeApp from "../MenteeApp";
 import MentorApp from "../MentorApp";
 
@@ -61,13 +61,17 @@ export default function AppPage() {
     );
 
   return (
-    <div className="flex min-h-dvh flex-col items-center gap-5 px-4 py-6">
+    <div className="flex h-dvh flex-col items-center gap-4 overflow-hidden px-4 py-5">
       <div className="flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
         <Link href="/relevo" className="text-[20px] font-semibold" style={{ fontFamily: "var(--rv-display)" }}>Relevo</Link>
         {selector}
         <Link href="/relevo/demo" className="rv-muted text-[13px] underline underline-offset-4">Demo time: {clock?.clock.date ?? "…"} {clock?.clock.time}</Link>
       </div>
-      <Phone time={clock?.clock.time ?? "9:41"} label={`${as}'s phone`}>{app}</Phone>
+      <div className="h-[calc(100dvh-110px)] min-h-[520px] w-full max-w-[420px]">
+        <Fit width={390} height={844}>
+          <Phone time={clock?.clock.time ?? "9:41"} label={`${as}'s phone`}>{app}</Phone>
+        </Fit>
+      </div>
     </div>
   );
 }

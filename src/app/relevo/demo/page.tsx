@@ -80,7 +80,7 @@ export default function DemoPage() {
   const share = typeof window !== "undefined" ? `${window.location.origin}/relevo/app?w=${w}` : "";
 
   return (
-    <div className="flex h-dvh min-h-[640px] flex-col overflow-hidden">
+    <div className="flex min-h-dvh flex-col lg:h-dvh lg:min-h-[640px] lg:overflow-hidden">
       {/* Barra superior: reloj de la demo, momentos y deslizador de días */}
       <header className="shrink-0 border-b border-rv-line bg-white px-5 pb-2 pt-3">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -108,7 +108,7 @@ export default function DemoPage() {
       </header>
 
       {/* Las tres superficies a la vez */}
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.6fr)] gap-4 px-5 pt-3">
+      <div className="grid grid-cols-1 gap-6 px-5 pt-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.6fr)] lg:gap-4">
         <Column title="Luis" sub="accompanied · just finished TMS">
           <Fit width={390} height={844}><Phone time={c.time} label="Luis's phone"><MenteeApp w={w} /></Phone></Fit>
         </Column>
@@ -135,7 +135,7 @@ export default function DemoPage() {
       </div>
 
       {/* Capa de explicación: solo existe en la demo */}
-      <section className={`shrink-0 border-t border-rv-line bg-white ${explain ? "h-[38vh] min-h-[260px]" : ""}`}>
+      <section className={`shrink-0 border-t border-rv-line bg-white ${explain ? "lg:h-[38vh] lg:min-h-[260px]" : ""}`}>
         <div className="flex items-center gap-3 px-5 py-2">
           <label className="flex cursor-pointer items-center gap-2.5 font-semibold">
             <button role="switch" aria-checked={explain} onClick={() => setExplain((e) => !e)} className={`relative h-6 w-10 rounded-full transition-colors ${explain ? "bg-rv-teal" : "bg-[#cdd3ce]"}`}>
@@ -147,7 +147,7 @@ export default function DemoPage() {
           <span className="rv-chip ml-auto bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</span>
         </div>
         {explain && (
-          <div className="rv-scroll grid h-[calc(100%-44px)] grid-cols-[minmax(0,1fr)_300px] gap-5 overflow-hidden px-5 pb-3">
+          <div className="rv-scroll grid grid-cols-1 gap-5 px-5 pb-3 lg:h-[calc(100%-44px)] lg:grid-cols-[minmax(0,1fr)_300px] lg:overflow-hidden">
             <div className="rv-scroll min-w-0 overflow-y-auto pr-1"><Explain data={data} onFocus={(id) => setFocus(id)} /></div>
             <EngineLog trace={data.trace} />
           </div>
@@ -159,7 +159,7 @@ export default function DemoPage() {
 
 function Column({ title, sub, right, children }: { title: string; sub: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-0 flex-col">
+    <div className="flex h-[640px] min-h-0 flex-col last:sm:col-span-2 last:h-[440px] lg:h-auto last:lg:col-span-1 last:lg:h-auto">
       <div className="mb-2 flex items-center gap-2">
         <p className="font-semibold" style={{ fontFamily: "var(--rv-display)" }}>{title}</p>
         <p className="rv-muted truncate text-[12.5px]">{sub}</p>
@@ -203,11 +203,10 @@ function Timeline({ data, onPick }: { data: DemoData; onPick: (t: number) => voi
         onKeyUp={() => drag !== null && (onPick(drag * DAY + (c.t % DAY)), setDrag(null))}
         className="w-full accent-[#0E6B5C]"
       />
-      <div className="rv-muted flex justify-between text-[11.5px]">
-        <span>Day 0 · 7 Sep</span>
-        <span>Baseline ends · day 27</span>
-        <span>Prodrome starts · day 35</span>
-        <span>Day 62 · 8 Nov</span>
+      <div className="rv-muted relative h-4 text-[11.5px]">
+        {[[0, "Day 0 · 7 Sep"], [27, "Baseline ends · day 27"], [35, "Prodrome starts · day 35"], [62, "Day 62 · 8 Nov"]].map(([d, l]) => (
+          <span key={d} className={`absolute whitespace-nowrap ${d === 0 ? "" : d === 62 ? "-translate-x-full" : "-translate-x-1/2 max-sm:hidden"}`} style={{ left: `${((d as number) / 62) * 100}%` }}>{l}</span>
+        ))}
       </div>
       {drag !== null && <p className="rv-num absolute -top-1 rounded-md bg-rv-ink px-1.5 text-[11px] text-white" style={{ left: `${(drag / 62) * 100}%` }}>day {drag}</p>}
     </div>

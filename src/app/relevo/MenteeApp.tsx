@@ -42,8 +42,12 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reacción a un dato del servidor
       setHelp(true);
       setSeenHelp(data.openHelp);
+    } else if (data && !data.openHelp && seenHelp) {
+      // La clínica resolvió la alerta (o se movió el reloj de la demo): la hoja que se abrió sola se cierra
+      setHelp(false);
+      setSeenHelp(null);
     }
-  }, [data?.openHelp, seenHelp]);
+  }, [data, seenHelp]);
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(""), 2600);
@@ -123,19 +127,17 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
                 <p className="rv-muted mt-1">We&apos;ll introduce you to someone soon.</p>
               </div>
             ) : data.last ? (
-              <button onClick={() => go("chat")} className="rv-card block w-full p-4 text-left">
-                <div className="mb-2 flex items-center gap-3">
+              <div className="rv-card p-4">
+                <button onClick={() => go("chat")} className="mb-2 flex w-full items-center gap-3 text-left" aria-label={`Open conversation with ${mName}`}>
                   <Avatar name={mName} size={36} />
-                  <div className="min-w-0">
-                    <p className="font-semibold">{mName} left you a note</p>
-                    <p className="rv-muted text-[12.5px]">{data.last.when}</p>
-                  </div>
+                  <span className="min-w-0">
+                    <span className="block font-semibold">{mName} left you a note</span>
+                    <span className="rv-muted block text-[12.5px]">{data.last.when}</span>
+                  </span>
                   <Icon name="chevron" className="ml-auto text-rv-ink2" />
-                </div>
-                <div onClick={(e) => e.stopPropagation()}>
-                  <VoiceNote note={data.last} player={player} />
-                </div>
-              </button>
+                </button>
+                <VoiceNote note={data.last} player={player} />
+              </div>
             ) : (
               <div className="rv-card flex items-center gap-3 p-4">
                 <Avatar name={mName} size={36} />
@@ -147,7 +149,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
             {data.plan && <PlanCard w={w} as={as} plan={data.plan} onOpen={() => go(`plan:${data.plan!.id}`)} onToast={setToast} />}
 
             {/* Recuerdo social: habla de la relación, no de su salud */}
-            {data.social && <p className="rv-muted px-2 text-center text-[13.5px]">{data.social.label}</p>}
+            {data.social && !data.social.label.endsWith(": 0") && <p className="rv-muted px-2 text-center text-[13.5px]">{data.social.label}</p>}
 
             {/* Botón grande de grabar */}
             {mentor && mentor.state !== "left" && (
@@ -284,7 +286,7 @@ function Feedback({ w, as, plan }: { w: string; as: string; plan: PlanV }) {
 
 /* ---------- A5 · Detalle de un plan ---------- */
 const DAY0 = Date.UTC(2026, 8, 7); // 7/09/2026, día 0 de la demo
-function ics(plan: PlanV) {
+export function ics(plan: { id: string; title: string; whenT: number; place?: string | null }) {
   const start = new Date(DAY0 + plan.whenT * 60000 - 3 * 3600000); // hora de Finlandia (UTC+3 en otoño, aprox.)
   const end = new Date(start.getTime() + 30 * 60000);
   const f = (d: Date) => d.toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";

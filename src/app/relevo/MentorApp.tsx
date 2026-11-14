@@ -3,7 +3,7 @@
 // tanto como al acompañado. Nunca ve datos ni niveles de nadie, tampoco los suyos.
 import { useState } from "react";
 import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, usePlayer, useView, type NoteV } from "./kit";
-import { CONSENT_TEXT, Chain, DataRights, DeviceList, HelpSheet, Toggle, type MeData } from "./MenteeApp";
+import { CONSENT_TEXT, Chain, DataRights, DeviceList, HelpSheet, Toggle, ics, type MeData } from "./MenteeApp";
 
 type Card = { id: string; menteeName: string; kind: string; question: string | null; title: string; reason: string; message: string; aiDrafted: boolean; icon: string; prepared: boolean };
 type Self = { id: string; code: string; text: string; buttons: { id: string; label: string }[]; from: string | null; noteId: string | null };
@@ -18,7 +18,7 @@ export type MentorData = {
   m6: { menteeName: string } | null;
   card: Card | null;
   sent: { menteeName: string } | null;
-  plan: { id: string; title: string; when: string; icon: string; menteeName: string; status: string } | null;
+  plan: { id: string; title: string; when: string; whenT: number; icon: string; menteeName: string; status: string } | null;
   mentee: { id: string; name: string } | null;
   myMentor: { id: string; name: string } | null;
   conversations: { mentee: NoteV[]; mentor: NoteV[] };
@@ -294,7 +294,11 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
               </p>
             </div>
           </div>
-          {data.plan.status === "accepted" && <p className="mt-3 text-[13px] font-semibold text-rv-teal">Add to calendar from your phone&apos;s notification</p>}
+          {data.plan.status === "accepted" && (
+            <a href={ics({ id: data.plan.id, title: `${data.plan.title} with ${data.plan.menteeName}`, whenT: data.plan.whenT })} download="relevo-plan.ics" className="rv-btn rv-btn-secondary rv-btn-sm mt-3">
+              <Icon name="calendar" size={16} />Add to calendar
+            </a>
+          )}
         </div>
       )}
 
