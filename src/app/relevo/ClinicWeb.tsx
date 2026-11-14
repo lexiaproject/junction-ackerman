@@ -420,7 +420,7 @@ function Matching({ w, matching }: { w: string; matching: Match[] }) {
               {m.candidates.map((c) => (
                 <tr key={c.mentorId} className="border-t border-rv-line align-top">
                   <td className="px-2 py-2.5"><span className="flex items-center gap-2 font-semibold"><Avatar name={c.mentorName} size={26} />{c.mentorName}</span></td>
-                  <td className="rv-num px-2 py-2.5" title={`fingerprint similarity ${c.sim}`}><span className="text-[16px] font-semibold">{c.affinity.toFixed(c.affinity * 100 % 1 ? 3 : 2)}</span></td>
+                  <td className="rv-num px-2 py-2.5" title={`fingerprint similarity ${c.sim}`}><span className="text-[16px] font-semibold">{+(c.affinity * 100).toFixed(1)}%</span></td>
                   <td className="px-2 py-2.5">{c.reasons.join(" · ")}</td>
                   <td className="px-2 py-2.5">{c.availability}<span className="rv-muted"> · {c.zone}</span></td>
                   <td className="rv-num px-2 py-2.5">{c.stableDays}</td>

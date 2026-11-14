@@ -105,12 +105,23 @@ export default function DemoPage() {
     if (m) pickMoment(m);
     else setClock(0);
   }, [data, pickMoment, setClock]);
+  // Tecla "+": reinicia la demo entera (borra lo que hicieron las personas, vuelve al principio y recarga la página)
+  const restart = useCallback(() => {
+    if (!w) return;
+    setBusy(true);
+    chain.current = chain.current
+      .then(() => act(w, "demo", "reset"))
+      .then(() => act(w, "demo", "clock", { to: 0 }))
+      .then(() => window.location.reload())
+      .catch(() => { setBusy(false); flagLost(); });
+  }, [w, flagLost]);
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const el = e.target as HTMLElement;
       const tag = el.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable) return;
+      if (e.key === "+" && !e.repeat) return restart(); // también con una hoja abierta, por si algo se queda pillado
       if (el.closest?.('[role="dialog"],[role="radiogroup"]')) return;
       if (e.key === "ArrowRight") next();
       if (e.key === "ArrowLeft") prev();
@@ -118,7 +129,7 @@ export default function DemoPage() {
     };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
-  }, [next, prev]);
+  }, [next, prev, restart]);
 
   // Al llegar hacia delante a un momento de "match" o "close" la capa se abre sola; si se cierra con E no se reabre en ese grupo
   const [seen, setSeen] = useState<{ t: number; g: string | null } | null>(null);
@@ -185,6 +196,7 @@ export default function DemoPage() {
                   </select>
                 </label>
                 <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={() => setClock(8 * 60)}>Go back to day 0</button>
+                <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={restart}>Restart the whole demo <span className="rv-muted">(key +)</span></button>
                 <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={() => act(w, "demo", "reset").catch(flagLost)}>Reset everything people did (keep the time)</button>
                 <a className="block rounded-lg px-2 py-2 hover:bg-rv-bg" href={`/relevo/app?w=${w}&as=luis`} target="_blank">Open Luis&apos;s app on its own</a>
                 <a className="block rounded-lg px-2 py-2 hover:bg-rv-bg" href={`/relevo/clinic?w=${w}`} target="_blank">Open the clinic web on its own</a>
@@ -381,7 +393,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
             const mm = m as DemoData["match"]["pabloLuis"];
             return (
               <div key={n as string} className="mt-3">
-                <div className="flex justify-between text-[14px]"><span className="font-semibold">{n as string}</span><span className="rv-num font-semibold">{mm?.affinity}</span></div>
+                <div className="flex justify-between text-[14px]"><span className="font-semibold">{n as string}</span><span className="rv-num font-semibold">{mm ? `${+(mm.affinity * 100).toFixed(1)}%` : ""}</span></div>
                 <div className="mt-1 h-2.5 rounded-full bg-[#eef1ee]"><div className="h-full rounded-full bg-rv-teal" style={{ width: `${(mm?.affinity ?? 0) * 100}%` }} /></div>
                 <p className="rv-muted mt-1 text-[12.5px]">{mm?.reasons.join(" · ")}</p>
               </div>
