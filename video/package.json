@@ -1,0 +1,31 @@
+{
+  "name": "relevo-ad",
+  "private": true,
+  "description": "Anuncio de Relevo (52 s) con dirección de cámara: Remotion + Three.js",
+  "scripts": {
+    "capture": "node scripts/capture.cjs",
+    "music": "node scripts/music.cjs",
+    "storyboard": "node scripts/storyboard.cjs",
+    "render": "remotion render src/index.ts RelevoAd out/relevo-ad.mp4",
+    "studio": "remotion studio src/index.ts"
+  },
+  "dependencies": {
+    "@react-three/fiber": "9.4.0",
+    "@remotion/bundler": "4.0.543",
+    "@remotion/cli": "4.0.543",
+    "@remotion/google-fonts": "4.0.543",
+    "@remotion/motion-blur": "4.0.543",
+    "@remotion/renderer": "4.0.543",
+    "@remotion/three": "4.0.543",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.543",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "@types/three": "0.180.0",
+    "playwright-core": "1.56.1",
+    "typescript": "5.9.3"
+  }
+}

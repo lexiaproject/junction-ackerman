@@ -44,3 +44,8 @@ next-env.d.ts
 # capturas y registros de Playwright (MCP); sin barra inicial: cubre también .claude/.playwright-mcp/
 .playwright-mcp/
 
+
+# anuncio (proyecto aparte en video/): no se suben dependencias, renders ni la música generada
+/video/node_modules/
+/video/out/
+/video/public/music.wav
