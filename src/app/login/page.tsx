@@ -22,7 +22,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       const r = await api<{ role: string }>("/api/app/auth", { action: "login", email, password });
-      window.location.href = r.role === "clinic" ? "/clinic" : "/app";
+      window.location.assign(r.role === "clinic" ? "/clinic" : "/app");
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
@@ -30,22 +30,37 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-sm px-5 py-12 sm:py-20">
-      <Link href="/">
-        <Logo className="text-2xl" />
-      </Link>
-      <h1 className="mt-8 text-3xl font-bold tracking-tight">Log in</h1>
-      <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
-        <Field label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Field label="Password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-        <ErrorText>{error}</ErrorText>
-        <Button type="submit" disabled={busy}>
-          {busy ? "Logging in…" : "Log in"}
-        </Button>
-      </form>
-      <p className="mt-6 text-sm">
-        New to Relay? <Link href="/join" className="font-bold underline underline-offset-4">Use your invite code</Link>
-      </p>
+    <main className="topo flex min-h-dvh w-full flex-col">
+      <div className="brand-rule" />
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col px-5 pb-10 pt-6 sm:pt-14">
+        <Link href="/" aria-label="Relay home">
+          <Logo className="text-2xl" />
+        </Link>
+        <div className="stagger mt-12">
+          <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
+          <p className="muted mt-1">Log in to see how your people are doing.</p>
+          <form onSubmit={submit} className="card mt-6 flex flex-col gap-4 p-5">
+            <Field label="Email" type="email" inputMode="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Field label="Password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <ErrorText>{error}</ErrorText>
+            <Button type="submit" size="lg" disabled={busy}>
+              {busy ? "Logging in…" : "Log in"}
+            </Button>
+          </form>
+          <p className="mt-6 text-sm">
+            New to Relay?{" "}
+            <Link href="/join" className="font-semibold underline underline-offset-4">
+              Use your invite code
+            </Link>
+          </p>
+          <p className="muted mt-2 text-sm">
+            Just exploring?{" "}
+            <Link href="/#try" className="font-semibold text-pine underline underline-offset-4">
+              Open a test account in one click
+            </Link>
+          </p>
+        </div>
+      </div>
     </main>
   );
 }

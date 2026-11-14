@@ -11,7 +11,7 @@ const LOOP = [
 
 export default function Landing() {
   return (
-    <main className="topo w-full">
+    <main className="topo w-full overflow-x-clip">
       <div className="brand-rule" />
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5">
         <Logo className="text-2xl" />

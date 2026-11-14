@@ -21,7 +21,7 @@ const noise = (i: number, k: number) => {
 };
 
 // decline(i) de 0 (normal) a 1 (peor) para cada día i del historial
-function history(id: string, mentor: boolean, decline: (i: number) => number, sample = true) {
+export function history(id: string, mentor: boolean, decline: (i: number) => number, sample = true) {
   const start = addDays(todayStr(), -DAYS);
   const stats: Record<string, DayStats> = {};
   const health: Record<string, HealthDay> = {};

@@ -130,8 +130,24 @@ export async function pupilToday(pupil: User) {
     invites: invites.map((m) => ({ id: m.id, text: m.text, action: CATALOG[m.plan!.action] ?? m.plan!.action, at: m.at })),
     crisis: !!pupil.crisisAt,
     sessions: pupil.sessions ?? null,
+    // Planes aceptados en las últimas 2 semanas (del chat real)
+    plans: thread
+      .filter((m) => m.plan?.answer === "yes" && Date.parse(m.at) > Date.now() - 14 * 864e5)
+      .slice(-3)
+      .reverse()
+      .map((m) => ({ id: m.id, text: m.text, action: CATALOG[m.plan!.action] ?? m.plan!.action, at: m.at })),
+    tip: TIPS[new Date().getDate() % TIPS.length],
   };
 }
+
+// MOCK: pequeñas ideas diarias (en uso real, contenido validado por la clínica)
+const TIPS = [
+  { title: "Daylight before noon", text: "Fifteen minutes outside in the morning helps your sleep tonight, even when it's grey." },
+  { title: "One small plan", text: "Pick one easy thing for later today: a short walk, a call, a cup of tea somewhere new." },
+  { title: "Same time to bed", text: "Going to bed at a regular time is one of the simplest things that helps after TMS." },
+  { title: "Move a little", text: "A ten-minute walk counts. So does stretching by the window." },
+  { title: "Say yes once", text: "If someone suggests something small this week, try saying yes once." },
+];
 
 /* ---------- Panel de la clínica ---------- */
 const PRIORITY: Record<Level, number> = { crisis: 0, high: 1, early: 2, paused: 3, stable: 4, learning: 5 };

@@ -265,6 +265,12 @@ dd {
   background-position: right -120px top -40px;
   background-repeat: no-repeat;
 }
+@media (max-width: 640px) {
+  .topo {
+    background-size: 640px auto;
+    background-position: right -260px top 520px;
+  }
+}
 
 /* Un único momento de movimiento: lo nuevo que llega (tarjeta de acción, hoja de ayuda) */
 @keyframes arrive {

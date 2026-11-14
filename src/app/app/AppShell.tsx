@@ -74,6 +74,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 key={t.href}
                 href={t.href}
                 aria-current={active ? "page" : undefined}
+                onClick={() => {
+                  // Volver a la lista de conversaciones si ya estabas dentro de una
+                  if (t.href === "/app/chat" && path === "/app/chat" && window.location.hash) {
+                    history.replaceState(null, "", "/app/chat");
+                    window.dispatchEvent(new HashChangeEvent("hashchange"));
+                  }
+                }}
                 className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-xs transition-colors ${
                   active ? "font-semibold text-pine" : "text-pine/50 hover:text-pine/80"
                 }`}

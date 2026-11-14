@@ -201,14 +201,14 @@ function People({ rows, earlyDays, act }: { rows: Row[]; earlyDays: number; act:
     <section>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold">People</h2>
-        <div className="flex rounded-lg border border-line bg-paper p-0.5 text-sm" role="tablist">
+        <div className="flex max-w-full overflow-x-auto rounded-lg border border-line bg-paper p-0.5 text-sm" role="tablist">
           {FILTERS.map((x) => (
             <button
               key={x.id}
               role="tab"
               aria-selected={filter === x.id}
               onClick={() => setFilter(x.id)}
-              className={`rounded-md px-3 py-1.5 font-semibold transition-colors ${filter === x.id ? "bg-pine text-white" : "text-pine/70 hover:text-pine"}`}
+              className={`shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 font-semibold transition-colors ${filter === x.id ? "bg-pine text-white" : "text-pine/70 hover:text-pine"}`}
             >
               {x.label}
               <span className="num ml-1.5 opacity-60">{rows.filter(x.test).length}</span>

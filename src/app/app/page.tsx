@@ -33,6 +33,8 @@ type PupilToday = {
   invites: { id: string; text: string; action: string; at: string }[];
   crisis: boolean;
   sessions: Sessions | null;
+  plans: { id: string; text: string; action: string; at: string }[];
+  tip: { title: string; text: string };
 };
 
 const IDEA: Record<string, string> = {
@@ -319,6 +321,40 @@ function Pupil({ t, reload }: { t: PupilToday; reload: () => Promise<void> }) {
       ))}
 
       {t.sessions && <Treatment s={t.sessions} />}
+
+      {t.plans.length > 0 && t.mentor && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold">Recent plans with {t.mentor.name}</h2>
+          <ul className="card divide-y divide-mist">
+            {t.plans.map((p) => (
+              <li key={p.id} className="flex items-start gap-3 px-4 py-3">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-lg bg-[#f8eedd] text-cloudberry-ink">
+                  <span className="text-[10px] font-semibold uppercase leading-none">
+                    {new Date(p.at).toLocaleDateString("en-GB", { month: "short" })}
+                  </span>
+                  <span className="num text-sm font-bold leading-none">{new Date(p.at).getDate()}</span>
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-semibold">{p.action}</span>
+                  <span className="muted block text-sm">{p.text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="card relative overflow-hidden p-4">
+        <svg viewBox="0 0 80 80" className="pointer-events-none absolute -right-5 -top-5 h-24 w-24 text-cloudberry opacity-15" aria-hidden>
+          <circle cx="40" cy="40" r="14" fill="currentColor" />
+          {Array.from({ length: 8 }, (_, k) => (
+            <line key={k} x1="40" y1="12" x2="40" y2="4" stroke="currentColor" strokeWidth="4" strokeLinecap="round" transform={`rotate(${k * 45} 40 40)`} />
+          ))}
+        </svg>
+        <p className="muted text-sm">Something small for today</p>
+        <p className="mt-0.5 font-bold">{t.tip.title}</p>
+        <p className="muted mt-1 text-[0.9375rem]">{t.tip.text}</p>
+      </section>
 
       {t.mentor ? (
         <section className="card p-4">
