@@ -416,17 +416,40 @@ function Relay({ w, as, data, player, onTalk }: { w: string; as: string; data: M
 
 /* ---------- M0 · Invitación y emparejamiento ---------- */
 function M0({ w, as, m0 }: { w: string; as: string; m0: NonNullable<MentorData["m0"]> }) {
-  const [step, setStep] = useState<"invite" | "meet">("invite");
+  const [step, setStep] = useState<"invite" | "role" | "meet">("invite");
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-rv-bg px-6 pb-7 pt-4">
       {step === "invite" ? (
         <div className="rv-in flex flex-1 flex-col">
           <div className="flex-1 pt-10">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="chain" size={28} /></span>
-            <h1 className="mt-6 text-[30px] leading-[1.1]">We&apos;d like to invite you to be a mentor in Relevo</h1>
-            <p className="rv-muted mt-3 text-[16px]">Accompanying someone who&apos;s starting TMS can help you too. It&apos;s an invitation: you can say no or stop whenever you like.</p>
+            <h1 className="mt-6 text-[30px] leading-[1.1]">We&apos;d like to invite you to accompany someone in Relevo</h1>
+            <p className="rv-muted mt-3 text-[16px]">Someone who&apos;s just finished TMS, like you did a few months ago. You&apos;d be a companion, not a guide. It can help you too, and you can say no or stop whenever you like.</p>
           </div>
-          <button className="rv-btn rv-btn-primary rv-btn-lg w-full" onClick={() => setStep("meet")}>I&apos;m interested</button>
+          <button className="rv-btn rv-btn-primary rv-btn-lg w-full" onClick={() => setStep("role")}>I&apos;m interested</button>
+          <button className="rv-btn rv-btn-ghost mt-2 w-full" onClick={() => act(w, as, "m0_answer", { choice: "decline" })}>Not now</button>
+        </div>
+      ) : step === "role" ? (
+        // Lo que hace el acompañante y, sobre todo, lo que NO le toca: nadie le hace responsable de la salud mental del otro
+        <div className="rv-in flex min-h-0 flex-1 flex-col">
+          <div className="rv-scroll min-h-0 flex-1 overflow-y-auto pt-6">
+            <h1 className="text-[28px] leading-[1.1]">What accompanying means</h1>
+            <p className="mt-5 font-semibold">What you do</p>
+            <ul className="mt-2 flex flex-col gap-2.5">
+              {["Send a voice note now and then", "Suggest small plans together, like a walk or a coffee", "Share what helped you, only if you feel like it"].map((t) => (
+                <li key={t} className="flex items-start gap-2.5 text-[15px]"><Icon name="check" size={18} className="mt-0.5 shrink-0 text-rv-teal" />{t}</li>
+              ))}
+            </ul>
+            <div className="rv-notice mt-5 p-4">
+              <p className="font-semibold">What&apos;s not on you</p>
+              <ul className="mt-2 flex flex-col gap-2.5">
+                {["You're not their therapist, and you don't have to fix anything", "You never see their health data", "If something serious happens, their clinic team steps in, not you", "You can pause or stop at any time, no questions asked"].map((t) => (
+                  <li key={t} className="flex items-start gap-2.5 text-[15px]"><Icon name="shield" size={18} className="mt-0.5 shrink-0" />{t}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <button className="rv-btn rv-btn-primary rv-btn-lg mt-4 w-full" onClick={() => setStep("meet")}>Sounds good</button>
           <button className="rv-btn rv-btn-ghost mt-2 w-full" onClick={() => act(w, as, "m0_answer", { choice: "decline" })}>Not now</button>
         </div>
       ) : (
