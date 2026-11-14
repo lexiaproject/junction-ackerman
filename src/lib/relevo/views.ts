@@ -100,8 +100,12 @@ export function menteeView(sim: Sim, id: PersonId) {
   const conv = mentorId ? conversation(sim, id, mentorId) : [];
   const fromMentor = conv.filter((n) => !n.mine);
   const last = fromMentor.at(-1) ?? null;
+  // V2 ("X would like to talk to you") ya está contestado si la persona agradeció una nota o respondió a un plan llegados después:
+  // así no sigue el aviso en su móvil mientras el mentor ya ve su respuesta
+  const answeredV2 = (n: { code: string; t: number }) =>
+    n.code === "V2" && (fromMentor.some((x) => x.t >= n.t && x.thanked) || sim.plans.some((p) => p.mentee === id && p.created >= n.t && p.respondedAt !== undefined && p.respondedAt <= now));
   const active = sim.notices
-    .filter((n) => n.to === id && n.status === "active" && n.t <= now && n.validUntil >= now && ["V2", "V3", "V4", "V7", "V8"].includes(n.code))
+    .filter((n) => n.to === id && n.status === "active" && n.t <= now && n.validUntil >= now && ["V2", "V3", "V4", "V7", "V8"].includes(n.code) && !answeredV2(n))
     .sort((a, b) => ["V4", "V2", "V3", "V7", "V8"].indexOf(a.code) - ["V4", "V2", "V3", "V7", "V8"].indexOf(b.code));
   const notices = active.map((n) => {
     let buttons = n.buttons;
