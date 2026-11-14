@@ -105,16 +105,20 @@ export default function DemoPage() {
     if (m) pickMoment(m);
     else setClock(0);
   }, [data, pickMoment, setClock]);
-  // Tecla "+": reinicia la demo entera (borra lo que hicieron las personas, vuelve al principio y recarga la página)
+  // Tecla "+": empieza de cero con un mundo NUEVO, como quien abre la demo por primera vez. Limpiar el mundo de siempre
+  // no bastaba: un guardado que llegaba justo después (un botón de un móvil, la ficha de la clínica, un borrador de la IA)
+  // volvía a escribir el mundo viejo encima. Lo que llegue tarde ahora va al mundo viejo y no molesta.
   const restart = useCallback(() => {
-    if (!w) return;
-    setBusy(true);
-    chain.current = chain.current
-      .then(() => act(w, "demo", "reset"))
-      .then(() => act(w, "demo", "clock", { to: 0 }))
-      .then(() => window.location.reload())
-      .catch(() => { setBusy(false); flagLost(); });
-  }, [w, flagLost]);
+    const id = (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)).slice(0, 12);
+    let stored = false;
+    try {
+      localStorage.setItem("relevo:w", id);
+      localStorage.removeItem("relevo:queue");
+      stored = localStorage.getItem("relevo:w") === id;
+    } catch {}
+    // Sin ?w= en la dirección (no se proyecta el enlace que permite mover la demo), salvo que el navegador no guarde nada
+    window.location.replace(stored ? window.location.pathname : `${window.location.pathname}?w=${id}`);
+  }, []);
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
