@@ -6,14 +6,14 @@ same screens.
 
 **How the demo view works.** Three columns: **Luis** (left, the person who just finished TMS), **Pablo / Marta**
 (middle, the mentor's phone; it switches to Marta by itself when needed), **Clinic** (right, the clinic web). Press
-**Next moment** (or the right arrow key) to jump to the next moment; there are 27. Press **E** to show or hide
+**Next moment** (or the right arrow key) to jump to the next moment; there are 15. Press **E** to show or hide
 **"Show how Relevo decides"**, the bottom layer with what the engine computed. Luis and Pablo never see that layer.
 
 ---
 
 ## 1. The 3-minute script
 
-Structure: problem (20 s) → solution (20 s) → demonstration (about 2 min, 8 steps) → impact (15 s) → next step (10 s).
+Structure: problem (20 s) → solution (20 s) → demonstration (about 2 min, 9 steps, 15 presses) → impact (15 s) → next step (10 s).
 "Press N" = the N-th press of **Next moment** from the start screen.
 
 ### Problem · 0:00 (start screen, before any press)
@@ -30,82 +30,84 @@ The banner "Beyond the clinic" is on screen.
 > The phone quietly compares you only with your own usual. When something drifts, nobody gets an alarm: a person
 > gets a small, private nudge to reach out. And only the clinic ever sees health data."
 
-### Demonstration · 0:40
+### Demonstration · 0:40 (about 2 minutes, 15 presses)
 
-**Step 1 · Day 0 · Matching (press 1, then E to open the layer).**
+**Step 1 · Day 0 · Matching (press 1, then E) · ~15 s.**
 Look at the bottom layer: "Matching by how relapses started".
 > "The clinic picks a mentor by how each person's last relapse started. Pablo scores **88.6 %** with Luis, Sara
 > **77.2 %**: Luis and Pablo both started out sleeping more and going out less."
 
-Press E again to close the layer. Presses 2-4 (Pablo's intro, Luis's welcome and consents, four weeks of baseline):
-keep going, one sentence: "Luis gives three separate consents, and Relevo spends four weeks learning his usual."
+Close the layer (E).
 
-**Step 2 · Day 40 · Copilot (press 5).** Middle column.
-> "Luis has sent three notes in a row about the same thing. Pablo gets a private tip, 'Only you see this', on how to
-> reply. Luis sees nothing."
+**Step 2 · Days 27-40 · His own usual, then the copilot (presses 2-3) · ~15 s.**
+Press 2 (day 27): nothing changes on the phones, on purpose.
+> "Luis gives three separate consents, and for four weeks Relevo only learns his usual. It never compares him with
+> anyone else."
 
-**Step 3 · Day 47 · Asking the mentor first (presses 6-10).**
-Presses 6-7: "A one-day spike: nothing fires", then "candidate, day 1 of 3". Press 8: the clinic column shows Luis at
-**1 · Early signs** ("fewer steps"). Nothing appears on either phone.
-> "One bad day does nothing. It takes three days in a row of a clear change."
+Press 3 (day 40), middle column: Pablo gets a private tip, "Only you see this".
+> "Luis has sent three notes in a row about the same thing. Pablo gets a private tip on how to reply. Luis sees nothing."
 
-Press 9, middle column: **"Would you like to talk to Luis today?"** with Yes / Can't today.
-> "Pablo is asked first, in private. Luis hasn't been told anything."
+**Step 3 · Day 47 · Asking the mentor first (presses 4-6) · ~20 s.**
+Press 4: the clinic column shows Luis at **1 · Early signs** ("fewer steps"). Nothing appears on either phone.
+> "One bad day does nothing. It takes three days in a row of a clear change, and only the clinic sees it."
 
-Press 10 (or tap **Yes** on Pablo's phone yourself; the script answers Yes at 08:41 either way). Left column: Luis reads
+Press 5, middle column: **"Would you like to talk to Luis today?"** with Yes / Can't today.
+> "Pablo is asked first, in private. He can say no."
+
+Press 6 (or tap **Yes** on Pablo's phone yourself; the script answers Yes at 08:41 either way). Left column: Luis reads
 **"Pablo would like to talk to you"**. Middle column: Pablo gets an idea, **"Suggest a walk tomorrow morning"**.
+> "Luis never sees an alarm, only a friend who wants to talk."
 
-**Step 4 · Days 47-48 · The walk (presses 11-13).**
-Press 11: Pablo sends it as a voice note; Luis sees "20-minute walk · Tomorrow, Sunday, 10:00". Press 12: Luis taps
-"I'm in" and taps **Thanks** under Pablo's note (it now reads "Thanked"); Pablo's phone shows "Luis said thanks for your
-note". Press 13: Pablo's phone shows **"Luis said it went well"**. Then **E**: in the layer table "A personal solution",
-the row "Walk together" goes from **0.62** to **0.70** in the "Now" column.
-> "Luis said the walk was good, so Relevo learns that walks work for this pair, not for the average person."
-
-Optional, one sentence: "And Pablo hears it too: a mentor who knows his help works keeps going."
+**Step 4 · Days 47-48 · The walk (presses 7-8) · ~15 s.**
+Press 7: Pablo sends the walk as a voice note; Luis sees "20-minute walk · Tomorrow, Sunday, 10:00". Tap **I'm in** on
+Luis's phone (optional: tap **Thanks** under Pablo's note; it reads "Thanked"). If you don't tap, the script does it at 11:20.
+Press 8: Pablo's phone shows **"Luis said it went well"**. Then **E**: in the layer table "A personal solution", the row
+"Walk together" goes from **0.62** to **0.70** in the "Now" column.
+> "The walk went well, so Relevo learns that walks work for this pair, not for the average person."
 
 Close the layer (E).
 
-**Step 5 · Days 54-55 · Level 2, the clinic steps in (presses 14-19).**
-Press 14: clinic column, Luis at **2 · High risk**, with "Call today". Press 15: Pablo says "Can't today" and gets
-nothing to do for Luis that day. Press 16: Luis reads "Anna, your nurse, will call you soon to see how you are".
-Press 17: (optional E) the layer shows the next notice postponed: "Luis already got a notice today". Press 18, the next
-day: Luis gets a gentle prompt to send Pablo a note, and Pablo gets "Call Luis or meet up for a while today". Press 19:
-the clinic calls Luis.
+**Step 5 · Day 54 · Level 2, the clinic steps in (presses 9-10) · ~15 s.**
+Press 9: clinic column, Luis at **2 · High risk**, with "Call today". Press 10: Luis reads **"Anna, your nurse, will
+call you soon to see how you are"**. Pablo's phone shows nothing for Luis: he answered "Can't today".
 > "When the mentor can't, that's respected. The clinic takes over, and Luis gets at most one notification a day."
 
-**Step 7, first half · Day 56 · The mentor drifts too (presses 20-21).** The middle column switches to **Marta** by
-itself: she is asked first about Pablo. Press 21: back on Pablo, he reads "Marta would like to talk to you".
-> "Pablo's own data start to drift. His mentor, Marta, is asked first. The chain looks after the mentors too."
+**Step 6 · Day 56 · The mentor drifts too (press 11) · ~10 s.**
+The middle column switches to **Marta** by itself: "Would you like to talk to Pablo today?".
+> "Pablo is still recovering too, so Relevo watches him exactly like Luis. His own mentor, Marta, is asked first."
 
-**Content note, say it before press 22:**
+**Content note, say it before press 12:**
 > "Content note: the next moment involves a message with a suicidal thought. We'll show what the system does, not the
 > message itself."
 
-**Step 6 · Day 57 · Crisis phrase (presses 22-23).**
+**Step 7 · Days 57-59 · Crisis phrase (presses 12-13) · ~20 s.**
 Do **not** press the play button on Luis's note, and do not read the note aloud.
-Press 22. Left column: the help sheet opens on Luis's phone ("Need help right now?": 112, the MIELI crisis line, his
+Press 12. Left column: the help sheet opens on Luis's phone ("Need help right now?": 112, the MIELI crisis line, his
 clinic, ask Pablo to write). Right column: **1 Severe alert**, Luis at **3 · Severe** with "Call now". Middle column:
-Pablo reads "Anna, Luis's nurse, and the clinic team have been told. You don't need to do anything else." (and sees "This note was passed to Luis's clinic team." instead of the note itself)
+Pablo reads "Anna, Luis's nurse, and the clinic team have been told. You don't need to do anything else." (and sees
+"This note was passed to Luis's clinic team." instead of the note itself).
 > "A phrase from a fixed list moves Luis to level 3 immediately. Help opens on his phone, the clinic gets a severe
 > alert, and Pablo is told he doesn't have to carry this."
 
-Press 23: "Unattended 15 min → on-call lead" (shown in the layer's "What just happened" log, if E is open).
-No need to press anything: the script resolves the alert on day 59. (If you do press "Resolve" earlier, Luis goes back to the level his data show and every open severe alert for him closes.)
+Press 13 (day 59): the clinic resolves the alert; Luis goes back to what his data say (level 2). Pablo's phone closes the
+loop: "Anna's team is with Luis now. Thank you for being there."
+(Behind the scenes, an alert left unattended for 15 minutes goes to the on-call lead; it is in the layer's log if E is open.)
 
-**Step 7, second half · Days 59-60 · Protecting the mentor (presses 24-26).**
-Press 24: the clinic resolves the alert; Luis goes back to what his data say (level 2). Pablo's phone closes the loop:
-"Anna's team is with Luis now. Thank you for being there." with an optional "Note to Luis". Press 25: Pablo is at level 2;
-his phone offers "A few days for you · We suggest a pause"; the clinic shows **"Review pace"** for Pablo and "No active
-mentor" for Luis. Press 26: Marta writes to Pablo.
+**Step 8 · Day 60 · Protecting the mentor (press 14) · ~10 s.**
+Pablo is at level 2: his phone offers **"A few days for you · We suggest a pause"**; the clinic shows **"Review pace"**
+for Pablo and "No active mentor" for Luis.
 > "Pablo is offered a pause, Luis stays supported by the clinic team, and nobody is blamed."
 
-**Step 8 · Close · What the simulation shows (press 27, E open).**
+**Step 9 · Close · What the simulation shows (press 15, the layer opens by itself) · ~20 s.**
 The layer shows **90 %**, **6 days**, **2.37**.
 > "On 1,000 synthetic people that we generated ourselves, with 500 simulated relapses, level 1 catches 90 % of them with
 > a median of 6 days' notice and 2.37 false alarms per person per year, and a false alarm only costs a walk with the
 > mentor. Level 2, the one that reaches the clinic, is much stricter: 62 %. This proves the logic works as designed,
 > not that it predicts relapse in real patients. That needs a clinical study."
+
+**Said only in words (no moment of its own):** one bad day does nothing; one notification a day at most; if the mentor
+says "Can't today" it is respected; an unattended severe alert goes to the on-call lead after 15 minutes. The retired
+moments are still in `src/lib/relevo/demo.ts` (marked `off`) and can be brought back.
 
 ### Impact · 2:40
 
@@ -132,8 +134,9 @@ The layer shows **90 %**, **6 days**, **2.37**.
 - [ ] **Projector** at 1920×1080 if possible. Practise opening and closing the layer with the **E** key.
 - [ ] **Only forward** during the demo: Next moment or the right arrow. To repeat, More → Go back to day 0.
 - [ ] Don't project the URL with `?w=` or the More menu: anyone with that link can move the demo.
-- [ ] Day 57: let the script resolve the alert on day 59 (pressing "Resolve" earlier is safe, but it changes the story you tell).
-- [ ] Content note said before step 6; the crisis note is never played aloud.
+- [ ] Day 57 (press 12): let the script resolve the alert at press 13 (pressing "Resolve" earlier is safe, but it changes the story you tell).
+- [ ] Content note said before step 7 (press 12); the crisis note is never played aloud.
+- [ ] Live taps are optional: "Yes" (press 5) and "I'm in" (press 7). If you skip them, the script does them a few minutes later.
 
 ---
 

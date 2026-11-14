@@ -35,7 +35,7 @@ Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses despu�
 - **No** pulsar "Accompany Luis": seguir con →.
 - **Si alguien pulsa "Propose" en Sara por error:** en la clínica, Matching → **Cancel proposal** (o tecla **+**).
 
-### 2 · Consentimiento y línea base (→ 3 veces, 20 s)
+### 2 · Consentimiento y línea base (→ 1 vez, día 27, 20 s)
 > "Luis gives three separate consents, and for four weeks Relevo only learns his usual. It never compares him with
 > anyone else."
 
@@ -49,24 +49,24 @@ Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses despu�
 > "And if Pablo is ever worried, one tap tells the clinic. They take it from here; he doesn't have to decide anything.
 > The same guidelines from the training are always available in his app."
 
-### 4 · Detección tranquila: primero se pregunta al mentor (→ 5 veces + 3 más para el paseo, días 43-48, 1 min)
+### 4 · Detección tranquila: primero se pregunta al mentor (→ 3 veces + 2 más para el paseo, días 47-48, 1 min)
 - Un pico de un día no dispara nada. Tres días seguidos → Luis en nivel 1 (solo lo ve la clínica).
 - Pablo recibe **"Would you like to talk to Luis today?"**. Puede decir que no.
 > "One bad day does nothing. After three days of a clear change, the mentor is asked first, privately, and can say
 > no. Luis never sees an alarm, only 'Pablo would like to talk to you'."
-- Tres → más: Pablo manda el paseo como nota de voz, Luis dice "I'm in" y Relevo aprende que a esta pareja le funcionan los paseos.
+- Dos → más: Pablo manda el paseo como nota de voz (pulsa **I'm in** en el móvil de Luis) y, al día siguiente, Relevo aprende que a esta pareja le funcionan los paseos.
 
-### 5 · Si el mentor no puede, la clínica se encarga (→ 6 veces, días 54-55, 40 s)
+### 5 · Si el mentor no puede, la clínica se encarga (→ 2 veces, día 54, 40 s)
 > "When Pablo says 'Can't today', that's respected: he gets nothing to do. The clinic sees Luis at high risk and
 > calls him. Luis gets at most one notification a day."
 
-### 6 · El mentor también está protegido (→ 2 veces, día 56, 40 s)
+### 6 · El mentor también está protegido (→ 1 vez, día 56, 40 s)
 - La columna cambia sola a **Marta**, la mentora de Pablo.
 > "Mentors are still recovering too, so Relevo watches them exactly like mentees. If Pablo starts to drift, his own
 > mentor is asked first. If it gets worse, he's offered a pause, ideas for Luis stop, and the clinic can assign a
 > temporary mentor."
 
-### 7 · Crisis (→ 2 veces, día 57, 40 s) · avisar antes
+### 7 · Crisis (→ 2 veces, días 57-59, 40 s) · avisar antes
 > "Content note: the next moment involves a message with a suicidal thought. We'll show what the system does, not
 > the message."
 - **No** reproducir la nota de Luis.
@@ -74,7 +74,7 @@ Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses despu�
 > Pablo doesn't even receive the message. He's told: 'Anna, Luis's nurse, and the clinic team have been told. You don't need to do
 > anything else.'"
 
-### 8 · Cierre (→ 4 veces hasta el final, días 59-62, 30 s)
+### 8 · Cierre (→ 2 veces hasta el final: la pausa de Pablo y la simulación, días 60-62, 30 s)
 > "So: the mentor offers company, never treatment. The clinic keeps clinical responsibility, and every patient who
 > recovers can become the next companion, but only when they're ready."
 

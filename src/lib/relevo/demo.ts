@@ -5,36 +5,40 @@ import { PERSON } from "./people.ts";
 import { at, dateOf, dayOf, hhmm, type Sim } from "./sim.ts";
 import { ACTION_LABEL, dayLabel, matchFor } from "./views.ts";
 
-export type Moment = { t: number; key: string; label: string; group: string };
-export const MOMENTS: Moment[] = [
+export type Moment = { t: number; key: string; label: string; group: string; off?: string };
+// Todos los momentos de la historia. Los que llevan "off" no se usan en la demo (se pasaron de 27 a 15 para el pitch de
+// 3 minutos); están aquí para poder recuperarlos quitando "off". La simulación no depende de esta lista: lo que pasa en
+// cada momento ocurre igual por hora aunque se salte la parada.
+export const ALL_MOMENTS: Moment[] = [
   { t: at(0, "08:10"), key: "match", label: "Matching: Pablo or Sara for Luis?", group: "match" },
-  { t: at(0, "09:20"), key: "intro", label: "Pablo accepts and records his intro", group: "match" },
-  { t: at(0, "18:00"), key: "welcome", label: "Luis's welcome and consents", group: "match" },
+  { t: at(0, "09:20"), key: "intro", label: "Pablo accepts and records his intro", group: "match", off: "Pablo acepta solo a las 09:20; no cambia nada visible" },
+  { t: at(0, "18:00"), key: "welcome", label: "Luis's welcome and consents", group: "match", off: "los consentimientos se cuentan en una frase" },
   { t: at(27, "20:00"), key: "baseline", label: "Four weeks: Luis's baseline is set", group: "baseline" },
   { t: at(40, "21:10"), key: "copilot", label: "Third note in a complaint loop: copilot", group: "copilot" },
-  { t: at(43, "09:00"), key: "spike", label: "A one-day spike: nothing fires", group: "detect" },
-  { t: at(45, "09:00"), key: "candidate", label: "Mobility stays high: candidate, day 1 of 3", group: "detect" },
+  { t: at(43, "09:00"), key: "spike", label: "A one-day spike: nothing fires", group: "detect", off: "no pasa nada visible: \"un mal día no hace nada\" se dice de palabra" },
+  { t: at(45, "09:00"), key: "candidate", label: "Mobility stays high: candidate, day 1 of 3", group: "detect", off: "igual que el anterior (solo cambia un número en la clínica)" },
   { t: at(47, "03:15"), key: "l1", label: "Third day in a row: Luis enters level 1", group: "detect" },
   { t: at(47, "08:30"), key: "v1", label: "Pablo is asked first", group: "solution" },
   { t: at(47, "08:41"), key: "yes", label: "Pablo says yes → Luis reads V2", group: "solution" },
   { t: at(47, "09:05"), key: "note", label: "Pablo sends the walk as a voice note", group: "solution" },
-  { t: at(47, "11:20"), key: "in", label: "Luis: “I'm in”", group: "solution" },
+  { t: at(47, "11:20"), key: "in", label: "Luis: “I'm in”", group: "solution", off: "el \"I'm in\" se pulsa en directo en el momento anterior" },
   { t: at(48, "11:30"), key: "good", label: "“Good” → walk 0.62 → 0.70", group: "solution" },
   { t: at(54, "03:15"), key: "l2", label: "Luis enters level 2: the clinic steps in", group: "high" },
-  { t: at(54, "09:10"), key: "cant", label: "Pablo: “Can't today” (respected)", group: "high" },
+  { t: at(54, "09:10"), key: "cant", label: "Pablo: “Can't today” (respected)", group: "high", off: "pantalla vacía: \"si Pablo no puede, se respeta\" se dice de palabra" },
   { t: at(54, "10:10"), key: "v4", label: "Clinic schedules a call → V4", group: "high" },
-  { t: at(54, "14:30"), key: "v3defer", label: "V3 postponed: V4 already sent today", group: "high" },
-  { t: at(55, "08:30"), key: "v3", label: "V3 delivered, V7 dropped, direct idea", group: "high" },
-  { t: at(55, "12:00"), key: "call", label: "The clinic calls Luis", group: "high" },
+  { t: at(54, "14:30"), key: "v3defer", label: "V3 postponed: V4 already sent today", group: "high", off: "solo se ve en la capa: la regla de un aviso al día se dice de palabra" },
+  { t: at(55, "08:30"), key: "v3", label: "V3 delivered, V7 dropped, direct idea", group: "high", off: "repite el aviso en dos tiempos del día 47" },
+  { t: at(55, "12:00"), key: "call", label: "The clinic calls Luis", group: "high", off: "la llamada solo aparece en el registro" },
   { t: at(56, "08:30"), key: "pl1", label: "Pablo enters level 1: Marta is asked first", group: "mentor" },
-  { t: at(56, "09:02"), key: "v5", label: "Marta says yes → Pablo reads V5", group: "mentor" },
+  { t: at(56, "09:02"), key: "v5", label: "Marta says yes → Pablo reads V5", group: "mentor", off: "repite el aviso en dos tiempos (Marta dice que sí → Pablo lo lee)" },
   { t: at(57, "21:12"), key: "crisis", label: "Crisis phrase in a note → level 3 now", group: "crisis" },
-  { t: at(57, "21:27"), key: "forward", label: "Unattended 15 min → on-call lead", group: "crisis" },
+  { t: at(57, "21:27"), key: "forward", label: "Unattended 15 min → on-call lead", group: "crisis", off: "solo aparece en el registro de la capa" },
   { t: at(59, "10:00"), key: "resolve", label: "Clinic resolves → back to what data say", group: "crisis" },
   { t: at(60, "08:30"), key: "pl2", label: "Pablo level 2: a pause, ideas for Luis paused", group: "mentor2" },
-  { t: at(60, "09:02"), key: "v5b", label: "Marta writes to Pablo", group: "mentor2" },
+  { t: at(60, "09:02"), key: "v5b", label: "Marta writes to Pablo", group: "mentor2", off: "la pantalla de Pablo es igual que la anterior" },
   { t: at(62, "12:00"), key: "close", label: "What the simulation shows", group: "close" },
 ];
+export const MOMENTS: Moment[] = ALL_MOMENTS.filter((m) => !m.off);
 
 // "What just happened" (J-05/U-09): las claves internas en castellano se sirven con su etiqueta en inglés
 const LABELS: Record<string, string> = { ...ACTION_LABEL, ...DOMAIN_LABEL };

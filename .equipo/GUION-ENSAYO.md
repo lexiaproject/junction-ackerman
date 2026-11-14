@@ -15,11 +15,11 @@ Lista corta para quien presenta. Todo sale de los informes de la fase 1 y de DEC
 ## Durante la demo
 - Avanzar solo hacia delante ("Next moment" o flecha derecha). Si hay que repetir, ir al día 0 desde "More".
 - No proyectar la URL con `?w=` ni el menú "More": quien tenga el enlace puede mover la demo.
-- Paso 3: pulsar "Yes" en el móvil de Pablo. Si Gemini tarda o falla, el mensaje sale igual con el texto de respaldo
+- Paso 3 (pulsación 5): pulsar "Yes" en el móvil de Pablo. Si Gemini tarda o falla, el mensaje sale igual con el texto de respaldo
   (se ve "Suggested · you can change it" en vez de "Suggested with AI").
 - Día 57 (crisis): dejar que el guion resuelva el día 59. Pulsar "Resolve" antes ya es seguro (Luis vuelve al nivel de sus datos), pero cambia la historia.
 - No reproducir en voz alta la nota de crisis de Luis (botón de play) delante del jurado: basta con decir que una frase de
-  la lista fija la ha activado. Aviso de contenido antes del paso 6.
+  la lista fija la ha activado. Aviso de contenido antes del paso 7 (pulsación 12).
 - Si la red cae: plan B local con `npm run build && npm start` y abrir http://localhost:3000/relevo/demo (sin variables
   KV funciona con memoria del servidor; sin clave de Gemini usa el texto de respaldo).
 

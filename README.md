@@ -13,7 +13,7 @@ private nudge to reach out. **Only the clinic ever sees health data.** Mentors o
 
 Three surfaces side by side (Luis's phone, his mentor Pablo's phone, the clinic web), a day slider, and a
 **"Show how Relevo decides"** layer that shows what the engine computed behind each screen.
-Press **Next moment** (or the arrow keys) to walk through the story: 27 moments, grouped into the 8 steps below.
+Press **Next moment** (or the arrow keys) to walk through the story: 15 moments, grouped into the 9 steps below.
 Presenting it? See the 3-minute script, checklist and plan B in [docs/DEMO.md](docs/DEMO.md).
 
 ## The problem
@@ -23,28 +23,28 @@ after are when relapse risk is high, and the clinic only sees the person again w
 don't want to be watched by an app, and clinics can't call everyone every week. Relevo tries to catch the early drift
 and answer it with a person who has been there, not with a red notification.
 
-## The demo in 8 steps
+## The demo in 9 steps
 
 Day 0 is 7 September, the day after Luis's last TMS session. The contract numbers below (0.886, 0.772, 0.62 → 0.70, 90 %, 6 days, 2.37, 1,000) are checked automatically by `scripts/relevo-demo-walk.mjs` against the running app.
 
 1. **Day 0 · Matching.** The clinic proposes a mentor for Luis: affinity **0.886** with Pablo vs **0.772** with Sara.
    Pablo accepts and records an intro.
-2. **Day 40 · Copilot.** Luis's third voice note in a complaint loop → Pablo gets a private tip on how to reply.
+2. **Days 27-40 · His own usual, then the copilot.** For four weeks Relevo only learns Luis's usual. Then the copilot: Luis's third voice note in a complaint loop → Pablo gets a private tip on how to reply.
    Luis sees nothing.
 3. **Day 47 · Two-step ask.** Luis has been drifting for three days (level 1). Pablo is asked first, privately. Only after
    he says "Yes" does Luis read "Pablo would like to talk to you". Pablo receives an idea: a walk (drafted by Gemini, or
    by a template if the AI is unavailable).
 4. **Days 47-48 · The walk.** Pablo sends it as a voice note, Luis taps "I'm in", then "Good" → the idea's learned
    probability goes **0.62 → 0.70**.
-5. **Days 54-55 · Level 2.** Pablo says "Can't today": he gets no idea for Luis that day. The clinic schedules a call (notice V4); the
-   next notice (V3) is held until the following day (one push per day); a direct call idea is ready on 31 October.
-6. **Day 57 · Crisis phrase.** A note with a crisis phrase → level 3 immediately: the help sheet opens on Luis's phone,
+5. **Day 54 · Level 2.** Pablo says "Can't today": he gets no idea for Luis that day. The clinic schedules a call and Luis reads
+   "Anna, your nurse, will call you soon" (one push per day at most).
+6. **Day 56 · The mentor drifts too.** Pablo starts to drift himself → his own mentor Marta is asked first.
+7. **Days 57-59 · Crisis phrase.** A note with a crisis phrase → level 3 immediately: the help sheet opens on Luis's phone,
    a severe alert appears at the clinic, and Pablo gets a calm message telling him he doesn't need to do anything else. Unattended for 15 minutes, it goes
-   to the on-call lead.
-7. **Days 56-60 · Protecting the mentor.** Pablo starts to drift himself → his own mentor Marta is asked first, Pablo is
-   offered a pause, and the clinic sees "Review pace". (A lighter pace is proposed after 5 days at level 1; Pablo
+   to the on-call lead. On day 59 the clinic resolves it and Pablo is thanked.
+8. **Day 60 · Protecting the mentor.** Pablo is offered a pause, and the clinic sees "Review pace". (A lighter pace is proposed after 5 days at level 1; Pablo
    reaches level 2 after 4, so the demo goes straight to the pause.)
-8. **Close · What the simulation shows.** Level 1 catches **90 %** of simulated relapses with a median of **6 days** of
+9. **Close · What the simulation shows.** Level 1 catches **90 %** of simulated relapses with a median of **6 days** of
    notice and **2.37 false alarms per person-year**, on **1,000 synthetic people** (500 simulated relapses). Level 2 is much
    stricter: 62 %, 1 day, 0.77 false alarms.
    These figures come from `scripts/relevo-evaluate.mjs`, which runs the engine on synthetic people that we generated
