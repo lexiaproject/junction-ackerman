@@ -16,6 +16,25 @@
   --color-lingon-ink: #8a1a30;
   --font-sans: var(--nf-sans);
   --font-display: var(--nf-sans);
+
+  /* Relevo (especificación v3, sección 10.1): solo se usan bajo /relevo */
+  --color-rv-bg: #f5f6f3;
+  --color-rv-card: #ffffff;
+  --color-rv-ink: #16211c;
+  --color-rv-ink2: #55635d;
+  --color-rv-teal: #0e6b5c;
+  --color-rv-teal-deep: #0a5247;
+  --color-rv-sage: #e7f0ec;
+  --color-rv-notice: #eaf0fa;
+  --color-rv-notice-ink: #1e2f4d;
+  --color-rv-help: #9a3412;
+  --color-rv-line: #e2e6e1;
+  --color-rv-l0: #6b7280;
+  --color-rv-l1: #b45309;
+  --color-rv-l2: #c2410c;
+  --color-rv-l3: #b91c1c;
+  --font-rv-display: var(--rv-display);
+  --font-rv-body: var(--rv-body);
 }
 
 html {

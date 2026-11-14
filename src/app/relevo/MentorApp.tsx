@@ -1,0 +1,429 @@
+"use client";
+// App del mentor (Pablo, y Marta como mentora de Pablo): como mucho una acción al día, y protege al mentor
+// tanto como al acompañado. Nunca ve datos ni niveles de nadie, tampoco los suyos.
+import { useState } from "react";
+import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, usePlayer, useView, type NoteV } from "./kit";
+import { CONSENT_TEXT, Chain, DataRights, DeviceList, HelpSheet, Toggle, type MeData } from "./MenteeApp";
+
+type Card = { id: string; menteeName: string; kind: string; question: string | null; title: string; reason: string; message: string; aiDrafted: boolean; icon: string; prepared: boolean };
+type Self = { id: string; code: string; text: string; buttons: { id: string; label: string }[]; from: string | null; noteId: string | null };
+export type MentorData = {
+  clock: { time: string; date: string; short: string; t: number };
+  me: { id: string; name: string };
+  greeting: string;
+  m0: { menteeId: string; menteeName: string; percent: number; reasons: string[] } | null;
+  self: Self[];
+  mentorNote: NoteV | null;
+  m5: { variant: "pause" | "light"; mentorName: string | null; menteeName: string | null } | null;
+  m6: { menteeName: string } | null;
+  card: Card | null;
+  sent: { menteeName: string } | null;
+  plan: { id: string; title: string; when: string; icon: string; menteeName: string; status: string } | null;
+  mentee: { id: string; name: string } | null;
+  myMentor: { id: string; name: string } | null;
+  conversations: { mentee: NoteV[]; mentor: NoteV[] };
+  copilot: { id: string; text: string; example: string } | null;
+  rhythm: { value: number; label: string; paused: boolean; reviewing: boolean };
+  devices: MeData["devices"];
+  consents: MeData["consents"];
+  left: boolean;
+  requests: { kind: string; when: string }[];
+};
+
+const TABS = [
+  { id: "today", label: "Today", icon: "today" },
+  { id: "chat", label: "Conversation", icon: "chat" },
+  { id: "relay", label: "My relay", icon: "chain" },
+  { id: "settings", label: "Settings", icon: "settings" },
+] as const;
+type Tab = (typeof TABS)[number]["id"];
+
+export default function MentorApp({ w, as }: { w: string; as: "pablo" | "marta" }) {
+  const { data } = useView<MentorData>(`/api/relevo/mentor?w=${w}&as=${as}`);
+  const player = usePlayer(w);
+  const [tab, setTab] = useState<Tab>("today");
+  const [thread, setThread] = useState<"mentee" | "mentor">("mentee");
+  const [help, setHelp] = useState(false);
+  const [compose, setCompose] = useState<{ to: string; toName: string; script?: string; cardId?: string; kind?: string; title: string } | null>(null);
+  const [m5Open, setM5Open] = useState(true);
+  if (!data) return <div className="flex flex-1 items-center justify-center rv-muted">Loading…</div>;
+  const mentee = data.mentee;
+  const mine = data.myMentor;
+  const go = (t: Tab, th?: "mentee" | "mentor") => {
+    setTab(t);
+    if (th) setThread(th);
+    document.getElementById(`rv-scroll-${as}`)?.scrollTo({ top: 0 });
+  };
+
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <header className="flex shrink-0 items-start justify-between px-5 pb-2 pt-1">
+        <div>
+          <p className="rv-muted text-[13px]">{data.clock.date}</p>
+          <h1 className="text-[24px] leading-tight">{tab === "today" ? data.greeting : TABS.find((t) => t.id === tab)!.label}</h1>
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <Avatar name={data.me.name} size={34} />
+          <button onClick={() => setHelp(true)} className="rv-btn rv-btn-help rv-btn-sm gap-1.5">
+            <Icon name="heart" size={16} />
+            Help
+          </button>
+        </div>
+      </header>
+
+      <div id={`rv-scroll-${as}`} className="rv-scroll min-h-0 flex-1 overflow-y-auto">
+        {tab === "today" && (
+          <Today w={w} as={as} data={data} player={player} onCompose={setCompose} onTab={go} onM5={() => setM5Open(true)} />
+        )}
+        {tab === "chat" && (
+          <div className="flex min-h-full flex-col">
+            {mine && mentee && (
+              <div className="mx-4 mb-2 flex rounded-full bg-white p-1 shadow-[0_0_0_1px_var(--color-rv-line)]" role="tablist">
+                {(["mentee", "mentor"] as const).map((k) => (
+                  <button key={k} role="tab" aria-selected={thread === k} onClick={() => setThread(k)} className={`flex-1 rounded-full py-2 text-[14px] font-semibold transition-colors ${thread === k ? "bg-rv-teal text-white" : "text-rv-ink2"}`}>
+                    {k === "mentee" ? mentee.name : mine.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {(() => {
+              const other = thread === "mentor" || !mentee ? mine : mentee;
+              if (!other) return <p className="rv-muted px-6 py-10 text-center">You&apos;re not accompanying anyone yet.</p>;
+              const notes = thread === "mentor" || !mentee ? data.conversations.mentor : data.conversations.mentee;
+              return (
+                <>
+                  <div className="flex flex-1 flex-col gap-2.5 px-4 pb-4 pt-1">
+                    {/* Copiloto: solo lo ve el mentor; no resume ni enseña el análisis de las notas */}
+                    {thread === "mentee" && data.copilot && (
+                      <div className="rv-notice rv-in p-4">
+                        <p className="flex items-center gap-1.5 text-[12.5px] font-semibold"><Icon name="lock" size={14} />Only you see this</p>
+                        <p className="mt-1.5 text-[15px] leading-snug">{data.copilot.text}</p>
+                        <p className="mt-2 rounded-2xl bg-white/70 px-3 py-2 text-[14px] italic">“{data.copilot.example}”</p>
+                        <div className="mt-3 flex gap-2">
+                          <button className="rv-btn rv-btn-notice flex-1" onClick={async () => { await act(w, as, "copilot", { id: data.copilot!.id, choice: "use" }); setCompose({ to: other.id, toName: other.name, script: data.copilot!.example, title: `Note to ${other.name}` }); }}>Use idea</button>
+                          <button className="rv-btn rv-btn-ghost text-rv-notice-ink" onClick={() => act(w, as, "copilot", { id: data.copilot!.id, choice: "dismiss" })}>Dismiss</button>
+                        </div>
+                      </div>
+                    )}
+                    {notes.length === 0 && <p className="rv-muted py-8 text-center">No notes yet.</p>}
+                    {notes.map((n) => <VoiceNote key={n.id} note={n} player={player} bubble />)}
+                  </div>
+                  <div className="sticky bottom-0 flex items-center gap-3 border-t border-rv-line bg-rv-bg/95 px-4 pb-4 pt-3 backdrop-blur">
+                    <Recorder w={w} as={as} to={other.id} toName={other.name} compact />
+                    <p className="rv-muted flex-1 text-[13px]">Hold to talk to {other.name}</p>
+                    <button className="rv-btn rv-btn-ghost px-2" aria-label="Write instead" onClick={() => setCompose({ to: other.id, toName: other.name, title: `Note to ${other.name}` })}><Icon name="text" /></button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
+        {tab === "relay" && <Relay w={w} as={as} data={data} player={player} onTalk={() => go("chat", "mentor")} />}
+        {tab === "settings" && (
+          <div className="px-4 pb-6 pt-1">
+            <DeviceList w={w} as={as} devices={data.devices} />
+            <h3 className="mt-6 px-1 text-[17px]">What you agreed to</h3>
+            <div className="rv-card mt-2 divide-y divide-rv-line">
+              {(["data", "notes", "ideas"] as const).map((k) => (
+                <label key={k} className="flex items-center gap-3 p-4">
+                  <span className="flex-1 text-[14px] leading-snug">{CONSENT_TEXT[k]}</span>
+                  <Toggle on={data.consents[k]} onChange={(v) => act(w, as, "consent", { key: k, on: v })} label={CONSENT_TEXT[k]} />
+                </label>
+              ))}
+            </div>
+            <h3 className="mt-6 px-1 text-[17px]">Notice hours</h3>
+            <div className="rv-card mt-2 flex items-center justify-between p-4">
+              <span>Between</span>
+              <span className="rv-num font-semibold">08:30 – 21:00</span>
+            </div>
+            <p className="rv-muted mt-2 px-1 text-[12.5px]">At most one notification a day. Help is always available, whatever the time.</p>
+            <DataRights w={w} as={as} requests={data.requests} leaveLabel="Stop being a mentor" />
+          </div>
+        )}
+      </div>
+
+      <nav className="grid shrink-0 grid-cols-4 border-t border-rv-line bg-white/95 pb-3 pt-1.5 backdrop-blur" aria-label="Main">
+        {TABS.map((t) => (
+          <button key={t.id} onClick={() => go(t.id)} aria-current={tab === t.id ? "page" : undefined} className={`flex min-h-[48px] flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${tab === t.id ? "text-rv-teal" : "text-[#7c8883]"}`}>
+            <Icon name={t.icon} size={22} />
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {data.m0 && <M0 w={w} as={as} m0={data.m0} />}
+      {data.m5 && m5Open && !data.m0 && <M5 w={w} as={as} m5={data.m5} onLater={() => setM5Open(false)} />}
+      {help && <HelpSheet w={w} as={as} mentorName={mine?.name ?? null} clinic={{ phone: "+358 9 4512 3300" }} onClose={() => setHelp(false)} />}
+      {compose && (
+        <Sheet onClose={() => setCompose(null)} label={compose.title}>
+          <h2 className="text-[22px]">{compose.title}</h2>
+          {compose.script !== undefined && (
+            <div className="mt-3 rounded-2xl bg-rv-sage p-4">
+              <p className="text-[12px] font-semibold text-rv-teal">Your script</p>
+              <p className="mt-1 text-[16px] leading-snug">{compose.script}</p>
+            </div>
+          )}
+          <div className="mt-5">
+            <Recorder w={w} as={as} to={compose.to} toName={compose.toName} script={compose.script} cardId={compose.cardId} kind={compose.kind} label="Hold to record" onSent={() => setTimeout(() => setCompose(null), 1500)} />
+          </div>
+          <div className="mt-2">
+            <TextNote key={compose.script} w={w} as={as} to={compose.to} toName={compose.toName} initial={compose.script ?? ""} cardId={compose.cardId} kind={compose.kind} onSent={() => setCompose(null)} />
+          </div>
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+/* ---------- M1 · Hoy ---------- */
+function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as: string; data: MentorData; player: ReturnType<typeof usePlayer>; onCompose: (c: { to: string; toName: string; script?: string; cardId?: string; kind?: string; title: string }) => void; onTab: (t: Tab, th?: "mentee" | "mentor") => void; onM5: () => void }) {
+  const [msg, setMsg] = useState<Record<string, string>>({});
+  const mentee = data.mentee;
+  const card = data.card;
+  const mine = data.myMentor;
+  const recentMentorNote = data.mentorNote;
+  const showMentorNote = recentMentorNote && !data.self.some((s) => s.code === "V5") && /today|yesterday|min ago|just now/.test(recentMentorNote.when);
+  const nothing = !card && !data.plan && !data.m6 && !data.sent;
+  return (
+    <div className="flex flex-col gap-3 px-4 pb-6 pt-1">
+      {/* Avisos para sí mismo */}
+      {data.self.map((s) => (
+        <div key={s.id} className="rv-notice rv-in p-4">
+          <div className="flex items-start gap-3">
+            {s.from && <Avatar name={s.from} size={38} />}
+            <p className="pt-1.5 text-[16px] font-semibold leading-snug">{s.text}</p>
+          </div>
+          <div className="mt-3 flex gap-2">
+            {s.buttons.map((b, i) => (
+              <button
+                key={b.id}
+                className={`rv-btn ${i === 0 ? "rv-btn-notice flex-1" : "rv-btn-ghost text-rv-notice-ink"}`}
+                onClick={async () => {
+                  await act(w, as, "notice", { noticeId: s.id, choice: b.id }).catch(() => {});
+                  if (b.id === "listen" && s.noteId && data.mentorNote) player.play(data.mentorNote);
+                  if (b.id === "note") onTab("chat", s.code === "HELP" ? "mentee" : "mentor");
+                }}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {showMentorNote && mine && (
+        <div className="rv-card p-3">
+          <p className="px-1 pb-1 font-semibold">{mine.name} left you a note</p>
+          <VoiceNote note={recentMentorNote!} player={player} />
+        </div>
+      )}
+      {data.m5 && (
+        <button onClick={onM5} className="rv-card flex items-center gap-3 p-4 text-left">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="sun" /></span>
+          <span className="flex-1 font-semibold">{data.m5.variant === "pause" ? "A few days for you" : "This week, a lighter pace"}</span>
+          <Icon name="chevron" className="text-rv-ink2" />
+        </button>
+      )}
+
+      {/* M6 · La clínica se ocupa */}
+      {data.m6 && (
+        <div className="rv-card rv-in p-5">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="shield" /></span>
+          <p className="mt-3 text-[17px] font-semibold leading-snug">The clinic team is in touch with {data.m6.menteeName}. You don&apos;t need to do anything else.</p>
+          {mine && <button onClick={() => onTab("chat", "mentor")} className="rv-btn rv-btn-secondary mt-4 w-full">Talk to {mine.name}</button>}
+        </div>
+      )}
+
+      {/* Tarjeta de la idea del día (máximo una) */}
+      {card && mentee && (
+        <div className="rv-card rv-in overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4">
+            <Avatar name={card.menteeName} size={26} />
+            <p className="rv-muted text-[13px] font-semibold">Idea for today · {card.menteeName}</p>
+          </div>
+          {card.question ? (
+            <div className="p-4 pt-3">
+              <p className="text-[20px] font-semibold leading-snug" style={{ fontFamily: "var(--rv-display)" }}>{card.question}</p>
+              <div className="mt-4 flex gap-2">
+                <button className="rv-btn rv-btn-primary rv-btn-lg flex-1" onClick={() => act(w, as, "v1_answer", { choice: "yes" })}>Yes</button>
+                <button className="rv-btn rv-btn-secondary rv-btn-lg" onClick={() => act(w, as, "v1_answer", { choice: "cant" })}>Can&apos;t today</button>
+              </div>
+              <p className="rv-muted mt-3 text-[12.5px]">Only if you say yes will {card.menteeName} read that you&apos;d like to talk.</p>
+            </div>
+          ) : (
+            <div className="p-4 pt-2">
+              <h2 className="text-[20px] leading-snug">{card.title}</h2>
+              <p className="rv-muted mt-1 text-[14.5px]">{card.reason}</p>
+              <div className="mt-3 rounded-2xl bg-rv-sage p-3">
+                <textarea
+                  aria-label="Suggested message"
+                  className="min-h-[64px] w-full resize-none bg-transparent text-[15px] leading-snug outline-none"
+                  value={msg[card.id + card.title] ?? card.message}
+                  onChange={(e) => setMsg((m) => ({ ...m, [card.id + card.title]: e.target.value }))}
+                />
+                <p className="text-[11.5px] font-semibold text-rv-teal">{card.aiDrafted ? "Suggested with AI · you can change it" : "Suggested · you can change it"}</p>
+              </div>
+              <button className="rv-btn rv-btn-primary rv-btn-lg mt-3 w-full" onClick={() => onCompose({ to: mentee.id, toName: mentee.name, script: msg[card.id + card.title] ?? card.message, cardId: card.id, title: `Voice note to ${mentee.name}` })}>
+                <Icon name="mic" size={18} />Send as voice note
+              </button>
+              <div className="mt-2 flex gap-2">
+                {card.kind === "idea" && <button className="rv-btn rv-btn-secondary flex-1" onClick={() => act(w, as, "idea", { cardId: card.id, action: "other" })}>Another idea</button>}
+                <button className="rv-btn rv-btn-ghost flex-1" onClick={() => act(w, as, "idea", { cardId: card.id, action: "not_now" })}>Not now</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {data.sent && (
+        <div className="rv-card flex items-center gap-3 p-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="check" /></span>
+          <p className="font-semibold">Sent. {data.sent.menteeName} will hear it whenever it suits.</p>
+        </div>
+      )}
+
+      {/* Plan en marcha */}
+      {data.plan && (
+        <div className="rv-card p-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rv-sage text-rv-teal"><Icon name={data.plan.icon === "basket" ? "basket" : data.plan.icon} size={22} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold leading-tight">{data.plan.title.replace(/^\d+-minute /, "").replace(/^./, (c) => c.toUpperCase())} with {data.plan.menteeName}</p>
+              <p className="rv-muted text-[13.5px]">
+                {data.plan.when} ·{" "}
+                {data.plan.status === "accepted" ? `${data.plan.menteeName} is in` : data.plan.status === "change_requested" ? `${data.plan.menteeName} asked for another time` : data.plan.status === "cant" || data.plan.status === "other_day" ? `${data.plan.menteeName} can't this time` : `waiting for ${data.plan.menteeName}`}
+              </p>
+            </div>
+          </div>
+          {data.plan.status === "accepted" && <p className="mt-3 text-[13px] font-semibold text-rv-teal">Add to calendar from your phone&apos;s notification</p>}
+        </div>
+      )}
+
+      {nothing && mentee && (
+        <div className="rv-card p-5 text-center">
+          <p className="text-[16px] font-semibold">Nothing pending today.</p>
+          <p className="rv-muted mt-1">If you feel like it, send {mentee.name} a note.</p>
+          <button className="rv-btn rv-btn-secondary mt-4" onClick={() => onTab("chat", "mentee")}><Icon name="mic" size={18} />Note to {mentee.name}</button>
+        </div>
+      )}
+      {!mentee && !data.m0 && (
+        <div className="rv-card p-5 text-center">
+          <p className="text-[16px] font-semibold">You&apos;re not accompanying anyone right now.</p>
+          <p className="rv-muted mt-1">Your clinic will propose someone when it&apos;s a good moment for you.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- M3 · Mi relevo ---------- */
+function Relay({ w, as, data, player, onTalk }: { w: string; as: string; data: MentorData; player: ReturnType<typeof usePlayer>; onTalk: () => void }) {
+  const mine = data.myMentor;
+  const mentee = data.mentee;
+  const PACE = [
+    { v: 1, label: "Light", detail: "One note a week" },
+    { v: 2, label: "Normal", detail: "Almost daily, with ideas" },
+    { v: 3, label: "Intense", detail: "Frequent plans" },
+  ];
+  return (
+    <div className="flex flex-col gap-3 px-4 pb-6 pt-2">
+      <div className="rv-card px-2 py-6">
+        <Chain a={mine?.name ?? "Clinic"} b={data.me.name} c={mentee?.name ?? "…"} labels={[mine ? `${mine.name} walks with you` : "Your clinic supports you", "You", mentee ? `You walk with ${mentee.name}` : "Someone soon"]} />
+      </div>
+      {mine && (
+        <div className="rv-card p-4">
+          <p className="text-[17px] font-semibold">Your mentor</p>
+          {data.mentorNote ? <div className="mt-2"><VoiceNote note={data.mentorNote} player={player} /></div> : <p className="rv-muted mt-1">{mine.name} will write to you soon.</p>}
+          <button className="rv-btn rv-btn-secondary mt-3 w-full" onClick={onTalk}><Icon name="chat" size={18} />Talk to {mine.name}</button>
+        </div>
+      )}
+      <div className="rv-card p-4">
+        <p className="text-[17px] font-semibold">Your pace</p>
+        {data.rhythm.paused ? (
+          <>
+            <p className="mt-2 flex items-center gap-2"><span className="rv-chip bg-rv-sage text-rv-teal">On pause</span><span className="rv-muted text-[13.5px]">{mentee ? `${mentee.name} is looked after by the team.` : ""}</span></p>
+            <button className="rv-btn rv-btn-primary mt-4 w-full" onClick={() => act(w, as, "rhythm", { rhythm: 1, source: "m3" })}>Come back whenever you like</button>
+          </>
+        ) : (
+          <>
+            <div className="mt-3 flex flex-col gap-2" role="radiogroup" aria-label="Your pace">
+              {PACE.map((p) => (
+                <button key={p.v} role="radio" aria-checked={data.rhythm.value === p.v} onClick={() => act(w, as, "rhythm", { rhythm: p.v, source: "m3" })} className={`flex min-h-[52px] items-center justify-between rounded-2xl px-4 text-left transition-colors ${data.rhythm.value === p.v ? "bg-rv-teal text-white" : "bg-rv-bg"}`}>
+                  <span className="font-semibold">{p.label}</span>
+                  <span className={`text-[13px] ${data.rhythm.value === p.v ? "text-white/85" : "rv-muted"}`}>{p.detail}</span>
+                </button>
+              ))}
+            </div>
+            <p className="rv-muted mt-2 text-[12.5px]">Relevo may suggest a change; you decide.</p>
+            <button className="rv-btn rv-btn-ghost mt-2 w-full" onClick={() => act(w, as, "rhythm", { rhythm: 0, source: "m3" })}>Take a pause</button>
+            <p className="rv-muted text-center text-[12px]">Your clinic will know. No reason needed.</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- M0 · Invitación y emparejamiento ---------- */
+function M0({ w, as, m0 }: { w: string; as: string; m0: NonNullable<MentorData["m0"]> }) {
+  const [step, setStep] = useState<"invite" | "meet">("invite");
+  return (
+    <div className="absolute inset-0 z-30 flex flex-col bg-rv-bg px-6 pb-7 pt-4">
+      {step === "invite" ? (
+        <div className="rv-in flex flex-1 flex-col">
+          <div className="flex-1 pt-10">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="chain" size={28} /></span>
+            <h1 className="mt-6 text-[30px] leading-[1.1]">We&apos;d like to invite you to be a mentor in Relevo</h1>
+            <p className="rv-muted mt-3 text-[16px]">Accompanying someone who&apos;s starting TMS can help you too. It&apos;s an invitation: you can say no or stop whenever you like.</p>
+          </div>
+          <button className="rv-btn rv-btn-primary rv-btn-lg w-full" onClick={() => setStep("meet")}>I&apos;m interested</button>
+          <button className="rv-btn rv-btn-ghost mt-2 w-full" onClick={() => act(w, as, "m0_answer", { choice: "decline" })}>Not now</button>
+        </div>
+      ) : (
+        <div className="rv-in flex flex-1 flex-col">
+          <div className="flex-1 pt-6 text-center">
+            <Avatar name={m0.menteeName} size={96} ring />
+            <h1 className="mt-4 text-[28px]">Meet {m0.menteeName}</h1>
+            <p className="mt-2"><span className="rv-chip bg-rv-sage text-[14px] text-rv-teal">Affinity {m0.percent}%</span></p>
+            <ul className="mx-auto mt-6 flex max-w-[30ch] flex-col gap-2.5 text-left">
+              {m0.reasons.map((r) => (
+                <li key={r} className="flex items-start gap-2.5 text-[15px]"><Icon name="check" size={18} className="mt-0.5 text-rv-teal" />{r}</li>
+              ))}
+            </ul>
+          </div>
+          <button className="rv-btn rv-btn-primary rv-btn-lg w-full" onClick={() => act(w, as, "m0_answer", { choice: "accept" })}>Accompany {m0.menteeName}</button>
+          <button className="rv-btn rv-btn-ghost mt-2 w-full" onClick={() => act(w, as, "m0_answer", { choice: "decline" })}>I can&apos;t right now</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- M5 · Ritmo más ligero (nunca dice que sus datos han empeorado) ---------- */
+function M5({ w, as, m5, onLater }: { w: string; as: string; m5: NonNullable<MentorData["m5"]>; onLater: () => void }) {
+  const pause = m5.variant === "pause";
+  return (
+    <div className="absolute inset-0 z-30 flex flex-col bg-rv-bg px-6 pb-7 pt-4">
+      <button onClick={onLater} className="rv-btn rv-btn-ghost -ml-3 self-start px-3" aria-label="Later"><Icon name="x" /></button>
+      <div className="rv-in flex-1 pt-8">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="sun" size={28} /></span>
+        <h1 className="mt-6 text-[30px] leading-[1.1]">{pause ? "A few days for you" : "This week, a lighter pace"}</h1>
+        <p className="rv-muted mt-3 text-[16px]">
+          {pause ? `We suggest a pause. ${m5.menteeName ?? "The person you accompany"} will stay supported by the team and you can come back whenever you like.` : "Helping is tiring too. We suggest a light pace for a few days."}
+        </p>
+        {m5.mentorName && <p className="mt-6 flex items-center gap-2 text-[15px]"><Avatar name={m5.mentorName} size={30} />{m5.mentorName} will write to you these days</p>}
+      </div>
+      {pause ? (
+        <>
+          <button className="rv-btn rv-btn-primary rv-btn-lg w-full" onClick={() => act(w, as, "rhythm", { rhythm: 0, source: "m5" })}>OK, a pause</button>
+          <button className="rv-btn rv-btn-ghost mt-2 w-full" onClick={() => act(w, as, "rhythm", { decline: true, source: "m5" })}>I&apos;d rather keep going with notes only</button>
+        </>
+      ) : (
+        <>
+          <button className="rv-btn rv-btn-primary rv-btn-lg w-full" onClick={() => act(w, as, "rhythm", { rhythm: 1, source: "m5" })}>OK, light pace</button>
+          <button className="rv-btn rv-btn-secondary mt-2 w-full" onClick={() => act(w, as, "rhythm", { rhythm: 0, source: "m5" })}>Take a pause</button>
+          <button className="rv-btn rv-btn-ghost mt-1 w-full" onClick={() => act(w, as, "rhythm", { decline: true, source: "m5" })}>I&apos;d rather keep going as I am</button>
+        </>
+      )}
+    </div>
+  );
+}
