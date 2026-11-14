@@ -9,6 +9,11 @@ same screens.
 **Next moment** (or the right arrow key) to jump to the next moment; there are 15. Press **E** to show or hide
 **"Show how Relevo decides"**, the bottom layer with what the engine computed. Luis and Pablo never see that layer.
 
+**Guide for first-time viewers (on by default).** For a juror who opens the demo alone: the start screen says who is
+who, and each moment shows a bar under the timeline with "4 / 15", one plain sentence and "Look at …"; the column it
+names gets a teal border. Moment 12 carries the content note and moment 15 says it is the end. Press **H** (or
+More → Hide the guide) to hide it when presenting live; the browser remembers the choice, and H shows it again.
+
 ---
 
 ## 1. The 3-minute script
@@ -32,12 +37,12 @@ The banner "Beyond the clinic" is on screen.
 
 ### Demonstration · 0:40 (about 2 minutes, 15 presses)
 
-**Step 1 · Day 0 · Matching (press 1, then E) · ~15 s.**
-Look at the bottom layer: "Matching by how relapses started".
+**Step 1 · Day 0 · Matching (press 1) · ~15 s.**
+The bottom layer opens by itself (don't press E here, it would close it). Look at it: "Matching by how relapses started".
 > "The clinic picks a mentor by how each person's last relapse started. Pablo scores **88.6 %** with Luis, Sara
 > **77.2 %**: Luis and Pablo both started out sleeping more and going out less."
 
-Close the layer (E).
+The layer closes by itself at press 2 (or close it now with E).
 
 **Step 2 · Days 27-40 · His own usual, then the copilot (presses 2-3) · ~15 s.**
 Press 2 (day 27): nothing changes on the phones, on purpose.
@@ -136,6 +141,7 @@ moments are still in `src/lib/relevo/demo.ts` (marked `off`) and can be brought 
 - [ ] Don't project the URL with `?w=` or the More menu: anyone with that link can move the demo.
 - [ ] Day 57 (press 12): let the script resolve the alert at press 13 (pressing "Resolve" earlier is safe, but it changes the story you tell).
 - [ ] Content note said before step 7 (press 12); the crisis note is never played aloud.
+- [ ] **Guide bar**: decide whether you keep it on screen while presenting. **H** hides it (and remembers it in that browser).
 - [ ] Live taps are optional: "Yes" (press 5) and "I'm in" (press 7). If you skip them, the script does them a few minutes later.
 
 ---

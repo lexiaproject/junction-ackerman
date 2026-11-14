@@ -16,6 +16,11 @@ Three surfaces side by side (Luis's phone, his mentor Pablo's phone, the clinic 
 Press **Next moment** (or the arrow keys) to walk through the story: 15 moments, grouped into the 9 steps below.
 Presenting it? See the 3-minute script, checklist and plan B in [docs/DEMO.md](docs/DEMO.md).
 
+**Trying it on your own (about 3 minutes):** open the link in a laptop browser (Chrome works best) and keep pressing
+**→**. A bar under the timeline tells you what happens in each moment and which column to look at (that column gets a
+teal border). Keys: **→** next · **←** back · **E** show or hide how Relevo decides · **H** hide the guide · **+** start
+over with a fresh demo. Each browser gets its own demo world, so nothing you click affects anyone else.
+
 ## The problem
 
 TMS works for many people with depression, but the course ends after a few weeks and the person goes home. The months
