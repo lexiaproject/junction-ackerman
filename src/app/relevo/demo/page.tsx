@@ -360,7 +360,8 @@ function Timeline({ data, onPick, onMoment }: { data: DemoData; onPick: (t: numb
       </div>
       <div className="rv-muted relative mt-0.5 h-4 text-[11.5px]">
         {marks.map(([d, l]) => (
-          <span key={d} className={`absolute whitespace-nowrap ${d === 0 ? "" : d === 62 ? "-translate-x-full" : "-translate-x-1/2 max-sm:hidden"}`} style={{ left: d === 62 ? "100%" : `${pct(d * DAY)}%` }}>{l}</span>
+          // "Baseline ends" acaba en su marca y "Prodrome starts" empieza en la suya: así no se pisan en pantallas estrechas
+          <span key={d} className={`absolute whitespace-nowrap ${d === 0 ? "" : d === 62 ? "-translate-x-full" : d === 28 ? "-translate-x-full pr-1.5 max-sm:hidden" : "pl-1.5 max-sm:hidden"}`} style={{ left: d === 62 ? "100%" : `${pct(d * DAY)}%` }}>{l}</span>
         ))}
       </div>
     </div>
