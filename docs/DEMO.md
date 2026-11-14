@@ -57,9 +57,12 @@ Press 10 (or tap **Yes** on Pablo's phone yourself; the script answers Yes at 08
 
 **Step 4 · Days 47-48 · The walk (presses 11-13).**
 Press 11: Pablo sends it as a voice note; Luis sees "20-minute walk · Tomorrow, Sunday, 10:00". Press 12: Luis taps
-"I'm in". Press 13, then **E**: in the layer table "A personal solution", the row "Walk together" goes from **0.62** to
-**0.70** in the "Now" column.
+"I'm in" and taps **Thanks** under Pablo's note (it now reads "Thanked"); Pablo's phone shows "Luis said thanks for your
+note". Press 13: Pablo's phone shows **"Luis said it went well"**. Then **E**: in the layer table "A personal solution",
+the row "Walk together" goes from **0.62** to **0.70** in the "Now" column.
 > "Luis said the walk was good, so Relevo learns that walks work for this pair, not for the average person."
+
+Optional, one sentence: "And Pablo hears it too: a mentor who knows his help works keeps going."
 
 Close the layer (E).
 
@@ -91,7 +94,8 @@ Press 23: "Unattended 15 min → on-call lead" (shown in the layer's "What just 
 No need to press anything: the script resolves the alert on day 59. (If you do press "Resolve" earlier, Luis goes back to the level his data show and every open severe alert for him closes.)
 
 **Step 7, second half · Days 59-60 · Protecting the mentor (presses 24-26).**
-Press 24: the clinic resolves the alert; Luis goes back to what his data say (level 2). Press 25: Pablo is at level 2;
+Press 24: the clinic resolves the alert; Luis goes back to what his data say (level 2). Pablo's phone closes the loop:
+"Anna's team is with Luis now. Thank you for being there." with an optional "Note to Luis". Press 25: Pablo is at level 2;
 his phone offers "A few days for you · We suggest a pause"; the clinic shows **"Review pace"** for Pablo and "No active
 mentor" for Luis. Press 26: Marta writes to Pablo.
 > "Pablo is offered a pause, Luis stays supported by the clinic team, and nobody is blamed."
