@@ -32,11 +32,48 @@ const END = 62 * DAY + 1439;
 const DOM_COLOR: Record<string, string> = { sueno: "#3b6ea8", movilidad: "#0E6B5C", fisiologia: "#b7791f" };
 const DOM_LABEL: Record<string, string> = { sueno: "Sleep", movilidad: "Mobility", fisiologia: "Physiology" };
 
+// Guía para quien abre la demo solo (jurado): una frase por momento y qué columna mirar. Tecla H la oculta.
+type Look = "luis" | "mentor" | "clinic" | "layer";
+const LOOK_LABEL: Record<Look, string> = { luis: "Luis (left)", mentor: "the mentor (middle)", clinic: "the clinic (right)", layer: "the bottom panel" };
+const GUIDE: Record<string, { text: string; look: Look[] }> = {
+  match: { text: "Day 0. Luis has just finished TMS for depression. The clinic picks him a peer mentor by how their past relapses began: Pablo fits best.", look: ["layer"] },
+  baseline: { text: "Four weeks pass. Relevo only learns Luis's own usual sleep and movement, and never compares him with anyone. No one gets an alert.", look: ["luis"] },
+  copilot: { text: "Luis has sent three gloomy notes in a row. Only Pablo gets a private tip on how to reply. Luis sees nothing.", look: ["mentor"] },
+  l1: { text: "Luis has moved less than his usual three days in a row. Only the clinic sees it (Luis: 1 · Early signs). The phones stay quiet, on purpose.", look: ["clinic"] },
+  v1: { text: "Before Luis hears anything, Pablo is asked in private: would you like to talk to Luis today? He is free to say no.", look: ["mentor"] },
+  yes: { text: "Pablo said yes. Luis only reads “Pablo would like to talk to you”, never an alarm. Pablo gets an idea: suggest a walk.", look: ["luis", "mentor"] },
+  note: { text: "Pablo sends the walk as a voice note. Luis can tap “I'm in” (if nobody taps, the script does it).", look: ["luis"] },
+  good: { text: "The walk went well. Relevo learns that walks work for this pair (0.62 → 0.70 in the bottom panel, key E), not for the average person.", look: ["mentor", "layer"] },
+  l2: { text: "Day 54: the drift gets stronger. The clinic now sees Luis at 2 · High risk, with “Call today”. The phones still show no alarm.", look: ["clinic"] },
+  v4: { text: "Pablo answered “Can't today”, and that's respected. The clinic steps in: Luis reads that Anna, his nurse, will call him. One notification a day at most.", look: ["luis"] },
+  pl1: { text: "Pablo is recovering too, and now he drifts. His own mentor, Marta, is asked first (the middle phone is now hers). Next: a content note.", look: ["mentor"] },
+  crisis: { text: "Content note: a voice note with a suicidal thought (not shown). Luis gets help options, the clinic a severe alert, and Pablo is told he needn't act.", look: ["luis", "mentor", "clinic"] },
+  resolve: { text: "Day 59: the clinic has handled it and closes the alert. Pablo is thanked, so the loop closes for him too.", look: ["mentor", "clinic"] },
+  pl2: { text: "Pablo needs care himself: he is offered a pause and the clinic sees “Review pace”. Luis stays with the clinic team. Nobody is blamed.", look: ["mentor", "clinic"] },
+  close: { text: "The end. On 1,000 synthetic people, level 1 caught 90 % of simulated relapses with 6 days' notice. Synthetic data, not clinical proof. ← back · + restart", look: ["layer"] },
+};
+
 export default function DemoPage() {
   const w = useWid();
   const [mentor, setMentor] = useState<"pablo" | "marta">("pablo");
   // Empieza cerrada para que los teléfonos se lean en el proyector; tecla E para abrir/cerrar
   const [explain, setExplain] = useState(false);
+  const [auto, setAuto] = useState(false); // la capa la abrió la demo sola (no el presentador)
+  const toggleExplain = useCallback(() => { setAuto(false); setExplain((x) => !x); }, []);
+  // Guía para el jurado (frase por momento + columna resaltada); tecla H. Se recuerda en este navegador.
+  const [guide, setGuide] = useState(true);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- la preferencia solo existe en el navegador
+      if (localStorage.getItem("relevo:guide") === "off") setGuide(false);
+    } catch {}
+  }, []);
+  const toggleGuide = useCallback(() => {
+    setGuide((g) => {
+      try { localStorage.setItem("relevo:guide", g ? "off" : "on"); } catch {}
+      return !g;
+    });
+  }, []);
   // Ficha que la capa pide abrir en la clínica; n cuenta los clics para que funcione también la segunda vez
   const [focus, setFocus] = useState<{ id: string | null; n: number } | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -129,18 +166,26 @@ export default function DemoPage() {
       if (el.closest?.('[role="dialog"],[role="radiogroup"]')) return;
       if (e.key === "ArrowRight") next();
       if (e.key === "ArrowLeft") prev();
-      if ((e.key === "e" || e.key === "E") && !e.shiftKey && !e.repeat) setExplain((x) => !x);
+      if ((e.key === "e" || e.key === "E") && !e.shiftKey && !e.repeat) toggleExplain();
+      if ((e.key === "h" || e.key === "H") && !e.shiftKey && !e.repeat) toggleGuide();
     };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
-  }, [next, prev, restart]);
+  }, [next, prev, restart, toggleExplain, toggleGuide]);
 
   // Al llegar hacia delante a un momento de "match" o "close" la capa se abre sola; si se cierra con E no se reabre en ese grupo
   const [seen, setSeen] = useState<{ t: number; g: string | null } | null>(null);
   if (data && (!seen || seen.t !== data.clock.t)) {
     const mm = data.index >= 0 ? data.moments[data.index] : null;
     const g = mm && (mm.group === "match" || mm.group === "close") ? mm.group : null;
-    if (seen && data.clock.t > seen.t && g && seen.g !== g) setExplain(true);
+    if (seen && data.clock.t > seen.t && g && seen.g !== g) {
+      setExplain(true);
+      setAuto(true);
+    } else if (auto && seen && data.clock.t > seen.t && seen.g === "match" && g !== "match") {
+      // Si se abrió sola en el momento 1, se cierra al avanzar: en un portátil dejaba los móviles diminutos el resto de la demo
+      setExplain(false);
+      setAuto(false);
+    }
     setSeen({ t: data.clock.t, g });
   }
 
@@ -151,6 +196,8 @@ export default function DemoPage() {
   const share = typeof window !== "undefined" ? `${window.location.origin}/relevo/app?w=${w}` : "";
   const CONSENT_LABEL = { data: "data summaries", notes: "notes analysis", ideas: "AI ideas" } as const;
   const off = data.luisConsents?.onboarded ? data.luisConsents.off : [];
+  const step = guide && moment ? GUIDE[moment.key] : undefined;
+  const look = step?.look ?? [];
 
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh lg:min-h-[640px] lg:overflow-hidden">
@@ -201,6 +248,7 @@ export default function DemoPage() {
                 </label>
                 <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={() => setClock(8 * 60)}>Go back to day 0</button>
                 <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={restart}>Restart the whole demo <span className="rv-muted">(key +)</span></button>
+                <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={toggleGuide}>{guide ? "Hide" : "Show"} the guide for first-time viewers <span className="rv-muted">(key H)</span></button>
                 <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={() => act(w, "demo", "reset").catch(flagLost)}>Reset everything people did (keep the time)</button>
                 <a className="block rounded-lg px-2 py-2 hover:bg-rv-bg" href={`/relevo/app?w=${w}&as=luis`} target="_blank">Open Luis&apos;s app on its own</a>
                 <a className="block rounded-lg px-2 py-2 hover:bg-rv-bg" href={`/relevo/clinic?w=${w}`} target="_blank">Open the clinic web on its own</a>
@@ -210,6 +258,15 @@ export default function DemoPage() {
           </div>
         </div>
         <Timeline data={data} onPick={setClock} onMoment={pickMoment} />
+        {/* Guía del momento para quien ve la demo solo: qué pasa, en qué columna y cuánto queda (tecla H la oculta) */}
+        {step && moment && (
+          <div role="status" aria-live="polite" className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-rv-sage px-3 py-1.5 text-[14.5px] leading-snug">
+            <span className="rv-num shrink-0 rounded-full bg-white px-2 py-0.5 text-[12px] font-semibold text-rv-teal">{data.index + 1} / {data.moments.length}</span>
+            <p className="min-w-0 flex-1">{step.text}</p>
+            <span className="shrink-0 text-[13px] font-semibold text-rv-teal">Look at {step.look.map((l) => LOOK_LABEL[l]).join(" · ")}</span>
+            <button onClick={toggleGuide} className="rv-muted shrink-0 text-[12px] underline" title="Press H to show or hide the guide">Hide guide (H)</button>
+          </div>
+        )}
         {/* J-08 · Antes del primer momento: por qué hace falta Relevo (sin cifras clínicas) */}
         {data.index < 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-2xl bg-rv-sage px-4 py-3">
@@ -219,7 +276,13 @@ export default function DemoPage() {
               <li>Relevo pairs every patient with someone who finished TMS a few months earlier.</li>
               <li>The phone nudges a person, never an alarm, and only the clinic sees health data.</li>
             </ul>
-            <p className="font-semibold">Press <kbd className="rounded-md border border-rv-line bg-white px-1.5 text-[13px]">→</kbd> to start</p>
+            <p className="font-semibold">Press <kbd className="rounded-md border border-rv-line bg-white px-1.5 text-[13px]">→</kbd> or <span className="text-rv-teal">Next moment</span> to start</p>
+            {guide && (
+              <p className="w-full border-t border-rv-teal/15 pt-1.5 text-[13px] leading-snug">
+                <b>Who&apos;s who:</b> <b>Luis</b> (left) just finished TMS · <b>Pablo</b> (middle) is his peer mentor, who finished TMS 4 months earlier · <b>Marta</b> is Pablo&apos;s own mentor · the <b>clinic</b> (right) is the only one that sees health data.{" "}
+                <span className="rv-muted">Keys: → next · ← back · E how Relevo decides · H hide this guide · 15 moments, about 3 minutes.</span>
+              </p>
+            )}
           </div>
         )}
         {off.length > 0 && (
@@ -232,12 +295,13 @@ export default function DemoPage() {
 
       {/* Las tres superficies a la vez */}
       <div data-rv-demo className="grid grid-cols-1 gap-6 px-5 pt-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.6fr)] lg:gap-4">
-        <Column title="Luis" sub="accompanied · just finished TMS">
+        <Column title="Luis" sub="accompanied · just finished TMS" hl={look.includes("luis")}>
           <Fit width={390} height={844} pad={14}><Phone time={c.time} label="Luis's phone"><MenteeApp w={w} resetKey={data.index} /></Phone></Fit>
         </Column>
         <Column
           title={mentor === "pablo" ? "Pablo" : "Marta"}
           sub={mentor === "pablo" ? "Luis's mentor · 4 months after TMS" : "Pablo's mentor"}
+          hl={look.includes("mentor")}
           right={
             <div className="flex rounded-full bg-white p-0.5 text-[12px] font-semibold shadow-[0_0_0_1px_var(--color-rv-line)]" role="tablist" aria-label="View as">
               {(["pablo", "marta"] as const).map((m) => (
@@ -248,7 +312,7 @@ export default function DemoPage() {
         >
           <Fit width={390} height={844} pad={14}><Phone time={c.time} label={`${mentor}'s phone`}><MentorApp key={mentor} w={w} as={mentor} resetKey={data.index} /></Phone></Fit>
         </Column>
-        <Column title="Clinic" sub="Aalto TMS Clinic · desktop web" right={<span className="rv-chip bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</span>}>
+        <Column title="Clinic" sub="Aalto TMS Clinic · desktop web" hl={look.includes("clinic")} right={<span className="rv-chip bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</span>}>
           <Fit width={1100} height={820}>
             <div className="h-[820px] w-[1100px] overflow-hidden rounded-2xl shadow-[0_0_0_1px_var(--color-rv-line),0_20px_40px_-24px_rgb(0_0_0/0.35)]">
               <ClinicWeb w={w} onFocusPerson={focus} resetKey={data.index} />
@@ -258,10 +322,10 @@ export default function DemoPage() {
       </div>
 
       {/* Capa de explicación: solo existe en la demo */}
-      <section className={`relative z-10 shrink-0 border-t border-rv-line bg-white ${explain ? "lg:h-[292px]" : ""}`}>
+      <section className={`relative z-10 shrink-0 border-t border-rv-line bg-white ${explain ? "lg:h-[292px]" : ""} ${look.includes("layer") ? "outline-2 -outline-offset-2 outline-rv-teal" : ""}`}>
         <div className="flex items-center gap-3 px-5 py-2">
           <label className="flex cursor-pointer items-center gap-2.5 font-semibold">
-            <button role="switch" aria-checked={explain} onClick={() => setExplain((e) => !e)} className={`relative h-6 w-10 rounded-full transition-colors ${explain ? "bg-rv-teal" : "bg-[#cdd3ce]"}`}>
+            <button role="switch" aria-checked={explain} onClick={toggleExplain} className={`relative h-6 w-10 rounded-full transition-colors ${explain ? "bg-rv-teal" : "bg-[#cdd3ce]"}`}>
               <span className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${explain ? "translate-x-[18px]" : "translate-x-0.5"}`} />
             </button>
             Show how Relevo decides
@@ -281,9 +345,10 @@ export default function DemoPage() {
   );
 }
 
-function Column({ title, sub, right, children }: { title: string; sub: string; right?: React.ReactNode; children: React.ReactNode }) {
+function Column({ title, sub, right, hl, children }: { title: string; sub: string; right?: React.ReactNode; hl?: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex h-[640px] min-h-0 flex-col last:sm:col-span-2 last:h-[440px] lg:h-auto last:lg:col-span-1 last:lg:h-auto">
+    // hl: la guía pide mirar esta columna en este momento
+    <div className={`flex h-[640px] min-h-0 flex-col rounded-2xl last:sm:col-span-2 last:h-[440px] lg:h-auto last:lg:col-span-1 last:lg:h-auto ${hl ? "outline-2 outline-offset-4 outline-rv-teal" : ""}`}>
       {/* Misma altura en las tres columnas (con o sin selector Pablo/Marta) para que los dos móviles midan lo mismo */}
       <div className="mb-2 flex h-9 items-center gap-2">
         <p className="shrink-0 font-semibold" style={{ fontFamily: "var(--rv-display)" }}>{title}</p>
