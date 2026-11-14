@@ -1,29 +1,10 @@
-// "Tu semana": la persona ve SUS propias señales (derecho de acceso) y, si es mentor, su impacto
+// Pestaña "Me": impacto del mentor y tratamiento. Las señales de salud NO se envían al paciente: solo las ve la clínica
 import { currentUser, unauthorized } from "@/lib/app/auth";
-import { assess } from "@/lib/app/logic";
-import { getClinic, getThread, getUser } from "@/lib/app/repo";
-import { SIGNALS } from "@/lib/app/signals";
+import { getThread, getUser } from "@/lib/app/repo";
 
 export async function GET() {
   const u = await currentUser();
   if (!u) return unauthorized();
-  const clinic = await getClinic(u.clinicId);
-  if (!clinic) return Response.json({ error: "Clinic not found." }, { status: 404 });
-
-  const a = await assess(u, clinic);
-  const last = (s: (number | null)[]) => s.slice(-14);
-  const signals = a.statuses.map((s) => ({
-    key: s.key,
-    label: SIGNALS[s.key].label,
-    unit: SIGNALS[s.key].unit,
-    kind: SIGNALS[s.key].kind,
-    digits: SIGNALS[s.key].digits,
-    mean: s.mean,
-    threshold: s.threshold,
-    run: s.run,
-    off: s.run >= clinic.earlyDays,
-    series: last(s.series),
-  }));
 
   // Impacto del mentor: calculado de sus conversaciones reales
   let impact = null;
@@ -54,11 +35,5 @@ export async function GET() {
     };
   }
 
-  return Response.json({
-    level: a.level,
-    dates: a.dates.slice(-14),
-    signals,
-    impact,
-    sessions: u.sessions ?? null,
-  });
+  return Response.json({ impact, sessions: u.sessions ?? null });
 }

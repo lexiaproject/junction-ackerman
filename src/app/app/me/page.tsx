@@ -1,16 +1,12 @@
 "use client";
-// Pestaña "Me": tu semana, tu impacto (mentor), tu tratamiento (pupilo), fuentes de datos, consentimiento y derechos
+// Pestaña "Me": tu impacto (mentor), tu tratamiento (pupilo), fuentes de datos, consentimiento y derechos
 
 import { useState } from "react";
-import { SignalChart, type SignalSeries } from "../../charts";
 import { Avatar, Button, ErrorText, api, useLive } from "../../ui";
 import { useMe } from "../AppShell";
 import Treatment from "../Treatment";
 
 type Insights = {
-  level: string;
-  dates: string[];
-  signals: (SignalSeries & { key: string; kind: string })[];
   impact: { days: number; people: string[]; sent: number; invites: number; accepted: number } | null;
   sessions: { done: number; total: number; next?: string } | null;
 };
@@ -50,7 +46,6 @@ export default function MePage() {
 
       {ins?.impact && <Impact i={ins.impact} />}
       {ins?.sessions && <Treatment s={ins.sessions} />}
-      {ins && <YourWeek ins={ins} consented={consented} />}
 
       {u.role === "mentor" && (
         <Section title="Mentoring">
@@ -91,7 +86,7 @@ export default function MePage() {
           title={consented ? "Signals on" : "Signals off"}
           detail={
             consented
-              ? `Since ${new Date(u.consent!.at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}. Your mentor never sees your data; your clinic sees one line if you may need a call.`
+              ? `Since ${new Date(u.consent!.at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}. Only your clinic team sees your signals; your mentor never does.`
               : "You withdrew consent. Relay collects no signals about you; chat still works."
           }
         >
@@ -173,63 +168,6 @@ function RelayRings() {
       <circle cx="40" cy="30" r="26" fill="none" stroke="#fff" strokeWidth="1.5" />
       <circle cx="72" cy="30" r="26" fill="none" stroke="var(--color-cloudberry)" strokeWidth="1.5" />
     </svg>
-  );
-}
-
-/* ---------- Tu semana: tus propias señales ---------- */
-function YourWeek({ ins, consented }: { ins: Insights; consented: boolean }) {
-  const [tab, setTab] = useState<"in-app" | "sample">("sample");
-  if (!consented) return null;
-  if (!ins.signals.length)
-    return (
-      <Section title="Your weeks">
-        <p className="muted p-4 text-sm">Relay is learning your usual routine. Charts appear after your first week.</p>
-      </Section>
-    );
-  const shown = ins.signals.filter((s) => s.kind === tab);
-  const anyOff = ins.signals.some((s) => s.off);
-  return (
-    <section>
-      <div className="mb-2 flex items-end justify-between">
-        <h2 className="text-sm font-semibold">Your last two weeks</h2>
-        <div className="flex rounded-lg border border-line bg-paper p-0.5 text-xs font-semibold" role="tablist">
-          {(
-            [
-              ["sample", "Body"],
-              ["in-app", "Activity"],
-            ] as const
-          ).map(([k, l]) => (
-            <button
-              key={k}
-              role="tab"
-              aria-selected={tab === k}
-              onClick={() => setTab(k)}
-              className={`rounded-md px-3 py-1.5 transition-colors ${tab === k ? "bg-pine text-white" : "text-pine/70 hover:text-pine"}`}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="card divide-y divide-mist">
-        <p className="px-4 py-3 text-sm">
-          {anyOff ? "Some things look different from your usual lately. That's okay; your mentor may check in." : "Everything is close to your usual. Nice and steady."}
-        </p>
-        {shown.map((s) => (
-          <div key={s.key} className="px-4 py-3">
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <p className="text-sm font-semibold">{s.label}</p>
-              <p className="muted text-xs">
-                usual {s.mean.toLocaleString("en-GB", { maximumFractionDigits: s.digits })}
-                {s.unit && s.unit !== "/day" ? ` ${s.unit}` : ""}
-              </p>
-            </div>
-            <SignalChart s={s} dates={ins.dates} height={56} />
-          </div>
-        ))}
-        <p className="muted px-4 py-2.5 text-xs">The shaded band is your usual range from your first week. Touch a chart to see each day.</p>
-      </div>
-    </section>
   );
 }
 

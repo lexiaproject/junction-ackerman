@@ -213,8 +213,8 @@ export default function JoinPage() {
               </Item>
               <Item icon="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" term="Who sees what">
                 {invite?.role === "mentor"
-                  ? "Your clinic sees one line if you might need support. Nobody else sees your data."
-                  : "Your mentor only gets a suggestion of what to do, never your data. Your clinic sees one line if you might need a call."}
+                  ? "Only your clinic team sees your signals, to know when to call you. Nobody else does."
+                  : "Only your clinic team sees your signals. Your mentor just gets a suggestion of what to do, never your data."}
               </Item>
               <Item icon="M12 8v4l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18" term="Your rights">
                 Withdraw consent, download or delete your data anytime from the Me tab. Relay suggests; a person always decides.
