@@ -4,18 +4,18 @@ import React, { useMemo } from "react";
 import { AbsoluteFill, Easing, useCurrentFrame } from "remotion";
 import { ThreeCanvas } from "@remotion/three";
 import * as THREE from "three";
-import { Cam, Brain, BRAIN_PULSE, Glow, Dust, Chair, Pts, Phone, LightStroke, ParticleText } from "./kit";
-import { MaskWipe, TypeOn, Giant, MotionBlur } from "./overlay";
+import { Cam, Brain, BRAIN_PULSE, Glow, Dust, Chair, Pts, PtsLive, Phone, LightStroke, ParticleText, Env, Backdrop, Bokeh, PHONE_H } from "./kit";
+import { Block, Wipe, Cut, ScaleIn, TypeIn, MotionBlur } from "./overlay";
 import { C, prog, mix, key, hit, ramp, smooth, rng, clamp01, neuronPoints, personPoints, GROTESK, INTER, useFontsReady } from "./lib";
 
 type V3 = [number, number, number];
-export const Stage: React.FC<{ bg: string; children: React.ReactNode; shadows?: boolean }> = ({ bg, children, shadows }) => (
+export const Stage: React.FC<{ bg: string; children: React.ReactNode; shadows?: boolean; env?: number }> = ({ bg, children, shadows, env }) => (
   <ThreeCanvas width={1920} height={1080} flat shadows={shadows} gl={{ antialias: true }}>
     <color attach="background" args={[bg]} />
+    {env ? <Env intensity={env} /> : null}
     {children}
   </ThreeCanvas>
 );
-const W = { position: "absolute" as const };
 
 // ---------- 1 · "TMS works." ----------
 export const Shot1 = () => { const f = useCurrentFrame(); return <MotionBlur on={f >= 76}><Shot1In /></MotionBlur>; };
@@ -51,8 +51,9 @@ const Shot1In = () => {
           <Glow position={BRAIN_PULSE} size={0.5 + beat * 1.4 + lit * 0.7} color={C.glow} opacity={0.35 + beat * 0.4} />
         </group>
         <Dust n={260} box={[14, 8, 14]} color={C.glow} size={0.016} focus={dist} aperture={0.05} opacity={0.45 * prog(f, 10, 50)} time={f / 30} />
+        <Glow position={[0.4, 0, -7]} size={16} color="#0E6B5C" opacity={0.22 * prog(f, 0, 40)} />
       </Stage>
-      <MaskWipe text="TMS works." p={prog(f, 50, 68)} size={132} style={{ left: 150, top: 452 }} />
+      <Block x={150} y={462}><Wipe text="TMS works." p={prog(f, 50, 68)} size={132} /></Block>
     </AbsoluteFill>
   );
 };
@@ -88,12 +89,10 @@ const Shot2In = () => {
         {on && <LightCone op={0.16} h={5.6} r={2.45} position={[0, 2.8, 0.2]} />}
         {on && <Dust n={180} box={[3, 5, 3]} center={[0, 2.6, 0.2]} color="#ffffff" size={0.012} focus={r} aperture={0.03} opacity={0.5} time={f / 30} spread={1} />}
       </Stage>
-      {!on && <div style={{ ...W, left: 0, right: 0, top: 820, textAlign: "center" }}><CutText /></div>}
+      <Block x={0} y={818} align="center"><Cut text="Then it ends." on={!on} size={100} /></Block>
     </AbsoluteFill>
   );
 };
-// corte seco: el texto aparece de golpe con el apagón
-const CutText = () => <span style={{ fontFamily: INTER, fontWeight: 700, fontSize: 104, letterSpacing: "-0.025em", color: "#fff" }}>Then it ends.</span>;
 
 // ---------- 3 · "The months after are fragile." ----------
 const NODES = (() => {
@@ -115,9 +114,31 @@ const LINKS = (() => {
   });
   return new Float32Array(pos);
 })();
-const Node3: React.FC<{ i: number; morph: number; dim: number; focus: number; t: number }> = ({ i, morph, dim, focus, t }) => {
+// silueta de un móvil (contorno y algo de relleno), del mismo alto que la persona: para la transición al plano 4
+const phonePts = (n: number) => {
+  const r = rng(77), h = 1, w = (h / (PHONE_H + 0.085)) * 1.085, rad = 0.075, out = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    let x: number, y: number;
+    if (i < n * 0.7) {
+      const t = r() * 4, side = Math.floor(t), u = t - side;
+      x = side % 2 === 0 ? (u - 0.5) * w : (side === 1 ? 0.5 : -0.5) * w;
+      y = side % 2 === 1 ? (u - 0.5) * h : (side === 0 ? -0.5 : 0.5) * h;
+      const cx = Math.min(Math.abs(x), w / 2 - rad), cy = Math.min(Math.abs(y), h / 2 - rad), dx = Math.abs(x) - cx, dy = Math.abs(y) - cy;
+      if (dx > 0 && dy > 0) { const a = Math.atan2(dy, dx); x = Math.sign(x) * (cx + Math.cos(a) * rad); y = Math.sign(y) * (cy + Math.sin(a) * rad); }
+    } else { x = (r() - 0.5) * w * 0.94; y = (r() - 0.5) * h * 0.96; }
+    out.set([x, y, (r() - 0.5) * 0.02], i * 3);
+  }
+  return out;
+};
+const Node3: React.FC<{ i: number; morph: number; dim: number; focus: number; t: number; toPhone?: number }> = ({ i, morph, dim, focus, t, toPhone = 0 }) => {
   const src = useMemo(() => neuronPoints(800, 100 + i), [i]);
   const dst = useMemo(() => personPoints(800, 200 + i, "bust"), [i]);
+  const ph = useMemo(() => phonePts(800), []);
+  const live = useMemo(() => new Float32Array(800 * 3), []);
+  if (toPhone > 0) {
+    for (let k = 0; k < 2400; k++) live[k] = (src[k] + (dst[k] - src[k]) * morph) * (1 - toPhone) + ph[k] * toPhone;
+    return <group position={NODES[i]} scale={0.95}><PtsLive positions={live} color="#8FA39D" size={0.013} opacity={0.9} focus={focus} aperture={0.01} /></group>;
+  }
   return <Pts positions={src} target={dst} morph={morph} position={NODES[i]} scale={0.95} color={C.glow} colorB="#3B4946" mix={1 - dim} opacity={1 - 0.55 * dim} size={0.012} focus={focus} aperture={0.03} time={t} twinkle={0.4} spread={1} />;
 };
 export const Shot3 = () => { const f = useCurrentFrame(); return <MotionBlur on={(f >= 5 && f < 26) || f >= 70}><Shot3In /></MotionBlur>; };
@@ -127,26 +148,26 @@ const Shot3In = () => {
   const morph = clamp01((z - 1.8) / 6);
   const T = NODES[FOLLOW];
   const fp = prog(f, 68, 93, ramp);
-  const pos = [mix(0.3 * Math.sin(f * 0.03), T[0], fp), mix(-0.4 * prog(f, 0, 60), T[1] + 0.08, fp), mix(z, T[2] + 0.62, fp)] as V3;
-  const look = [mix(0, T[0], fp), mix(0, T[1] + 0.05, fp), mix(0, T[2], fp)] as V3;
+  const pos = [mix(0.3 * Math.sin(f * 0.03), T[0], fp), mix(-0.4 * prog(f, 0, 60), T[1], fp), mix(z, T[2] + 1.72, fp)] as V3;
+  const look = [mix(0, T[0], fp), mix(0, T[1], fp), mix(0, T[2], fp)] as V3;
   const dist = Math.hypot(pos[0] - look[0], pos[1] - look[1], pos[2] - look[2]);
   const linkGeo = useMemo(() => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(LINKS, 3)); return g; }, []);
   return (
     <AbsoluteFill>
       <Stage bg={C.night}>
-        <Cam pos={pos} look={look} fov={42} roll={0.05 * (1 - prog(f, 0, 40))} />
+        <Cam pos={pos} look={look} fov={42} />
         {NODES.map((p, i) => {
           const d = Math.hypot(p[0], p[1]);
           const st = 40 + (d / 11) * 24;
-          return <Node3 key={i} i={i} morph={morph} dim={OFF[i] ? prog(f, st, st + 8) : 0} focus={dist} t={f / 30} />;
+          return <Node3 key={i} i={i} morph={morph} dim={OFF[i] ? prog(f, st, st + 8) : 0} focus={dist} t={f / 30} toPhone={i === FOLLOW ? prog(f, 72, 88, smooth) : 0} />;
         })}
         <lineSegments geometry={linkGeo}><lineBasicMaterial color={C.glow} transparent opacity={mix(0.55, 0.16, morph)} blending={THREE.AdditiveBlending} depthWrite={false} /></lineSegments>
         <Dust n={300} box={[40, 24, 16]} color={C.glow} size={0.03} focus={dist} aperture={0.06} opacity={0.3} time={f / 30} />
       </Stage>
-      <div style={{ ...W, left: 150, top: 640, opacity: 1 - prog(f, 72, 84) }}>
-        <Giant text="The months after are" p={prog(f, 24, 40)} size={76} from={3.2} style={{ position: "relative", transformOrigin: "0% 50%", fontWeight: 600 }} />
-        <Giant text="fragile." p={prog(f, 31, 46)} size={170} from={9} style={{ position: "relative", transformOrigin: "20% 50%", marginTop: 6 }} />
-      </div>
+      <Block x={150} y={640} style={{ opacity: 1 - prog(f, 70, 80) }}>
+        <ScaleIn text="The months after are" p={prog(f, 24, 40)} size={72} color="#B9C7C2" from={1.6} origin="0% 50%" weight={500} />
+        <ScaleIn text="fragile." p={prog(f, 31, 46)} size={176} from={5} origin="15% 50%" />
+      </Block>
     </AbsoluteFill>
   );
 };
@@ -201,23 +222,26 @@ const LyingPhone: React.FC<{ flip: number; lift?: number; jitter?: number; yaw?:
   </group>
 );
 
-export const Shot4 = () => { const f = useCurrentFrame(); return <MotionBlur on={f < 11}><Shot4In /></MotionBlur>; };
+export const Shot4 = () => { const f = useCurrentFrame(); return <MotionBlur on={f >= 3 && f < 18}><Shot4In /></MotionBlur>; };
 const Shot4In = () => {
   const f = useCurrentFrame();
   const beats = [15, 30, 45, 60];
   const v = beats.reduce((a, b) => a + hit(f, b, 9), 0);
   const jitter = 0.02 * Math.sin(f * 7.3) * v;
   const glow = beats.reduce((a, b) => a + hit(f, b, 16), 0) * 0.85;
-  const az = mix(-0.95, 0.62, prog(f, 0, 92, (x) => x)) ;
-  const r = mix(0.32, 3.1, ramp(prog(f, 0, 14)));
-  const y = mix(0.55, 0.3, ramp(prog(f, 0, 14)));
-  const sh = -0.5 * ramp(prog(f, 0, 16));
-  const look: V3 = [Math.cos(az) * sh, mix(0.05, 0.62, ramp(prog(f, 0, 16))), -Math.sin(az) * sh];
+  // empieza en cenital sobre el móvil (mismo tamaño que la silueta del plano 3) y baja a ras de mesa
+  const az = mix(-0.95, 0.62, prog(f, 0, 92, (x) => x));
+  const k = ramp(prog(f, 3, 24));
+  const orbit: V3 = [3.1 * Math.sin(az), 0.3, 3.1 * Math.cos(az)];
+  const top: V3 = [0, 5.12, 0];
+  const camPos: V3 = [mix(top[0], orbit[0], k), mix(top[1], orbit[1], k), mix(top[2], orbit[2], k)];
+  const look: V3 = [0, mix(0.05, 0.62, k), 0];
+  const upV = new THREE.Vector3(-Math.sin(0.25), 0, -Math.cos(0.25)).lerp(new THREE.Vector3(0, 1, 0), k).normalize();
   const texs = useMemo(() => CARDS.map(([a, b]) => cardTex(a, b)), []);
   return (
     <AbsoluteFill>
-      <Stage bg="#060A09" shadows>
-        <Cam pos={[r * Math.sin(az), y, r * Math.cos(az)]} look={look} fov={36} />
+      <Stage bg="#060A09" shadows env={0.35}>
+        <Cam pos={camPos} look={look} fov={36} up={upV.toArray() as V3} />
         <Table glow={glow} />
         <LyingPhone flip={Math.PI} jitter={jitter} />
         {CARDS.map((_, i) => {
@@ -232,7 +256,7 @@ const Shot4In = () => {
           );
         })}
       </Stage>
-      <TypeOn text="They go quiet first." p={prog(f, 20, 52)} size={84} style={{ left: 120, top: 470, whiteSpace: "pre-wrap", width: 560 }} />
+      <Block x={130} y={450}><TypeIn text="They go quiet first." p={prog(f, 24, 54)} size={86} width={560} /></Block>
     </AbsoluteFill>
   );
 };
@@ -247,9 +271,11 @@ const Shot5In = () => {
       <AbsoluteFill>
         <Stage bg={C.bg}>
           <Cam pos={[0.15 * Math.sin(f * 0.05), 0.05, mix(4.2, 5.0, prog(f, 40, 60, smooth))]} look={[0, 0, 0]} fov={40} />
-          {ready && <ParticleText text="Relevo" font={`700 300px ${GROTESK}`} n={9000} width={4.6} progress={prog(f, 38, 46)} color={C.ink} additive={false} size={0.02} time={f / 30} focus={4.6}
+          <Backdrop time={f / 30} />
+          <Bokeh n={40} center={[0, 0, -6]} box={[18, 10, 6]} time={f / 30} opacity={0.5} />
+          <SolidLogo opacity={prog(f, 45, 53, smooth)} />
+          {ready && <ParticleText text="Relevo" font={`700 300px ${GROTESK}`} n={12000} width={4.6} progress={prog(f, 38, 46)} color={C.ink} additive={false} size={0.016} time={f / 30} focus={4.6} opacity={1 - prog(f, 46, 54, smooth)}
             from={(i, r) => { const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 1.1; return [Math.cos(a) * d * 0.6, Math.sin(a) * d * 1.2, 2.5 + r() * 1.5]; }} />}
-          <Dust n={200} box={[12, 7, 6]} color={C.green} size={0.02} focus={4.6} aperture={0.05} opacity={0.35} additive={false} time={f / 30} />
         </Stage>
       </AbsoluteFill>
     );
@@ -265,8 +291,8 @@ const Shot5In = () => {
   const pos: V3 = [mix(1.75, 0.0, cp), mix(0.55, 1.6, cp) - dive * 1.58, mix(2.4, 0.18, cp) - dive * 0.17];
   return (
     <AbsoluteFill>
-      <Stage bg={on ? "#0B1311" : "#060A09"} shadows>
-        <Cam pos={pos} look={[0, 0.05, 0]} fov={38} roll={0.25 * (1 - cp)} />
+      <Stage bg={on ? "#0B1311" : "#060A09"} shadows env={0.35}>
+        <Cam pos={pos} look={[0, 0.05, 0]} fov={38} />
         <Table light={on ? 1 + flash * 2 : 0} />
         <LyingPhone flip={flip} lift={lift} shot="splash" bright={on ? 1 + flash * 0.6 : 0}>
           <LightStroke points={HAND} color="#DFF8F1" width={0.008} opacity={handIn * (1 - handOut)} position={[0.1 + (1 - handIn) * 1.5 + handOut * 1.4, 0, -0.07]} closed={false} />
@@ -275,4 +301,14 @@ const Shot5In = () => {
       </Stage>
     </AbsoluteFill>
   );
+};
+
+// Logo nítido (mismo encuadre que las partículas: canvas de 1400×360 con la misma fuente)
+const SolidLogo: React.FC<{ opacity: number }> = ({ opacity }) => {
+  const tex = useMemo(() => {
+    const cv = document.createElement("canvas"); cv.width = 1400; cv.height = 360; const ctx = cv.getContext("2d")!;
+    ctx.font = `700 300px ${GROTESK}`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = C.ink; ctx.fillText("Relevo", 700, 180);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+  }, []);
+  return <mesh><planeGeometry args={[4.6, (4.6 * 360) / 1400]} /><meshBasicMaterial map={tex} transparent opacity={opacity} depthWrite={false} toneMapped={false} /></mesh>;
 };

@@ -157,46 +157,61 @@ export function brainLines(count: number, seg: number, seed: number) {
   return new Float32Array(pos);
 }
 
-// Carga de textura (con versión desenfocada para el falso desenfoque de campo)
+// Capturas como textura. Las del móvil se componen como una pantalla de iPhone: barra de estado (47 px)
+// encima de la captura de 390×844 e indicador de inicio abajo. Total 390×891 px CSS (×2 en la imagen).
+export const STATUS = 47, SCREEN_H = 844 + STATUS;
+export const uvOf = (x: number, y: number): [number, number] => [x / 390, (y + STATUS) / SCREEN_H]; // punto de la captura → uv de la pantalla
 type Shot = { sharp: THREE.Texture; soft: THREE.Texture; w: number; h: number };
 const texCache = new Map<string, Promise<Shot>>();
 const texDone = new Map<string, Shot>();
 export const SHOT_NAMES = ["splash", "luis-home", "luis-rec", "pablo-conv", "pablo-ideas", "pablo-ask", "luis-plan", "luis-plan-in", "marta-ask", "pablo-marta", "clinic"];
 export const preloadAll = () => fontsReady().then(() => Promise.all(SHOT_NAMES.map((n) => loadShot(n).then((t) => texDone.set(n, t)))));
-export function loadShot(name: string) {
-  if (!texCache.has(name) && name === "splash") {
-    // pantalla de encendido: fondo claro de Relevo y el logo
-    texCache.set(name, grotesk.waitUntilDone().then(() => document.fonts.ready).then(() => {
-      const cv = document.createElement("canvas"); cv.width = 780; cv.height = 1688;
+const toTex = (cv: HTMLCanvasElement) => { const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+function statusBar(ctx: CanvasRenderingContext2D, bg: string, ink: string) {
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, 780, STATUS * 2);
+  ctx.fillStyle = ink; ctx.font = `600 34px ${INTER}`; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+  ctx.fillText("9:41", 108, 50);
+  [0, 1, 2, 3].forEach((i) => { ctx.beginPath(); ctx.roundRect(560 + i * 14, 58 - (i + 1) * 6, 9, (i + 1) * 6, 2); ctx.fill(); }); // cobertura
+  ctx.beginPath(); ctx.arc(640, 62, 26, -Math.PI * 0.75, -Math.PI * 0.25); ctx.lineTo(640, 62); ctx.closePath(); ctx.fill(); // wifi
+  ctx.lineWidth = 2.5; ctx.strokeStyle = ink; ctx.globalAlpha = 0.45; ctx.beginPath(); ctx.roundRect(672, 38, 50, 24, 7); ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.roundRect(676, 42, 38, 16, 4); ctx.fill(); ctx.beginPath(); ctx.roundRect(724, 45, 4, 10, 2); ctx.fill(); // batería
+}
+export function loadShot(name: string): Promise<Shot> {
+  if (texCache.has(name)) return texCache.get(name)!;
+  const p = new Promise<Shot>((res, rej) => {
+    if (name === "splash") { // pantalla de encendido: fondo claro de Relevo y el logo
+      const cv = document.createElement("canvas"); cv.width = 780; cv.height = SCREEN_H * 2;
       const ctx = cv.getContext("2d")!;
-      ctx.fillStyle = C.bg; ctx.fillRect(0, 0, 780, 1688);
-      ctx.fillStyle = C.ink; ctx.font = `700 120px ${GROTESK}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("Relevo", 390, 820);
-      ctx.fillStyle = C.green; ctx.beginPath(); ctx.arc(390, 940, 14, 0, Math.PI * 2); ctx.fill();
-      const sharp = new THREE.CanvasTexture(cv); sharp.colorSpace = THREE.SRGBColorSpace;
-      return { sharp, soft: sharp, w: 780, h: 1688 };
-    }));
-  }
-  if (!texCache.has(name)) {
-    texCache.set(name, new Promise((res, rej) => {
-      const img = new Image();
-      img.onload = () => {
-        const sharp = new THREE.Texture(img);
-        sharp.colorSpace = THREE.SRGBColorSpace; sharp.anisotropy = 8; sharp.needsUpdate = true;
-        const cv = document.createElement("canvas");
-        cv.width = img.width / 4; cv.height = img.height / 4;
+      ctx.fillStyle = C.bg; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.fillStyle = C.ink; ctx.font = `700 128px ${GROTESK}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("Relevo", 390, cv.height / 2 - 20);
+      const t = toTex(cv); res({ sharp: t, soft: t, w: cv.width, h: cv.height }); return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      let src: HTMLCanvasElement | HTMLImageElement = img;
+      if (name !== "clinic") {
+        const cv = document.createElement("canvas"); cv.width = 780; cv.height = SCREEN_H * 2;
         const ctx = cv.getContext("2d")!;
-        ctx.filter = "blur(5px)";
-        ctx.drawImage(img, 0, 0, cv.width, cv.height);
-        const soft = new THREE.CanvasTexture(cv);
-        soft.colorSpace = THREE.SRGBColorSpace;
-        res({ sharp, soft, w: img.width, h: img.height });
-      };
-      img.onerror = rej;
-      img.src = staticFile(`shots/${name}.png`);
-    }));
-  }
-  return texCache.get(name)!;
+        ctx.drawImage(img, 0, STATUS * 2);
+        const px = ctx.getImageData(6, STATUS * 2 + 6, 1, 1).data;
+        statusBar(ctx, `rgb(${px[0]},${px[1]},${px[2]})`, C.ink);
+        ctx.fillStyle = "rgba(22,33,28,0.85)"; ctx.beginPath(); ctx.roundRect(390 - 134, cv.height - 26, 268, 10, 5); ctx.fill(); // indicador de inicio
+        src = cv;
+      }
+      const sharp = src instanceof HTMLCanvasElement ? toTex(src) : (() => { const t = new THREE.Texture(img); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.needsUpdate = true; return t; })();
+      const cv = document.createElement("canvas");
+      cv.width = src.width / 4; cv.height = src.height / 4;
+      const ctx = cv.getContext("2d")!;
+      ctx.filter = "blur(5px)";
+      ctx.drawImage(src, 0, 0, cv.width, cv.height);
+      res({ sharp, soft: toTex(cv), w: src.width, h: src.height });
+    };
+    img.onerror = rej;
+    img.src = staticFile(`shots/${name}.png`);
+  });
+  texCache.set(name, p);
+  return p;
 }
 export function useShot(name: string) { return texDone.get(name) ?? null; }
 

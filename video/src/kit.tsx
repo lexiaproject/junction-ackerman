@@ -4,16 +4,17 @@ import React, { useLayoutEffect, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { useShot, rng, textPoints, personPoints, clamp01 } from "./lib";
+import { useShot, rng, textPoints, personPoints, clamp01, SCREEN_H, uvOf } from "./lib";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 type V3 = [number, number, number];
 
 // Cámara: posición, punto al que mira, campo de visión y giro (roll)
-export const Cam: React.FC<{ pos: V3; look: V3; fov?: number; roll?: number }> = ({ pos, look, fov = 35, roll = 0 }) => {
+export const Cam: React.FC<{ pos: V3; look: V3; fov?: number; roll?: number; up?: V3 }> = ({ pos, look, fov = 35, roll = 0, up }) => {
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
   useLayoutEffect(() => {
     camera.position.set(...pos);
-    camera.up.set(Math.sin(roll), Math.cos(roll), 0);
+    if (up) camera.up.set(...up); else camera.up.set(Math.sin(roll), Math.cos(roll), 0);
     camera.lookAt(...look);
     camera.fov = fov; camera.near = 0.01; camera.far = 400;
     camera.updateProjectionMatrix();
@@ -130,54 +131,171 @@ export const LightStroke: React.FC<{ points: V3[]; color?: string; width?: numbe
   );
 };
 
-// --- Móvil con captura real en pantalla ---
+// --- Móvil tipo iPhone (sin logo) con captura real en pantalla ---
+// Marco metálico de esquinas muy redondeadas, cristal negro con bordes finos, isla en la parte de arriba,
+// botones laterales y meseta de cámara con tres lentes detrás. La pantalla recorta la captura con esquinas redondas.
 const screenFS = `
-  uniform sampler2D uA, uB, uSoftA, uSoftB; uniform float uSwap, uFocusAmt, uFocusR, uBright, uSweep, uSweepAmt, uAspect;
+  uniform sampler2D uA, uB, uSoftA, uSoftB; uniform float uSwap, uFocusAmt, uFocusR, uBright, uSweep, uSweepAmt, uAspect, uRad;
   uniform vec2 uFocus; varying vec2 vUv;
   void main(){
-    vec4 a = mix(texture2D(uA, vUv), texture2D(uSoftA, vUv), 0.0);
-    vec4 b = texture2D(uB, vUv);
-    vec4 sharp = mix(a, b, uSwap);
+    vec2 sz = vec2(1.0, uAspect);
+    vec2 p = (vUv - 0.5) * sz;
+    vec2 q = abs(p) - (sz * 0.5 - uRad);
+    if (length(max(q, 0.0)) - uRad > 0.0) discard;
+    vec4 sharp = mix(texture2D(uA, vUv), texture2D(uB, vUv), uSwap);
     vec4 soft = mix(texture2D(uSoftA, vUv), texture2D(uSoftB, vUv), uSwap);
     vec2 d = (vUv - uFocus) * vec2(1.0, uAspect);
     float blur = smoothstep(uFocusR, uFocusR*2.6, length(d)) * uFocusAmt;
     vec3 col = mix(sharp.rgb, soft.rgb, blur) * uBright;
     float band = vUv.x*0.9 + vUv.y*0.55 - uSweep;
-    col += vec3(1.0) * uSweepAmt * (smoothstep(0.0, 0.05, band) - smoothstep(0.05, 0.22, band)) * 0.35;
+    col += vec3(1.0) * uSweepAmt * (smoothstep(0.0, 0.08, band) - smoothstep(0.08, 0.3, band)) * 0.22;
     gl_FragColor = vec4(col, 1.0);
   }`;
 const screenVS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`;
 
-export const PHONE_W = 1, PHONE_H = 844 / 390;
-const bodyGeo = new RoundedBoxGeometry(PHONE_W + 0.1, PHONE_H + 0.12, 0.09, 6, 0.09);
-const camGeo = new RoundedBoxGeometry(0.34, 0.34, 0.03, 4, 0.07);
+export const PHONE_W = 1, PHONE_H = SCREEN_H / 390;
+const DW = 1.085, DH = PHONE_H + 0.085, DR = 0.165, DD = 0.1;
+function rrShape(w: number, h: number, r: number) {
+  const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y); s.lineTo(x + w - r, y); s.absarc(x + w - r, y + r, r, -Math.PI / 2, 0, false);
+  s.lineTo(x + w, y + h - r); s.absarc(x + w - r, y + h - r, r, 0, Math.PI / 2, false);
+  s.lineTo(x + r, y + h); s.absarc(x + r, y + h - r, r, Math.PI / 2, Math.PI, false);
+  s.lineTo(x, y + r); s.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
+  return s;
+}
+const frameGeo = (() => { const g = new THREE.ExtrudeGeometry(rrShape(DW - 0.024, DH - 0.024, DR - 0.012), { depth: DD - 0.024, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 6, curveSegments: 32 }); g.translate(0, 0, -(DD - 0.024) / 2); return g; })();
+const glassGeo = new THREE.ShapeGeometry(rrShape(DW - 0.012, DH - 0.012, DR - 0.006), 32);
+const islandGeo = new THREE.ShapeGeometry(rrShape(0.3, 0.088, 0.044), 16);
+const plateauGeo = (() => { const g = new THREE.ExtrudeGeometry(rrShape(0.43, 0.45, 0.12), { depth: 0.012, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006, bevelSegments: 3, curveSegments: 20 }); return g; })();
+const lensGeo = new THREE.CylinderGeometry(0.074, 0.074, 0.028, 40);
+const ringGeo = new THREE.TorusGeometry(0.078, 0.01, 12, 40);
+const btnGeo = (len: number) => new RoundedBoxGeometry(0.014, len, 0.034, 3, 0.007);
+const BUTTONS: [number, number, number][] = [[-1, 0.7, 0.07], [-1, 0.5, 0.13], [-1, 0.32, 0.13], [1, 0.42, 0.21]];
+export const PHONE_COLORS = { black: { frame: "#3A3C3B", back: "#26292A" }, natural: { frame: "#B8B3A8", back: "#D4D0C6" } };
+
 export const Phone: React.FC<{
   shot?: string; next?: string; swap?: number; focus?: [number, number]; focusAmt?: number; focusR?: number; bright?: number; sweep?: number; sweepAmt?: number;
-  position?: V3; rotation?: V3; scale?: number; body?: string; screenOffset?: number; children?: React.ReactNode;
-}> = ({ shot = "luis-home", next, swap = 0, focus = [0.5, 0.5], focusAmt = 0, focusR = 0.08, bright = 1, sweep = -1, sweepAmt = 1, position, rotation, scale = 1, body = "#1B2421", screenOffset = 0, children }) => {
+  position?: V3; rotation?: V3; scale?: number; finish?: keyof typeof PHONE_COLORS; screenOffset?: number; children?: React.ReactNode;
+}> = ({ shot = "luis-home", next, swap = 0, focus = [0.5, 0.5], focusAmt = 0, focusR = 0.08, bright = 1, sweep = -1, sweepAmt = 1, position, rotation, scale = 1, finish = "black", screenOffset = 0, children }) => {
   const A = useShot(shot);
   const B = useShot(next ?? shot);
   const mat = useMemo(() => new THREE.ShaderMaterial({
     vertexShader: screenVS, fragmentShader: screenFS, toneMapped: false,
     uniforms: { uA: { value: null }, uB: { value: null }, uSoftA: { value: null }, uSoftB: { value: null }, uSwap: { value: 0 }, uFocusAmt: { value: 0 }, uFocusR: { value: 0.1 },
-      uBright: { value: 1 }, uSweep: { value: -1 }, uSweepAmt: { value: 1 }, uFocus: { value: new THREE.Vector2() }, uAspect: { value: PHONE_H } },
+      uBright: { value: 1 }, uSweep: { value: -1 }, uSweepAmt: { value: 1 }, uFocus: { value: new THREE.Vector2() }, uAspect: { value: PHONE_H }, uRad: { value: 0.135 } },
   }), []);
   const u = mat.uniforms;
   if (A && B) { u.uA.value = A.sharp; u.uB.value = B.sharp; u.uSoftA.value = A.soft; u.uSoftB.value = B.soft; }
   u.uSwap.value = swap; u.uFocusAmt.value = focusAmt; u.uFocusR.value = focusR; u.uBright.value = bright;
   u.uSweep.value = sweep; u.uSweepAmt.value = sweepAmt; u.uFocus.value.set(focus[0], 1 - focus[1]);
+  const col = PHONE_COLORS[finish];
+  const z = DD / 2;
+  const px = DW / 2 - 0.07 - 0.215, py = DH / 2 - 0.07 - 0.225; // centro de la meseta de cámara (vista desde detrás: arriba a la izquierda)
   return (
     <group position={position} rotation={rotation} scale={scale}>
-      <mesh geometry={bodyGeo} castShadow><meshStandardMaterial color={body} roughness={0.35} metalness={0.6} /></mesh>
-      <mesh geometry={camGeo} position={[0.24, 0.78, -0.05]}><meshStandardMaterial color="#101614" roughness={0.25} metalness={0.7} /></mesh>
-      {[[0.17, 0.85], [0.31, 0.71], [0.17, 0.71]].map(([x, y], i) => <mesh key={i} position={[x, y, -0.068]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.045, 0.045, 0.02, 24]} /><meshStandardMaterial color="#050807" roughness={0.1} metalness={0.9} /></mesh>)}
-      <mesh position={[0, 0, 0.0455 + screenOffset]} material={mat}><planeGeometry args={[PHONE_W, PHONE_H]} /></mesh>
+      <mesh geometry={frameGeo} castShadow><meshStandardMaterial color={col.frame} roughness={0.28} metalness={1} envMapIntensity={1.2} /></mesh>
+      <mesh geometry={glassGeo} position={[0, 0, z + 0.0006]}><meshPhysicalMaterial color="#050606" roughness={0.06} metalness={0} clearcoat={1} clearcoatRoughness={0.04} /></mesh>
+      <mesh position={[0, 0, z + 0.0012 + screenOffset]} material={mat}><planeGeometry args={[PHONE_W, PHONE_H]} /></mesh>
+      <mesh geometry={islandGeo} position={[0, PHONE_H / 2 - 0.057, z + 0.0018 + screenOffset]}><meshBasicMaterial color="#000000" /></mesh>
+      <mesh geometry={glassGeo} position={[0, 0, -z - 0.0006]} rotation={[0, Math.PI, 0]}><meshPhysicalMaterial color={col.back} roughness={0.5} metalness={0} clearcoat={0.4} clearcoatRoughness={0.5} /></mesh>
+      <group position={[px, py, -z - 0.001]} rotation={[0, Math.PI, 0]}>
+        <mesh geometry={plateauGeo}><meshPhysicalMaterial color={col.back} roughness={0.15} clearcoat={1} /></mesh>
+        {([[0.095, 0.105], [0.095, -0.105], [-0.095, 0]] as [number, number][]).map(([x, y], i) => (
+          <group key={i} position={[x, y, 0.026]}>
+            <mesh geometry={ringGeo}><meshStandardMaterial color={col.frame} metalness={1} roughness={0.25} /></mesh>
+            <mesh geometry={lensGeo} rotation={[Math.PI / 2, 0, 0]}><meshPhysicalMaterial color="#07090C" roughness={0.04} clearcoat={1} /></mesh>
+          </group>
+        ))}
+        <mesh position={[-0.1, 0.15, 0.02]}><circleGeometry args={[0.028, 24]} /><meshBasicMaterial color="#E9E2CF" /></mesh>
+      </group>
+      {BUTTONS.map(([side, y, len], i) => (
+        <mesh key={i} geometry={btnGeo(len)} position={[side * (DW / 2 + 0.004), y, 0]}><meshStandardMaterial color={col.frame} metalness={1} roughness={0.3} /></mesh>
+      ))}
       {children}
     </group>
   );
 };
 // Coordenadas de un punto de la captura (px CSS de 390×844) en el plano del móvil
-export const onScreen = (x: number, y: number, z = 0.05): V3 => [(x / 390 - 0.5) * PHONE_W, (0.5 - y / 844) * PHONE_H, z];
+export const onScreen = (x: number, y: number, z = 0.055): V3 => { const [u, v] = uvOf(x, y); return [(u - 0.5) * PHONE_W, (0.5 - v) * PHONE_H, z]; };
+
+// Reflejos para los metales y el cristal (estudio de luz suave)
+export const Env: React.FC<{ intensity?: number }> = ({ intensity = 1 }) => {
+  const gl = useThree((s) => s.gl), scene = useThree((s) => s.scene);
+  useLayoutEffect(() => {
+    const pm = new THREE.PMREMGenerator(gl);
+    const env = pm.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = env;
+    return () => { scene.environment = null; env.dispose(); pm.dispose(); };
+  }, [gl, scene]);
+  useLayoutEffect(() => { scene.environmentIntensity = intensity; });
+  return null;
+};
+
+// Fondo claro con degradados suaves que se mueven (esfera alrededor de la escena: no tiene bordes)
+const skyVS = `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`;
+const skyFS = `
+  uniform float uTime; uniform vec3 cBase, c1, c2, c3, c4; uniform float uDark;
+  varying vec3 vDir;
+  float blob(vec3 d, vec3 c, float r){ return exp(-pow(distance(d, normalize(c))/r, 2.0)); }
+  float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
+  void main(){
+    vec3 d = normalize(vDir); float t = uTime;
+    vec3 col = cBase;
+    col = mix(col, c1, 0.85*blob(d, vec3(-0.75 + 0.08*sin(t*0.4), 0.35, -0.9), 0.6));
+    col = mix(col, c2, 0.8*blob(d, vec3(0.8, -0.25 + 0.06*cos(t*0.35), -0.8), 0.62));
+    col = mix(col, c3, 0.7*blob(d, vec3(0.15 + 0.1*cos(t*0.25), 0.85, -0.5), 0.55));
+    col = mix(col, c4, 0.75*blob(d, vec3(-0.2, -0.75, -0.7 + 0.1*sin(t*0.3)), 0.5));
+    col = mix(col, c1, 0.6*blob(d, vec3(0.7, 0.3, 0.8), 0.7));
+    col = mix(col, c2, 0.6*blob(d, vec3(-0.8, -0.3, 0.7), 0.7));
+    col += (hash(gl_FragCoord.xy + t) - 0.5) * 0.012;
+    gl_FragColor = vec4(col, 1.0);
+  }`;
+export const Backdrop: React.FC<{ time: number; palette?: "light" | "dawn" }> = ({ time, palette = "light" }) => {
+  const mat = useMemo(() => new THREE.ShaderMaterial({ vertexShader: skyVS, fragmentShader: skyFS, side: THREE.BackSide, depthWrite: false,
+    uniforms: { uTime: { value: 0 }, uDark: { value: 0 }, cBase: { value: new THREE.Color("#F4F6F2") }, c1: { value: new THREE.Color("#D7EADF") }, c2: { value: new THREE.Color("#DFE8F4") }, c3: { value: new THREE.Color("#F6EFE1") }, c4: { value: new THREE.Color("#CBE3D7") } } }), []);
+  if (palette === "dawn") { mat.uniforms.c3.value.set("#F8E6CC"); }
+  mat.uniforms.uTime.value = time;
+  return <mesh material={mat} renderOrder={-10} frustumCulled={false}><sphereGeometry args={[150, 48, 24]} /></mesh>;
+};
+
+// Círculos de luz desenfocados, de borde limpio (bokeh de estudio)
+const bokehVS = `attribute float aSize; attribute float aSeed; uniform float uScale, uTime; varying float vSeed;
+  void main(){ vec3 p = position + vec3(sin(aSeed*20.0+uTime*0.25), cos(aSeed*31.0+uTime*0.2), 0.0)*0.15; vec4 mv = modelViewMatrix*vec4(p,1.0); gl_PointSize = aSize*uScale/max(-mv.z,0.1); vSeed = aSeed; gl_Position = projectionMatrix*mv; }`;
+const bokehFS = `uniform vec3 uA, uB; uniform float uOpacity; varying float vSeed;
+  void main(){ float d = length(gl_PointCoord-0.5); float a = smoothstep(0.5, 0.46, d); a *= 0.8 + 0.2*smoothstep(0.35, 0.47, d); gl_FragColor = vec4(mix(uA, uB, step(0.5, fract(vSeed*7.3))), a*uOpacity*(0.35+0.65*fract(vSeed*3.1))); }`;
+export const Bokeh: React.FC<{ n?: number; box?: V3; center?: V3; seed?: number; time?: number; opacity?: number; a?: string; b?: string; size?: [number, number] }> = ({ n = 60, box = [24, 14, 24], center = [0, 0, -6], seed = 3, time = 0, opacity = 0.5, a = "#FFFFFF", b = "#D6EADF", size = [0.2, 1.1] }) => {
+  const { size: vp } = useThree();
+  const geo = useMemo(() => {
+    const r = rng(seed), g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(Float32Array.from({ length: n * 3 }, (_, i) => center[i % 3] + (r() - 0.5) * box[i % 3]), 3));
+    g.setAttribute("aSize", new THREE.BufferAttribute(Float32Array.from({ length: n }, () => size[0] + r() * (size[1] - size[0])), 1));
+    g.setAttribute("aSeed", new THREE.BufferAttribute(Float32Array.from({ length: n }, () => r()), 1));
+    return g;
+  }, [n, seed]);
+  const mat = useMemo(() => new THREE.ShaderMaterial({ vertexShader: bokehVS, fragmentShader: bokehFS, transparent: true, depthWrite: false, uniforms: { uScale: { value: 1 }, uTime: { value: 0 }, uA: { value: new THREE.Color() }, uB: { value: new THREE.Color() }, uOpacity: { value: 1 } } }), []);
+  mat.uniforms.uScale.value = vp.height * 0.9; mat.uniforms.uTime.value = time; mat.uniforms.uA.value.set(a); mat.uniforms.uB.value.set(b); mat.uniforms.uOpacity.value = opacity * 0.6;
+  return <points geometry={geo} material={mat} frustumCulled={false} />;
+};
+
+// Corazón 3D (verde de Relevo, lacado) para la nota cálida de Pablo
+const heartGeo = (() => {
+  const s = new THREE.Shape();
+  s.moveTo(0, -0.5);
+  s.bezierCurveTo(-0.15, -0.35, -0.58, -0.08, -0.58, 0.18);
+  s.bezierCurveTo(-0.58, 0.44, -0.33, 0.58, -0.17, 0.58);
+  s.bezierCurveTo(-0.06, 0.58, 0, 0.5, 0, 0.42);
+  s.bezierCurveTo(0, 0.5, 0.06, 0.58, 0.17, 0.58);
+  s.bezierCurveTo(0.33, 0.58, 0.58, 0.44, 0.58, 0.18);
+  s.bezierCurveTo(0.58, -0.08, 0.15, -0.35, 0, -0.5);
+  const g = new THREE.ExtrudeGeometry(s, { depth: 0.14, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.1, bevelSegments: 10, curveSegments: 40 });
+  g.center();
+  return g;
+})();
+export const Heart3D: React.FC<{ position?: V3; scale?: number; rotation?: V3; glow?: number }> = ({ position, scale = 1, rotation, glow = 0 }) => (
+  <group position={position} scale={scale} rotation={rotation}>
+    <mesh geometry={heartGeo}><meshPhysicalMaterial color="#0E6B5C" roughness={0.18} metalness={0.05} clearcoat={1} clearcoatRoughness={0.06} emissive="#0E6B5C" emissiveIntensity={0.25 + glow * 0.8} /></mesh>
+  </group>
+);
 
 // Panel plano con una captura (p. ej. la web de la clínica)
 export const ShotPanel: React.FC<{ shot: string; width: number; position?: V3; rotation?: V3; opacity?: number; bright?: number }> = ({ shot, width, position, rotation, opacity = 1, bright = 1 }) => {
