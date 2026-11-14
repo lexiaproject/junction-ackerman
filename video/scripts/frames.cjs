@@ -8,12 +8,13 @@ const path = require("path");
 
 const root = path.join(__dirname, "..");
 const ffmpeg = path.join(root, "node_modules", "@remotion", "compositor-win32-x64-msvc", "ffmpeg.exe");
-const src = path.join(root, "out", "relevo-ad.mp4");
+const src = path.join(root, "out", process.argv[2] || "relevo-ad.mp4"); // node scripts/frames.cjs [archivo en out/] [segundos]
+const LEN = Number(process.argv[3] || 50);
 const dir = path.join(root, "out", "frames");
 fs.rmSync(dir, { recursive: true, force: true });
 fs.mkdirSync(dir, { recursive: true });
 const files = [];
-for (let i = 0, t = 1; t < 50; i++, t += 2) {
+for (let i = 0, t = 1; t < LEN; i++, t += 2) {
   const f = path.join(dir, `f${String(i).padStart(2, "0")}.png`);
   execFileSync(ffmpeg, ["-loglevel", "error", "-ss", String(t), "-i", src, "-frames:v", "1", f]);
   files.push([f, t]);

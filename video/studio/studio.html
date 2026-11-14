@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root { --teal:#0E6B5C; --deep:#0B3F37; --sage:#E3EFEA; --bg:#F5F6F3; --ink:#1B2420; --muted:#5C6B65; --help:#9A3412; --notice:#EAF0FA; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); font-family: Inter, system-ui, sans-serif; color: var(--ink); }
+  .display { font-family: "Space Grotesk", Inter, sans-serif; }
+
+  /* Fondo vivo: manchas suaves que se mueven despacio */
+  #bg { position: absolute; inset: 0; overflow: hidden; background: var(--bg); }
+  .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .55; }
+  .b1 { width: 900px; height: 900px; background: #cfe6dd; left: -200px; top: -300px; animation: drift1 26s ease-in-out infinite alternate; }
+  .b2 { width: 760px; height: 760px; background: #dde7f5; right: -180px; bottom: -260px; animation: drift2 30s ease-in-out infinite alternate; }
+  .b3 { width: 520px; height: 520px; background: #f3e4d6; left: 760px; top: 640px; opacity: .4; animation: drift1 34s ease-in-out infinite alternate-reverse; }
+  @keyframes drift1 { to { transform: translate(180px, 120px) scale(1.1); } }
+  @keyframes drift2 { to { transform: translate(-160px, -140px) scale(1.15); } }
+
+  /* El mundo: lo que mueve la cámara */
+  #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; transition: transform 1.6s cubic-bezier(.65,0,.35,1); }
+  .actor { position: absolute; left: 0; top: 0; transform-origin: 50% 50%; transition: transform 1.3s cubic-bezier(.65,0,.35,1), opacity .9s ease; }
+  .phone { width: 414px; height: 948px; }
+  .bezel { width: 414px; height: 912px; border-radius: 58px; background: #18211e; padding: 12px; box-shadow: 0 0 0 1.5px #3a4540, 0 50px 90px -40px rgba(11,63,55,.55), 0 20px 40px -20px rgba(0,0,0,.35); }
+  .screen { width: 390px; height: 888px; border-radius: 46px; overflow: hidden; background: var(--bg); position: relative; }
+  .status { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 4px 30px 0; font: 600 15px Inter; color: var(--ink); background: var(--bg); position: relative; }
+  .island { position: absolute; left: 50%; top: 10px; width: 112px; height: 28px; border-radius: 20px; background: #18211e; transform: translateX(-50%); }
+  .screen iframe { width: 390px; height: 844px; border: 0; display: block; background: var(--bg); }
+  .plabel { margin-top: 14px; text-align: center; font: 600 19px "Space Grotesk"; color: var(--ink); }
+  .plabel span { font: 400 16px Inter; color: var(--muted); }
+  .window { width: 1440px; height: 944px; border-radius: 22px; overflow: hidden; background: #fff; box-shadow: 0 0 0 1px #dfe4e0, 0 60px 100px -50px rgba(11,63,55,.45); }
+  .wbar { height: 44px; display: flex; align-items: center; gap: 9px; padding: 0 18px; background: #eef1ee; border-bottom: 1px solid #dfe4e0; }
+  .wbar i { width: 13px; height: 13px; border-radius: 50%; background: #d6dbd7; display: block; }
+  .wbar b { margin-left: 18px; font: 500 15px Inter; color: var(--muted); background: #fff; border-radius: 9px; padding: 5px 16px; }
+  .window iframe { width: 1440px; height: 900px; border: 0; display: block; }
+
+  /* Capa de pantalla (no la mueve la cámara) */
+  #screen { position: absolute; inset: 0; pointer-events: none; }
+  #veil { position: absolute; left: 0; top: 0; bottom: 0; width: 1060px; background: linear-gradient(90deg, rgba(245,246,243,.99) 0%, rgba(245,246,243,.97) 62%, rgba(245,246,243,0) 100%); opacity: 0; transition: opacity .9s ease; }
+  #cap { position: absolute; left: 120px; top: 50%; width: 700px; transform: translateY(-50%); }
+  #cap .tag { display: inline-flex; align-items: center; gap: 10px; font: 600 18px "Space Grotesk"; color: var(--teal); background: var(--sage); border-radius: 999px; padding: 8px 18px; }
+  #cap .tag .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--teal); }
+  #cap h2 { margin: 22px 0 0; font: 700 64px/1.02 "Space Grotesk"; letter-spacing: -1.5px; text-wrap: balance; }
+  #cap p { margin: 22px 0 0; font: 400 27px/1.42 Inter; color: #34433d; text-wrap: pretty; max-width: 640px; }
+  .cap-in > * { animation: capIn .9s cubic-bezier(.2,.8,.2,1) both; }
+  .cap-in > *:nth-child(2) { animation-delay: .12s; }
+  .cap-in > *:nth-child(3) { animation-delay: .24s; }
+  .cap-out > * { animation: capOut .45s ease both; }
+  @keyframes capIn { from { opacity: 0; transform: translateY(28px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+  @keyframes capOut { to { opacity: 0; transform: translateY(-16px); } }
+
+  /* Dedo virtual y pulsación */
+  #cursor { position: absolute; left: 0; top: 0; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 0 0 2.5px rgba(14,107,92,.85), 0 8px 18px rgba(0,0,0,.18); opacity: 0; transition: transform .75s cubic-bezier(.45,0,.2,1), opacity .4s; }
+  .ripple { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 3px solid var(--teal); animation: ripple .7s ease-out forwards; }
+  @keyframes ripple { from { transform: scale(.6); opacity: .9; } to { transform: scale(2.6); opacity: 0; } }
+  #ring { position: absolute; border-radius: 22px; box-shadow: 0 0 0 4px var(--teal), 0 0 0 12px rgba(14,107,92,.18); opacity: 0; transform: scale(1.06); transition: opacity .5s ease, transform .6s cubic-bezier(.2,.8,.2,1); }
+
+  /* Tarjetas a pantalla completa */
+  .full { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  #chapter { background: var(--teal); color: #fff; clip-path: inset(0 100% 0 0); transition: clip-path .42s cubic-bezier(.77,0,.18,1); }
+  #chapter.on { clip-path: inset(0 0 0 0); }
+  #chapter.off { clip-path: inset(0 0 0 100%); }
+  #chapter .k { font: 500 26px Inter; opacity: .8; letter-spacing: .5px; }
+  #chapter .n { font: 700 230px/1 "Space Grotesk"; letter-spacing: -8px; font-variant-numeric: tabular-nums; }
+  #chapter .s { font: 400 30px Inter; opacity: .85; margin-top: 8px; }
+  #cold { background: var(--deep); color: #fff; transition: opacity 1s ease; }
+  #cold .line { font: 600 62px/1.15 "Space Grotesk"; letter-spacing: -1.2px; text-align: center; max-width: 1700px; white-space: nowrap; opacity: 0; transform: translateY(24px); transition: opacity 1s ease, transform 1s cubic-bezier(.2,.8,.2,1); }
+  #cold .line.show { opacity: 1; transform: none; }
+  #cold .line.dim { opacity: .28; }
+  #cold .stack { display: flex; flex-direction: column; gap: 26px; }
+  #title { transition: opacity 1s ease; }
+  #title .word { font: 700 190px/1 "Space Grotesk"; letter-spacing: -7px; color: var(--deep); display: flex; }
+  #title .word span { display: inline-block; opacity: 0; transform: translateY(60px) rotate(6deg); transition: opacity .7s ease, transform .9s cubic-bezier(.2,.8,.2,1); }
+  #title.go .word span { opacity: 1; transform: none; }
+  #title .sub { font: 400 36px Inter; color: var(--muted); margin-top: 18px; opacity: 0; transition: opacity 1s ease .9s; }
+  #title.go .sub { opacity: 1; }
+  .chain { display: flex; align-items: center; gap: 0; margin-top: 70px; }
+  .chain .p { display: flex; flex-direction: column; align-items: center; width: 230px; opacity: 0; transform: scale(.6); transition: opacity .6s ease, transform .8s cubic-bezier(.2,1.4,.4,1); }
+  .chain .p.on { opacity: 1; transform: none; }
+  .chain .face { width: 128px; height: 128px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 6px #fff, 0 18px 30px -12px rgba(11,63,55,.4); }
+  .chain .face > * { width: 128px !important; height: 128px !important; }
+  .chain .nm { margin-top: 20px; font: 600 28px "Space Grotesk"; }
+  .chain .rl { font: 400 20px Inter; color: var(--muted); margin-top: 4px; text-align: center; }
+  .chain .arrow { width: 110px; height: 4px; background: var(--teal); border-radius: 4px; transform-origin: left; transform: scaleX(0); transition: transform .8s cubic-bezier(.65,0,.35,1); margin-bottom: 70px; }
+  .chain .arrow.on { transform: scaleX(1); }
+  .chain-line { font: 400 30px Inter; color: #34433d; margin-top: 56px; opacity: 0; transition: opacity 1s ease; text-align: center; max-width: 1100px; }
+  .chain-line.on { opacity: 1; }
+  #note { background: #12302b; color: #fff; transition: opacity .8s ease; opacity: 0; }
+  #note .i { width: 86px; height: 86px; border-radius: 50%; border: 2px solid rgba(255,255,255,.4); display: flex; align-items: center; justify-content: center; font: 600 40px "Space Grotesk"; }
+  #note h3 { font: 600 52px "Space Grotesk"; margin: 34px 0 0; letter-spacing: -1px; }
+  #note p { font: 400 30px/1.4 Inter; opacity: .82; max-width: 1050px; text-align: center; margin: 18px 0 0; }
+  #nums { background: var(--deep); color: #fff; opacity: 0; transition: opacity .9s ease; }
+  #nums .row { display: flex; gap: 120px; margin-top: 60px; }
+  #nums .cell { text-align: left; width: 420px; opacity: 0; transform: translateY(30px); transition: opacity .8s ease, transform .9s cubic-bezier(.2,.8,.2,1); }
+  #nums .cell.on { opacity: 1; transform: none; }
+  #nums .v small { font-size: .38em; letter-spacing: -1px; margin-left: 10px; }
+  #nums .v { white-space: nowrap; font: 700 150px/1 "Space Grotesk"; letter-spacing: -5px; color: #9fe0cc; font-variant-numeric: tabular-nums; }
+  #nums .l { font: 600 30px "Space Grotesk"; margin-top: 14px; }
+  #nums .d { font: 400 22px/1.4 Inter; opacity: .72; margin-top: 8px; }
+  #nums .h { font: 600 50px "Space Grotesk"; letter-spacing: -1px; }
+  #nums .foot { font: 400 23px Inter; opacity: .65; margin-top: 80px; }
+  #outro { transition: opacity 1s ease; opacity: 0; background: var(--bg); }
+  #outro .big { font: 700 92px/1.05 "Space Grotesk"; letter-spacing: -3px; color: var(--deep); text-align: center; }
+  #outro .meta { margin-top: 46px; font: 500 26px Inter; color: var(--muted); text-align: center; line-height: 1.6; }
+  #outro .url { margin-top: 26px; font: 600 28px "Space Grotesk"; color: var(--teal); }
+  .hide { opacity: 0 !important; }
+</style>
+</head>
+<body>
+  <div id="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+  <div id="world">
+  </div>
+  <div id="screen">
+    <div id="veil"></div>
+    <div id="cap"></div>
+    <div id="ring"></div>
+    <div id="cursor"></div>
+    <div class="full hide" id="title">
+      <div class="word"><span>R</span><span>e</span><span>l</span><span>e</span><span>v</span><span>o</span></div>
+      <div class="sub">Recovery that passes forward</div>
+      <div class="chain" id="chain1"></div>
+      <div class="chain-line" id="chainline1">Everyone who finishes TMS can walk with the next person.</div>
+    </div>
+    <div class="full" id="chapter"><div class="k" id="chk">Day</div><div class="n" id="chn">0</div><div class="s" id="chs"></div></div>
+    <div class="full" id="note"><div class="i">!</div><h3>Content note</h3><p>The next moment involves a message with a suicidal thought. We show what the system does, not the message.</p></div>
+    <div class="full" id="nums">
+      <div class="h">Does the logic work?</div>
+      <div class="row">
+        <div class="cell"><div class="v" data-to="88" data-suf="%">0%</div><div class="l">of simulated relapses flagged</div><div class="d">at level 1, the gentle nudge to the companion</div></div>
+        <div class="cell"><div class="v" data-to="5" data-suf=" days">0 days</div><div class="l">of notice, median</div><div class="d">before the relapse would have started</div></div>
+        <div class="cell"><div class="v" data-to="2.45" data-dec="2" data-suf="">0</div><div class="l">false alarms a year</div><div class="d">and each one only costs a walk with a friend</div></div>
+      </div>
+      <div class="foot">200 synthetic people we generated ourselves. It shows the logic works as designed, not clinical accuracy.</div>
+    </div>
+    <div class="full" id="outro">
+      <div class="chain" id="chain2" style="margin:0 0 60px"></div>
+      <div class="big">Company, never treatment.<br/>The clinic stays in charge.</div>
+      <div class="meta">Relevo · Team Ackerman Family · Junction 2026<br/>Aalto University challenge: Beyond the Clinic</div>
+      <div class="url">junction-ackerman.vercel.app/relevo</div>
+    </div>
+    <div class="full" id="cold">
+      <div class="stack">
+        <div class="line" id="c1">TMS helps many people with depression.</div>
+        <div class="line" id="c2">Then the sessions end, and they go home.</div>
+        <div class="line" id="c3">Too often, they face the next months alone.</div>
+      </div>
+    </div>
+  </div>
+<script>
+  const W = 1920, H = 1080;
+  const SIZE = {};
+  window.addPhone = (id, src, label, time) => {
+    const d = document.createElement("div"); d.className = "actor phone"; d.id = id; SIZE[id] = [414, 948];
+    d.innerHTML = `<div class="bezel"><div class="screen"><div class="status"><span class="t">${time}</span><span class="island"></span><span>●●● ▮</span></div><iframe src="${src}"></iframe></div></div><div class="plabel">${label}</div>`;
+    document.getElementById("world").appendChild(d);
+  };
+  window.addWindow = (id, src) => {
+    const d = document.createElement("div"); d.className = "actor window"; d.id = id; SIZE[id] = [1440, 944];
+    d.innerHTML = `<div class="wbar"><i></i><i></i><i></i><b>Aalto TMS Clinic · Relevo</b></div><iframe src="${src}"></iframe>`;
+    document.getElementById("world").appendChild(d);
+  };
+  let camState = { tx: 0, ty: 0, s: 1 };
+  window.place = (id, { x, y, s = 1, r = 0, o = 1 }, dur = 1300) => {
+    const el = document.getElementById(id); const [w, h] = SIZE[id];
+    el.style.transitionDuration = `${dur}ms, 900ms`;
+    el.style.transform = `translate(${x - w / 2}px, ${y - h / 2}px) scale(${s}) rotate(${r}deg)`;
+    el.style.opacity = o;
+  };
+  window.layout = (L, dur) => { for (const k of Object.keys(L)) place(k, L[k], dur); };
+  window.cam = (tx, ty, s, dur = 1600) => { const w = document.getElementById("world"); w.style.transitionDuration = dur + "ms"; w.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`; camState = { tx, ty, s }; };
+  window.getCam = () => camState;
+  // Encuadra un punto del mundo (px, py) en el punto de pantalla (ax, ay) con zoom s
+  window.frame = (px, py, s, ax = 1280, ay = 540, dur = 1600) => cam(ax - s * px, ay - s * py, s, dur);
+  window.veil = (on) => { document.getElementById("veil").style.opacity = on ? 1 : 0; };
+  window.caption = (tag, head, body) => {
+    const c = document.getElementById("cap");
+    if (!tag && !head) { c.className = "cap-out"; return; }
+    c.className = "";
+    c.innerHTML = `${tag ? `<div class="tag"><span class="dot"></span>${tag}</div>` : "<div></div>"}<h2>${head}</h2>${body ? `<p>${body}</p>` : ""}`;
+    void c.offsetWidth; c.className = "cap-in";
+  };
+  window.cursorTo = (x, y, dur = 750) => { const c = document.getElementById("cursor"); c.style.opacity = 1; c.style.transitionDuration = `${dur}ms, 400ms`; c.style.transform = `translate(${x}px, ${y}px)`; };
+  window.cursorHide = () => { document.getElementById("cursor").style.opacity = 0; };
+  window.tap = (x, y) => { const r = document.createElement("div"); r.className = "ripple"; r.style.left = x + "px"; r.style.top = y + "px"; document.getElementById("screen").appendChild(r); setTimeout(() => r.remove(), 900); };
+  window.ring = (b, pad = 10) => { const r = document.getElementById("ring"); if (!b) { r.style.opacity = 0; r.style.transform = "scale(1.06)"; return; } Object.assign(r.style, { left: b.x - pad + "px", top: b.y - pad + "px", width: b.width + 2 * pad + "px", height: b.height + 2 * pad + "px" }); r.style.opacity = 1; r.style.transform = "scale(1)"; };
+  window.setTime = (id, t) => { document.querySelector(`#${id} .t`).textContent = t; };
+  window.setLabel = (html) => { document.getElementById("mlabel").innerHTML = html; };
+  window.chapter = (k, from, to, sub, ms = 1500) => {
+    const c = document.getElementById("chapter"); document.getElementById("chk").textContent = k; document.getElementById("chs").textContent = sub; const n = document.getElementById("chn");
+    c.className = "full"; void c.offsetWidth; c.className = "full on";
+    const t0 = performance.now() + 150;
+    const step = (now) => { const p = Math.min(1, Math.max(0, (now - t0) / ms)); const e = 1 - Math.pow(1 - p, 3); n.textContent = Math.round(from + (to - from) * e); if (p < 1) requestAnimationFrame(step); };
+    n.textContent = from; requestAnimationFrame(step);
+  };
+  window.chapterOut = () => { document.getElementById("chapter").className = "full off"; };
+  window.show = (id, on) => { const el = document.getElementById(id); el.classList.toggle("hide", !on); el.style.opacity = on ? 1 : 0; };
+  window.cold = (i) => { for (let k = 1; k <= 3; k++) { const el = document.getElementById("c" + k); if (k === i) el.className = "line show"; else if (k < i) el.className = "line show dim"; } };
+  window.titleGo = () => { const t = document.getElementById("title"); t.classList.remove("hide"); t.style.opacity = 1; void t.offsetWidth; t.querySelectorAll(".word span").forEach((s, i) => (s.style.transitionDelay = i * 0.07 + "s")); t.classList.add("go"); };
+  window.buildChain = (id, faces) => {
+    const roles = [["Marta", "finished TMS two years ago"], ["Pablo", "finished TMS in May"], ["Luis", "just finished TMS"]];
+    document.getElementById(id).innerHTML = roles.map(([n, r], i) => `<div class="p"><div class="face">${faces[n] || ""}</div><div class="nm">${n}</div><div class="rl">${r}</div></div>${i < 2 ? '<div class="arrow"></div>' : ""}`).join("");
+  };
+  window.chainGo = (id, lineId) => {
+    const kids = [...document.getElementById(id).children];
+    kids.forEach((k, i) => setTimeout(() => k.classList.add("on"), 250 + i * 380));
+    if (lineId) setTimeout(() => document.getElementById(lineId).classList.add("on"), 250 + kids.length * 380);
+  };
+  window.numsGo = () => {
+    const box = document.getElementById("nums"); box.style.opacity = 1;
+    box.querySelectorAll(".cell").forEach((c, i) => setTimeout(() => {
+      c.classList.add("on"); const v = c.querySelector(".v"); const to = +v.dataset.to, dec = +(v.dataset.dec || 0), suf = v.dataset.suf; const t0 = performance.now();
+      const step = (now) => { const p = Math.min(1, (now - t0) / 1600); const e = 1 - Math.pow(1 - p, 3); v.innerHTML = (to * e).toFixed(dec) + (suf ? `<small>${suf.trim()}</small>` : ""); if (p < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    }, 600 + i * 700));
+  };
+  window.loadFrames = () => document.querySelectorAll("iframe[data-src]").forEach((f) => (f.src = f.dataset.src));
+</script>
+</body>
+</html>
