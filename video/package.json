@@ -3,10 +3,10 @@
   "private": true,
   "description": "Anuncio de Relevo (52 s) con dirección de cámara: Remotion + Three.js",
   "scripts": {
+    "build": "node scripts/music.cjs && remotion render src/index.ts RelevoAd out/relevo-ad.mp4",
     "capture": "node scripts/capture.cjs",
     "music": "node scripts/music.cjs",
-    "storyboard": "node scripts/storyboard.cjs",
-    "render": "remotion render src/index.ts RelevoAd out/relevo-ad.mp4",
+    "preview": "node scripts/music.cjs && remotion render src/index.ts RelevoAd out/revision-completa.mp4 --scale=0.5",
     "studio": "remotion studio src/index.ts"
   },
   "dependencies": {

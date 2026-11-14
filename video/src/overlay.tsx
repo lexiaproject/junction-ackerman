@@ -3,7 +3,7 @@
 // revelado por un objeto, subida desde máscara, enfoque), siempre suave y limpia.
 import React, { useId } from "react";
 import { AbsoluteFill, Freeze, useCurrentFrame } from "remotion";
-import { INTER, GROTESK, clamp01, prog, ramp, smooth } from "./lib";
+import { INTER, GROTESK, clamp01, prog, ramp, smooth, useF } from "./lib";
 
 export type Seg = { t: string; c?: string };
 const base: React.CSSProperties = { fontFamily: INTER, fontWeight: 600, letterSpacing: "-0.035em", lineHeight: 1.04, whiteSpace: "pre" };
@@ -36,7 +36,7 @@ export const ScaleIn: React.FC<{ text: string | Seg[]; p: number; size?: number;
 
 // Letra a letra, con un cursor fino que desaparece al terminar
 export const TypeIn: React.FC<{ text: string; p: number; size?: number; color?: string; width?: number }> = ({ text, p, size = 90, color = "#fff", width }) => {
-  const f = useCurrentFrame();
+  const f = useF();
   const n = Math.floor(clamp01(p) * text.length + 1e-4);
   const caret = p > 0 && (p < 1 || Math.floor(f / 9) % 2 === 0) && p < 1.6;
   return (

@@ -1,12 +1,12 @@
 // Planos 6-12 (paleta clara de Relevo): nota de voz de Luis, corazón de Pablo, gráfica real de Pablo,
 // "Peers first. Clinic always.", el "I'm in", la ventana con nieve al amanecer y el final.
 import React, { useMemo } from "react";
-import { AbsoluteFill, Easing, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Easing } from "remotion";
 import * as THREE from "three";
 import { Cam, Chair, Person, Phone, LightStroke, ShotPanel, onScreen, PtsLive, Backdrop, Bokeh, Env, Heart3D, Glow, Pts } from "./kit";
 import { Block, Words, PassReveal, Rise, Focus, ScaleIn, SweepReveal, Logo, MotionBlur, DirBlur } from "./overlay";
 import { Stage } from "./shotsDark";
-import { C, prog, mix, key, hit, ramp, smooth, rng, clamp01, INTER, uvOf } from "./lib";
+import { C, prog, mix, key, hit, ramp, smooth, rng, clamp01, INTER, uvOf, useF } from "./lib";
 import series from "../public/shots/pablo-series.json";
 
 type V3 = [number, number, number];
@@ -46,7 +46,7 @@ export function ecg(D: number, grow = 1, n = 260, spike = 1): V3[] {
 const ringPts: V3[] = Array.from({ length: 64 }, (_, i) => [Math.cos((i / 63) * Math.PI * 2), Math.sin((i / 63) * Math.PI * 2), 0]);
 
 // ---------- 6 · "Those who recovered…" ----------
-export const Shot6 = () => { const f = useCurrentFrame(); return <DirBlur x={60 * Math.pow(prog(f, 160, 180), 2)}><MotionBlur on={f < 18} samples={14}><Shot6In /></MotionBlur></DirBlur>; };
+export const Shot6 = () => { const f = useF(); return <DirBlur x={60 * Math.pow(prog(f, 160, 180), 2)}><MotionBlur on={f < 18} samples={14}><Shot6In /></MotionBlur></DirBlur>; };
 const Wave: React.FC<{ f: number; center: V3; rise: number; gather: number }> = ({ f, center, rise, gather }) => {
   const n = 26;
   return (
@@ -61,7 +61,7 @@ const Wave: React.FC<{ f: number; center: V3; rise: number; gather: number }> = 
   );
 };
 const Shot6In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const out = Easing.bezier(0.3, 0.55, 0.15, 1)(prog(f, 1, 24));
   const az = mix(-0.55, 0.35, prog(f, 0, 165, smooth));
   const r = mix(0.16, 3.9, out);
@@ -94,14 +94,14 @@ const Shot6In = () => {
 };
 
 // ---------- 7 · "…walk with the next." ----------
-export const Shot7 = () => { const f = useCurrentFrame(); return <DirBlur x={60 * Math.pow(1 - prog(f, 0, 15), 2)}><Shot7In /></DirBlur>; };
+export const Shot7 = () => { const f = useF(); return <DirBlur x={60 * Math.pow(1 - prog(f, 0, 15), 2)}><Shot7In /></DirBlur>; };
 const D7 = 2.2;
 const heartAt = (f: number, L: V3, P: V3): V3 => {
   const a = prog(f, 90, 135, Easing.bezier(0.35, 0.05, 0.2, 1));
   return [mix(P[0], L[0], a), 0.3 + Math.sin(a * Math.PI) * 0.95, 0.15 + Math.sin(a * Math.PI) * 0.55];
 };
 const Shot7In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const sep = key(f, [20, 46, 70, 105], [1.25, 1.95, 1.95, 0.9], smooth);
   const L: V3 = [-sep, 0, 0], P: V3 = [sep, 0, 0];
   const settle = ramp(prog(f, 0, 20));
@@ -110,7 +110,7 @@ const Shot7In = () => {
   const beat = hit(f, 135, 12) + hit(f, 150, 12);
   const push = prog(f, 148, 170, smooth);
   const drift = 0.15 * Math.sin(f * 0.03);
-  const camBase: V3 = f < 90 ? [mix(mix(-1.6, P[0] * 0.85, settle), drift, prog(f, 20, 60, smooth)), 0.35, mix(3.4, 5.9, prog(f, 16, 55, smooth))] : [mix(drift, heart[0] * 0.5, prog(f, 90, 120, smooth)), 0.4, 5.9 - 0.4 * prog(f, 90, 148, smooth)];
+  const camBase: V3 = f < 90 ? [mix(mix(-1.6, P[0] * 0.85, settle), drift, prog(f, 20, 60, smooth)), 0.35, mix(3.4, 5.9, prog(f, 16, 55, smooth))] : [mix(drift, heart[0] * 0.5, prog(f, 90, 120, smooth)), mix(0.35, 0.4, prog(f, 90, 120, smooth)), 5.9 - 0.4 * prog(f, 90, 148, smooth)];
   const lookBase: V3 = f < 90 ? [mix(mix(-1, P[0], settle), 0, prog(f, 20, 60, smooth)), 0.15, 0] : [mix(0, heart[0], 0.7 * prog(f, 90, 105, smooth)), mix(0.15, heart[1] * 0.5, prog(f, 90, 105, smooth)), 0];
   const hp = f < 135 ? heart : landed;
   const pos: V3 = [mix(camBase[0], hp[0], push), mix(camBase[1], hp[1], push), mix(camBase[2], hp[2] + D7, push)];
@@ -170,9 +170,9 @@ function wordTex(text: string, px: number, color: string, weight = 600) {
 const TexLabel: React.FC<{ t: { tex: THREE.Texture; aspect: number }; h: number; position: V3; anchor?: "left" | "right"; opacity?: number }> = ({ t, h, position, anchor = "left", opacity = 1 }) => (
   <mesh position={[position[0] + (anchor === "left" ? 1 : -1) * (h * t.aspect) / 2, position[1], position[2]]}><planeGeometry args={[h * t.aspect, h]} /><meshBasicMaterial map={t.tex} transparent opacity={opacity} depthWrite={false} toneMapped={false} /></mesh>
 );
-export const Shot8 = () => { const f = useCurrentFrame(); return <MotionBlur on={f >= 186}><Shot8In /></MotionBlur>; };
+export const Shot8 = () => { const f = useF(); return <MotionBlur on={f >= 186}><Shot8In /></MotionBlur>; };
 const Shot8In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const m = prog(f, 6, 40, smooth); // de pulso a datos
   const p = f < 40 ? 0.6 : key(f, [40, 120, 150], [0.6, CROSS, 1], (x) => x);
   const E = useMemo(() => ecg(D8, 1, 241), []);
@@ -184,9 +184,9 @@ const Shot8In = () => {
   });
   const others = ["sueno", "movilidad", "ritmo", "fisiologia"].map((k) => Array.from({ length: 81 }, (_, j) => { const u = (j / 80) * p; return [-CH_W / 2 + u * CH_W, vy(at(S.domains[k], u)), -0.005] as V3; }));
   const crossed = f >= 120;
-  const e = prog(f, 18, 96, smooth); // despiece
-  const panel = prog(f, 12, 44, ramp);
-  const az = key(f, [16, 96], [0, -0.5], smooth);
+  const e = prog(f, 8, 92, smooth); // despiece
+  const panel = prog(f, 8, 40, ramp);
+  const az = key(f, [8, 92], [0, -0.5], smooth);
   const rr = f < 100 ? mix(D8, 4.5, e) : f < 188 ? mix(mix(D8, 4.5, e), 1.9, prog(f, 100, 188, smooth)) : mix(1.9, -0.3, prog(f, 188, 210, Easing.in(Easing.cubic)));
   const chartZ = 0.1 + e * 0.8;
   const focusPt: V3 = [mix(0, CROSS_PT[0], prog(f, 100, 170, smooth)), mix(0, CROSS_PT[1], prog(f, 100, 170, smooth)), chartZ];
@@ -236,9 +236,9 @@ const CHAIN: { p: V3; at: number }[] = [
   { p: [2.5, 0.9, -13], at: 90 }, { p: [-2.7, -0.5, -15], at: 93 }, { p: [2.1, -1.1, -17.4], at: 96 },
 ];
 const RING = Array.from({ length: 7 }, (_, i) => (i / 7) * Math.PI * 2 + 0.3);
-export const Shot9 = () => { const f = useCurrentFrame(); return <MotionBlur on={(f >= 42 && f < 56) || (f >= 87 && f < 101) || (f >= 147 && f < 161)}><Shot9In /></MotionBlur>; };
+export const Shot9 = () => { const f = useF(); return <MotionBlur on={(f >= 42 && f < 56) || (f >= 87 && f < 101) || (f >= 147 && f < 161)}><Shot9In /></MotionBlur>; };
 const Shot9In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const z = f < 43 ? mix(4.4, 3.7, prog(f, 0, 43, smooth))
     : f < 88 ? mix(3.7, S2[2] + 3.9, ramp(prog(f, 43, 64))) - 0.4 * prog(f, 64, 88, smooth)
     : f < 148 ? mix(S2[2] + 3.5, S3[2] + 3.6, ramp(prog(f, 88, 110))) - 0.3 * prog(f, 110, 148, smooth)
@@ -307,9 +307,9 @@ const handPts = () => {
   handCache = new Float32Array(out);
   return handCache;
 };
-export const Shot10 = () => { const f = useCurrentFrame(); return <DirBlur y={50 * Math.pow(prog(f, 132, 150), 2)}><MotionBlur on={f >= 76 && f < 98} samples={14}><Shot10In /></MotionBlur></DirBlur>; };
+export const Shot10 = () => { const f = useF(); return <DirBlur y={50 * Math.pow(prog(f, 132, 150), 2)}><MotionBlur on={f >= 76 && f < 98} samples={14}><Shot10In /></MotionBlur></DirBlur>; };
 const Shot10In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const btn = onScreen(...IN_BTN, 0.056);
   const pull = Easing.bezier(0.3, 0.55, 0.15, 1)(prog(f, 76, 108));
   const rise = prog(f, 130, 152, Easing.in(Easing.cubic));
@@ -377,9 +377,9 @@ const getHills = () => {
 };
 const WIN = { cx: 1.75, cy: 0.75, w: 2.3, h: 2.7 };
 const SNOW_N = 900;
-export const Shot11 = () => { const f = useCurrentFrame(); return <DirBlur y={50 * Math.pow(1 - prog(f, 0, 10), 2)}><Shot11In /></DirBlur>; };
+export const Shot11 = () => { const f = useF(); return <DirBlur y={50 * Math.pow(1 - prog(f, 0, 10), 2)}><Shot11In /></DirBlur>; };
 const Shot11In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const dawn = prog(f, 14, 112, smooth);
   const up = ramp(prog(f, 0, 14));
   const pos: V3 = [mix(0.55, 0.45, prog(f, 0, 120)), mix(-2.2, 0.35, up), mix(5.7, 4.75, prog(f, 8, 120, (x) => x))];
@@ -428,7 +428,7 @@ const Shot11In = () => {
 
 // ---------- 12 · Logo ----------
 export const Shot12 = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const az = mix(-0.13, 0.13, prog(f, 0, 90, smooth));
   const r = 6.3;
   return (

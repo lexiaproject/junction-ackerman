@@ -1,12 +1,12 @@
 // Planos 1-5 (paleta oscura): cerebro de hilos de luz, silla bajo el foco, red de neuronas → personas,
 // móvil boca abajo en la mesa y el encendido con el logo de partículas.
 import React, { useMemo } from "react";
-import { AbsoluteFill, Easing, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Easing } from "remotion";
 import { ThreeCanvas } from "@remotion/three";
 import * as THREE from "three";
 import { Cam, Brain, BRAIN_PULSE, Glow, Dust, Chair, Pts, PtsLive, Phone, LightStroke, ParticleText, Env, Backdrop, Bokeh, PHONE_H } from "./kit";
 import { Block, Wipe, Cut, ScaleIn, TypeIn, MotionBlur, DirBlur } from "./overlay";
-import { C, prog, mix, key, hit, ramp, smooth, rng, clamp01, neuronPoints, personPoints, GROTESK, INTER, useFontsReady } from "./lib";
+import { C, prog, mix, key, hit, ramp, smooth, rng, clamp01, neuronPoints, personPoints, GROTESK, INTER, useFontsReady, useF } from "./lib";
 
 type V3 = [number, number, number];
 export const Stage: React.FC<{ bg: string; children: React.ReactNode; shadows?: boolean; env?: number }> = ({ bg, children, shadows, env }) => (
@@ -18,9 +18,9 @@ export const Stage: React.FC<{ bg: string; children: React.ReactNode; shadows?: 
 );
 
 // ---------- 1 · "TMS works." ----------
-export const Shot1 = () => { const f = useCurrentFrame(); return <DirBlur y={46 * Math.pow(prog(f, 76, 90), 2)}><Shot1In /></DirBlur>; };
+export const Shot1 = () => { const f = useF(); return <DirBlur y={46 * Math.pow(prog(f, 76, 90), 2)}><Shot1In /></DirBlur>; };
 const Shot1In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const rot: V3 = [0.12, 0.55 - f * 0.0035, 0];
   const pulseW = new THREE.Vector3(...BRAIN_PULSE).applyEuler(new THREE.Euler(...rot));
   const k = prog(f, 0, 80, Easing.out(Easing.cubic));
@@ -68,9 +68,9 @@ const LightCone: React.FC<{ op: number; h: number; r: number; position: V3 }> = 
   mat.uniforms.uOp.value = op;
   return <mesh position={position} material={mat}><coneGeometry args={[r, h, 64, 1, true]} /></mesh>;
 };
-export const Shot2 = () => { const f = useCurrentFrame(); return <DirBlur y={46 * Math.pow(1 - prog(f, 0, 13), 2)}><Shot2In /></DirBlur>; };
+export const Shot2 = () => { const f = useF(); return <DirBlur y={46 * Math.pow(1 - prog(f, 0, 13), 2)}><Shot2In /></DirBlur>; };
 const Shot2In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const on = f < 60;
   const el = f < 12 ? mix(1.05, 1.53, ramp(prog(f, 0, 12))) : mix(1.53, 0.1, ramp(prog(f, 12, 60))) - 0.03 * prog(f, 60, 90);
   const r = key(f, [12, 60, 90], [6.6, 4.5, 4.0], ramp);
@@ -141,9 +141,9 @@ const Node3: React.FC<{ i: number; morph: number; dim: number; focus: number; t:
   }
   return <Pts positions={src} target={dst} morph={morph} position={NODES[i]} scale={0.95} color={C.glow} colorB="#3B4946" mix={1 - dim} opacity={1 - 0.55 * dim} size={0.012} focus={focus} aperture={0.03} time={t} twinkle={0.4} spread={1} />;
 };
-export const Shot3 = () => { const f = useCurrentFrame(); return <MotionBlur on={(f >= 5 && f < 26) || f >= 70} samples={12}><Shot3In /></MotionBlur>; };
+export const Shot3 = () => { const f = useF(); return <MotionBlur on={(f >= 5 && f < 26) || f >= 70} samples={12}><Shot3In /></MotionBlur>; };
 const Shot3In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const z = f < 6 ? mix(0.7, 0.9, f / 6) : mix(0.9, 15, ramp(prog(f, 6, 62)));
   const morph = clamp01((z - 1.8) / 6);
   const T = NODES[FOLLOW];
@@ -194,7 +194,29 @@ const cardTex = (title: string, sub: string) => {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 };
 const CARDS: [string, string][] = [["Message", "Are you around this week?"], ["Missed call", "2 missed calls"], ["Voice message", "0:42"], ["3 new messages", "Hey, just checking in"]];
-const HAND: V3[] = ([[2.0, 0.40], [1.5, 0.46], [1.15, 0.62], [0.92, 0.66], [0.88, 0.56], [1.05, 0.42], [0.62, 0.36], [0.32, 0.30], [0.30, 0.22], [0.55, 0.19], [0.26, 0.12], [0.24, 0.04], [0.52, 0.02], [0.30, -0.05], [0.29, -0.13], [0.55, -0.14], [0.42, -0.22], [0.44, -0.29], [0.75, -0.30], [1.2, -0.36], [2.0, -0.32]] as [number, number][]).map(([x, y]) => [x, y, 0] as V3);
+// Mano vista desde arriba, dedos hacia la izquierda (hacia el borde del móvil), pulgar arriba
+const HAND2D: [number, number][] = [
+  [2.1, 0.31], [1.6, 0.33], [1.3, 0.38], [1.12, 0.5], [0.95, 0.6], [0.8, 0.63], [0.72, 0.58], [0.76, 0.5], [0.92, 0.41], [1.02, 0.33],
+  [0.86, 0.29], [0.6, 0.27], [0.4, 0.245], [0.31, 0.205], [0.33, 0.16], [0.5, 0.14], [0.66, 0.125],
+  [0.52, 0.11], [0.34, 0.09], [0.24, 0.055], [0.235, 0.0], [0.33, -0.025], [0.5, -0.035], [0.66, -0.04],
+  [0.52, -0.06], [0.37, -0.085], [0.285, -0.12], [0.3, -0.165], [0.45, -0.18], [0.64, -0.185],
+  [0.56, -0.2], [0.45, -0.23], [0.4, -0.265], [0.44, -0.3], [0.6, -0.31], [0.85, -0.32], [1.2, -0.33], [1.6, -0.31], [2.1, -0.27],
+];
+const HAND: V3[] = HAND2D.map(([x, y]) => [x, y, 0] as V3);
+// costuras de los dedos y nudillos (líneas interiores muy suaves)
+const HAND_LINES: V3[][] = ([[[0.66, 0.125], [0.92, 0.12], [1.05, 0.14]], [[0.66, -0.04], [0.92, -0.045], [1.05, -0.03]], [[0.64, -0.185], [0.9, -0.2], [1.02, -0.19]], [[1.02, 0.33], [1.1, 0.2], [1.15, 0.0], [1.12, -0.2]]] as [number, number][][]).map((l) => l.map(([x, y]) => [x, y, 0] as V3));
+const handFill = (() => {
+  const curve = new THREE.CatmullRomCurve3(HAND.map((p) => new THREE.Vector3(...p)), false, "centripetal");
+  const pts = curve.getPoints(220).map((v) => new THREE.Vector2(v.x, v.y));
+  return new THREE.ShapeGeometry(new THREE.Shape(pts));
+})();
+const HandLight: React.FC<{ opacity: number; position: V3 }> = ({ opacity, position }) => (
+  <group position={position}>
+    <mesh geometry={handFill}><meshBasicMaterial color="#7FE3CF" transparent opacity={0.13 * opacity} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} /></mesh>
+    <LightStroke points={HAND} color="#E6FFF8" width={0.0045} opacity={0.95 * opacity} />
+    {HAND_LINES.map((l, i) => <LightStroke key={i} points={l} color="#CFF6EC" width={0.0025} opacity={0.35 * opacity} />)}
+  </group>
+);
 const Table: React.FC<{ glow?: number; light?: number }> = ({ glow = 0, light = 0 }) => (
   <>
     <ambientLight intensity={0.05 + light * 0.25} />
@@ -222,9 +244,9 @@ const LyingPhone: React.FC<{ flip: number; lift?: number; jitter?: number; yaw?:
   </group>
 );
 
-export const Shot4 = () => { const f = useCurrentFrame(); return <MotionBlur on={f >= 3 && f < 18}><Shot4In /></MotionBlur>; };
+export const Shot4 = () => { const f = useF(); return <MotionBlur on={f >= 3 && f < 18}><Shot4In /></MotionBlur>; };
 const Shot4In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const beats = [15, 30, 45, 60];
   const v = beats.reduce((a, b) => a + hit(f, b, 9), 0);
   const jitter = 0.02 * Math.sin(f * 7.3) * v;
@@ -262,9 +284,9 @@ const Shot4In = () => {
 };
 
 // ---------- 5 · "Relevo." ----------
-export const Shot5 = () => { const f = useCurrentFrame(); return <MotionBlur on={f >= 30 && f < 46}><Shot5In /></MotionBlur>; };
+export const Shot5 = () => { const f = useF(); return <MotionBlur on={f >= 30 && f < 46}><Shot5In /></MotionBlur>; };
 const Shot5In = () => {
-  const f = useCurrentFrame();
+  const f = useF();
   const ready = useFontsReady();
   if (f >= 40) {
     return (
@@ -295,7 +317,7 @@ const Shot5In = () => {
         <Cam pos={pos} look={[0, 0.05, 0]} fov={38} />
         <Table light={on ? 1 + flash * 2 : 0} />
         <LyingPhone flip={flip} lift={lift} shot="splash" bright={on ? 1 + flash * 0.6 : 0}>
-          <LightStroke points={HAND} color="#DFF8F1" width={0.008} opacity={handIn * (1 - handOut)} position={[0.1 + (1 - handIn) * 1.5 + handOut * 1.4, 0, -0.07]} closed={false} />
+          <HandLight opacity={handIn * (1 - handOut)} position={[0.12 + (1 - handIn) * 1.5 + handOut * 1.4, 0, -0.07]} />
         </LyingPhone>
         {on && <Glow position={[0, 0.25, 0]} size={3 + flash * 6} color="#F3FFF9" opacity={0.35 + flash * 0.6} />}
       </Stage>

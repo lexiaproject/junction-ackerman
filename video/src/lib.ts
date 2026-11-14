@@ -1,13 +1,15 @@
 // Utilidades del anuncio: tiempos (beats), curvas de movimiento, paleta, azar con semilla y
 // generadores de puntos (siluetas de personas, texto, cerebro de hilos).
-import { Easing, interpolate, delayRender, continueRender, staticFile } from "remotion";
+import { Easing, interpolate, delayRender, continueRender, staticFile, useCurrentFrame } from "remotion";
 import { useEffect, useState } from "react";
 import * as THREE from "three";
 import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
 import { loadFont as loadGrotesk } from "@remotion/google-fonts/SpaceGrotesk";
 
-export const FPS = 30;
-export const BEAT = 15; // 120 BPM a 30 fps: un beat cada 15 fotogramas (cada segundo entero cae en beat)
+export const FPS = 60; // el vídeo sale a 60 fps (más fluido)
+export const BEAT = 15; // 120 BPM: un beat cada 15 unidades de tiempo de los planos (cada segundo entero cae en beat)
+// Tiempo de los planos en unidades de 1/30 s (aunque el vídeo vaya a 60 fps): 30 = un segundo
+export const useF = () => (useCurrentFrame() * 30) / FPS;
 export const s = (sec: number) => Math.round(sec * FPS);
 
 export const inter = loadInter("normal", { weights: ["500", "600", "700", "800"], subsets: ["latin"] });
