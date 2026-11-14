@@ -24,9 +24,9 @@ export async function kget<T>(key: string): Promise<T | null> {
   return raw ? (JSON.parse(raw) as T) : null;
 }
 
-export async function kset(key: string, value: unknown) {
+export async function kset(key: string, value: unknown, ttlSeconds?: number) {
   const raw = JSON.stringify(value);
-  if (URL && TOKEN) await redis(["SET", PREFIX + key, raw]);
+  if (URL && TOKEN) await redis(ttlSeconds ? ["SET", PREFIX + key, raw, "EX", ttlSeconds] : ["SET", PREFIX + key, raw]);
   else store().set(PREFIX + key, raw);
 }
 

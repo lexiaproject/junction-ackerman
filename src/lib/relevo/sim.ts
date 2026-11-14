@@ -21,7 +21,7 @@ export const END = at(LAST_DAY, "23:59");
 
 /* ---------- Mundo guardado ---------- */
 export type Who = "luis" | "pablo" | "marta" | "clinic";
-export type Ev = { id: string; t: number; seq: number; by: Who | "script"; type: string; p: Record<string, unknown> };
+export type Ev = { id: string; t: number; seq: number; by: Who; type: string; p: Record<string, unknown> };
 export type Config = Pick<Params, "l1_R" | "l2_R" | "l3_R" | "domain_hi" | "persist_up" | "persist_down" | "weights"> & {
   noticeFrom: number; // minuto del día (08:30 = 510)
   noticeTo: number; // 21:00 = 1260
@@ -508,7 +508,10 @@ export function evaluate(world: World, nowIn?: number): Sim {
       }
       case "datatype": {
         const k = str("key")!;
-        for (const c of DATA_TYPES[k]?.cols ?? []) (p.on ? P[by].disabled.delete(c) : P[by].disabled.add(c));
+        for (const c of DATA_TYPES[k]?.cols ?? []) {
+          if (p.on) P[by].disabled.delete(c);
+          else P[by].disabled.add(c);
+        }
         log(t, by, "consent", `${DATA_TYPES[k]?.label} ${p.on ? "on" : "off"}`);
         return true;
       }
@@ -599,7 +602,7 @@ export function evaluate(world: World, nowIn?: number): Sim {
         // Copiloto: dos notas seguidas con índice de queja ≥ 0,7 -> sugerencia privada al mentor (silencio 72 h)
         if (to !== "clinic" && by !== "clinic") {
           const pair = by === P[to as PersonId]?.mentorId ? { mentor: by as PersonId, mentee: to as PersonId } : P[by as PersonId]?.mentorId === to ? { mentor: to as PersonId, mentee: by as PersonId } : null;
-          if (pair) {
+          if (pair && P[by as PersonId]?.consents.notes) {
             const conv = sim.notes.filter((n) => (n.from === pair.mentor && n.to === pair.mentee) || (n.from === pair.mentee && n.to === pair.mentor));
             const last = conv.slice(-2).map((n) => n.analysis?.indice_queja ?? 0);
             const recent = sim.copilots.some((c) => c.mentor === pair.mentor && t - c.t < 3 * DAY);

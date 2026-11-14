@@ -95,5 +95,54 @@ ok(round(banditProbs(pb, "movilidad")).paseo_juntos === 0.69, `Lo que le funcion
 ok(before.paseo_juntos === 0.62 && before.llamada_o_quedar === 0.5 && before.actividad_con_sentido === 0.5, `Arranque de la pareja: ${JSON.stringify(before)}`);
 ok(after.paseo_juntos === 0.7, `Tras "Bien": ${JSON.stringify(after)}`);
 
-console.log(fails ? `\n${fails} comprobaciones fallan` : "\nTodo coincide con el motor de referencia");
+// ---------- Interfaz (sección 13, puntos 1-10) sobre la simulación completa ----------
+const { evaluate, newWorld, at, END } = await import("../src/lib/relevo/sim.ts");
+const { menteeView, mentorView, clinicPanel } = await import("../src/lib/relevo/views.ts");
+
+// 1. Test de contrato: ninguna vista de acompañado o mentor lleva nivel, R, z ni rasgos, en ningún momento de la demo
+const FORBIDDEN_KEY = /^(level|levelLabel|R|Rs|z|s|sSmooth|smooth|cand|probs|draws|context|risk|score|steps|sleep|domains|features|series|analysis|indice_queja|afecto_negativo|repeticion|orientacion_accion)$/;
+const FORBIDDEN_TEXT = /\b(level \d|risk|we('ve| have) detected)\b|\d[\d.,]*\s*(steps|h of sleep|hours of sleep|bpm|ms|min of sleep)\b/i;
+let leaks = [];
+const scan = (o, path, who, t) => {
+  if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) {
+    if (FORBIDDEN_KEY.test(k)) leaks.push(`${who} @${t}: key ${path}.${k}`);
+    scan(v, `${path}.${k}`, who, t);
+  } else if (typeof o === "string" && FORBIDDEN_TEXT.test(o)) leaks.push(`${who} @${t}: text “${o.slice(0, 60)}”`);
+};
+const world = newWorld();
+for (let t = 0; t <= END; t += 180) {
+  const sim = evaluate(world, t);
+  scan(menteeView(sim, "luis"), "me", "luis", t);
+  scan(mentorView(sim, "pablo"), "mentor", "pablo", t);
+  scan(mentorView(sim, "marta"), "mentor", "marta", t);
+}
+ok(leaks.length === 0, `Contrato: ninguna vista de Luis, Pablo o Marta lleva datos de salud (${leaks.length} fugas)${leaks.length ? "\n     " + leaks.slice(0, 5).join("\n     ") : ""}`);
+
+// 3. V2 solo aparece si existe un "Sí" del mentor de menos de 24 h
+const s47 = evaluate(world, at(47, "08:40"));
+ok(!menteeView(s47, "luis").notices.some((n) => n.code === "V2"), "Antes del “Sí” de Pablo, Luis no tiene V2");
+const s47b = evaluate(world, at(47, "08:42"));
+ok(menteeView(s47b, "luis").notices.some((n) => n.code === "V2" && n.text === "Pablo would like to talk to you"), "Tras el “Sí”, Luis lee “Pablo would like to talk to you”");
+ok(!menteeView(evaluate(world, at(48, "09:00")), "luis").notices.some((n) => n.code === "V2"), "V2 caduca a las 24 h");
+// 4. Con "Hoy no puedo", Pablo no ve idea ese día
+const s54 = evaluate(world, at(54, "12:00"));
+ok(mentorView(s54, "pablo").card === null, "Con “Can't today”, Pablo no ve idea ese día");
+ok(mentorView(evaluate(world, at(55, "08:31")), "pablo").card?.title === "Call Luis or meet up for a while today", "Al día siguiente ve la idea directa preparada (llamada)");
+// 5. V4 y V3 el mismo día: solo V4; V3 al día siguiente
+ok(menteeView(evaluate(world, at(54, "18:00")), "luis").notices.map((n) => n.code).join() === "V4", "El 31/10 Luis solo tiene V4 (V3 aplazado)");
+ok(menteeView(evaluate(world, at(55, "09:00")), "luis").notices.some((n) => n.code === "V3"), "El 1/11 Luis recibe V3");
+// 6. "I just want to die" -> A3, alerta grave, M6 (sin Gemini)
+const s57 = evaluate(world, at(57, "21:13"));
+ok(!!menteeView(s57, "luis").openHelp && s57.alerts.some((a) => a.kind === "severe" && a.person === "luis") && !!mentorView(s57, "pablo").m6, "Frase de crisis: A3 abierta, alerta grave y M6 para Pablo");
+// 8. M5 nunca menciona datos; "Prefer to keep going" -> Review pace
+const w2 = newWorld();
+w2.clock = at(60, "09:30");
+w2.events.push({ id: "ev1", t: at(60, "09:30"), seq: 1, by: "pablo", type: "rhythm", p: { decline: true } });
+const s60 = evaluate(w2, at(60, "10:00"));
+ok(clinicPanel(s60).rows.find((r) => r.id === "pablo").flags.includes("Review pace"), "“I'd rather keep going” → la clínica ve “Review pace”");
+// 10. C1 ordena por nivel y días en nivel
+const rows = clinicPanel(evaluate(world, at(58, "12:00"))).rows;
+ok(rows.every((r, i) => i === 0 || rows[i - 1].level > r.level || (rows[i - 1].level === r.level && rows[i - 1].daysInLevel >= r.daysInLevel)), `C1 ordenado por nivel: ${rows.slice(0, 4).map((r) => `${r.name} ${r.level}`).join(", ")}`);
+
+console.log(fails ? `\n${fails} comprobaciones fallan` : "\nTodo coincide con el motor de referencia y con la lista de aceptación");
 process.exit(fails ? 1 : 0);
