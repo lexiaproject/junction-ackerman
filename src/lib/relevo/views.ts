@@ -261,13 +261,18 @@ function summary(sim: Sim, id: PersonId) {
   const head = lvl === 0 ? "Stable" : `${LEVEL_LABEL[lvl]} ${days === 0 ? "since today" : `for ${days} day${days > 1 ? "s" : ""}`}`;
   const thr = sim.world.config.domain_hi;
   const hi = DOMAINS.filter((d) => (row.s[d] ?? -9) >= thr).sort((a, b) => row.s[b]! - row.s[a]!);
-  if (!hi.length) return { text: `${head}. No clear change from their usual in any area.`, parts: [{ text: `${head}. No clear change from their usual in any area.` }] };
+  // El nivel sale de la tendencia de varios días y "hi" solo mira hoy: la frase lo dice para que no parezca una contradicción
+  if (!hi.length) {
+    const t = lvl === 0 ? `${head}. No clear change from their usual in any area.` : `${head}. Overall drift from their usual; no single area stands out today.`;
+    return { text: t, parts: [{ text: t }] };
+  }
   // Hasta 3 rasgos con mayor z (uno por dominio alterado), en lenguaje clínico
   const feats = hi.map((d) => Object.entries(row.z).filter(([k]) => FEAT[k].domain === d).sort((a, b) => b[1] - a[1])[0]).filter(Boolean).slice(0, 3);
   const phrase = (k: string) => (k === "tst_excess7" ? (p.tstDirection >= 0 ? "sleeps more than usual" : "sleeps less than usual") : FEATURE_INFO[k].phrase);
   const doms = hi.map((d) => DOMAIN_LABEL[d]);
   const list = (a: string[]) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a.at(-1)}`);
-  const parts: { text: string; feature?: string }[] = [{ text: `${head}. Changes from their usual in ${list(doms)}: ` }];
+  const lead = lvl === 0 ? `Stable overall. A recent change, not sustained yet, in ${list(doms)}: ` : `${head}. Changes from their usual in ${list(doms)}: `;
+  const parts: { text: string; feature?: string }[] = [{ text: lead }];
   feats.forEach(([k], i) => {
     parts.push({ text: phrase(k), feature: k });
     parts.push({ text: i === feats.length - 1 ? "." : i === feats.length - 2 ? " and " : ", " });
