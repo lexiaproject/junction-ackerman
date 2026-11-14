@@ -70,15 +70,15 @@ export async function ensureDemo(force = false) {
   const users: User[] = [
     { ...base, id: "d-clinic", name: "Clinic team", role: "clinic", email: "clinic@relay.demo", passwordHash: pw },
     { ...base, id: "d-mikko", name: "Mikko", role: "mentor", email: "mikko@relay.demo", passwordHash: pw, treatment: "finished", menteeId: "d-laura", supportId: "d-aino", availability: "Weekdays 17–20", story: "Finished TMS in September. Walks by the sea got me through." },
-    { ...base, id: "d-laura", name: "Laura", role: "pupil", email: "laura@relay.demo", passwordHash: pw, treatment: "in_treatment", mentorId: "d-mikko" },
+    { ...base, id: "d-laura", name: "Laura", role: "pupil", email: "laura@relay.demo", passwordHash: pw, treatment: "in_treatment", mentorId: "d-mikko", sessions: { done: 14, total: 20, next: at(DAYS + 1, "07:30") } },
     { ...base, id: "d-aino", name: "Aino", role: "mentor", email: "aino@relay.demo", passwordHash: pw, treatment: "finished", menteeId: "d-ville", formerMenteeIds: ["d-mikko", "d-tomas"], availability: "Evenings and weekends", story: "Two years after TMS. I still swim every Sunday." },
-    { ...base, id: "d-ville", name: "Ville", role: "pupil", email: "ville@relay.demo", passwordHash: pw, treatment: "finished", mentorId: "d-aino" },
+    { ...base, id: "d-ville", name: "Ville", role: "pupil", email: "ville@relay.demo", passwordHash: pw, treatment: "finished", mentorId: "d-aino", sessions: { done: 20, total: 20 } },
     { ...base, id: "d-sara", name: "Sara", role: "mentor", email: "sara@relay.demo", passwordHash: pw, treatment: "finished", menteeId: "d-pekka", availability: "Mornings", story: "TMS in spring. Cooking with friends helped me most." },
-    { ...base, id: "d-pekka", name: "Pekka", role: "pupil", email: "pekka@relay.demo", passwordHash: pw, treatment: "in_treatment", mentorId: "d-sara" },
+    { ...base, id: "d-pekka", name: "Pekka", role: "pupil", email: "pekka@relay.demo", passwordHash: pw, treatment: "in_treatment", mentorId: "d-sara", sessions: { done: 9, total: 20, next: at(DAYS + 2, "11:00") } },
     { ...base, id: "d-tomas", name: "Tomas", role: "mentor", email: "tomas@relay.demo", passwordHash: pw, treatment: "finished", menteeId: "d-elina", supportId: "d-aino", availability: "Weekends" },
-    { ...base, id: "d-elina", name: "Elina", role: "pupil", email: "elina@relay.demo", passwordHash: pw, treatment: "in_treatment", mentorId: "d-tomas" },
+    { ...base, id: "d-elina", name: "Elina", role: "pupil", email: "elina@relay.demo", passwordHash: pw, treatment: "in_treatment", mentorId: "d-tomas", sessions: { done: 6, total: 20, next: at(DAYS + 1, "13:15") } },
     { ...base, id: "d-jari", name: "Jari", role: "mentor", email: "jari@relay.demo", passwordHash: pw, treatment: "finished", availability: "Weekdays after 18" },
-    { ...base, id: "d-noora", name: "Noora", role: "pupil", email: "noora@relay.demo", passwordHash: pw, treatment: "in_treatment", createdAt: at(DAYS - 3, "09:00") },
+    { ...base, id: "d-noora", name: "Noora", role: "pupil", email: "noora@relay.demo", passwordHash: pw, treatment: "in_treatment", createdAt: at(DAYS - 3, "09:00"), sessions: { done: 3, total: 20, next: at(DAYS + 1, "08:45") } },
     { ...base, id: "d-oskari", name: "Oskari", role: "pupil", status: "invited", treatment: "in_treatment", inviteCode: "OSK4RI", consent: undefined },
   ];
   clinic.patientIds = users.filter((u) => u.role !== "clinic").map((u) => u.id);
@@ -121,10 +121,10 @@ export async function ensureDemo(force = false) {
     msg("m7", "d-mikko", 9, "17:30", "I'm walking by the shore tomorrow at 10. Want to join for 20 minutes?", { action: "walk", answer: "yes" }),
     msg("m8", "d-laura", 9, "20:55", "Okay, yes. I haven't been out much this week."),
     msg("m9", "d-laura", 10, "11:15", "Thanks for today. The sea air actually helped."),
-    msg("m10", "d-mikko", 12, "17:40", "Coffee at Kaisa library on Saturday?", { action: "coffee", answer: "yes" }),
-    msg("m11", "d-laura", 12, "19:10", "Sounds good!"),
-    msg("m12", "d-laura", 15, "16:00", "Halfway through treatment. The nurses say I'm doing well."),
-    msg("m13", "d-mikko", 15, "17:15", "That's huge. Halfway was when I started noticing small changes too."),
+    msg("m10", "d-mikko", 16, "17:40", "Coffee at Kaisa library on Saturday?", { action: "coffee", answer: "yes" }),
+    msg("m11", "d-laura", 16, "19:10", "Sounds good!"),
+    msg("m12", "d-laura", 14, "16:00", "Halfway through treatment. The nurses say I'm doing well."),
+    msg("m13", "d-mikko", 14, "17:15", "That's huge. Halfway was when I started noticing small changes too."),
     msg("m14", "d-mikko", 19, "17:20", "How was this week's session?"),
     msg("m15", "d-mikko", 20, "18:05", "Hey, no pressure to answer. Just thinking of you."),
   ]);
@@ -143,14 +143,16 @@ export async function ensureDemo(force = false) {
   await saveThread("d-ville", "d-aino", [
     msg("v1", "d-ville", 17, "14:00", "Last session today! I can't believe it."),
     msg("v2", "d-aino", 17, "18:30", "Congratulations! Maybe soon you'll be the one helping someone new 🙂"),
+    msg("v3", "d-aino", 18, "10:00", "Sunday swim to celebrate? Töölö beach sauna, 11:00.", { action: "shared_activity", answer: "yes" }),
+    msg("v4", "d-ville", 18, "12:20", "Yes! First time in the sea this winter."),
   ]);
   await saveThread("d-elina", "d-tomas", [msg("e1", "d-tomas", 4, "10:00", "Hi Elina, Tomas here. Weekends are my best time to chat.")]);
-  await saveThread("d-noora", "d-jari", []);
+  
 
   // Registro de acciones: el paseo del día 9 ayudó (lo que el sistema "aprendió")
   const log: ActionLog[] = [
     { date: addDays(todayStr(), -DAYS + 9), action: "walk", level: "early", flagged: 4, helped: true },
-    { date: addDays(todayStr(), -DAYS + 12), action: "coffee", level: "stable", flagged: 0, helped: true },
+    { date: addDays(todayStr(), -DAYS + 16), action: "coffee", level: "stable", flagged: 0, helped: true },
   ];
   await saveActions("d-laura", log);
   await saveActions("d-pekka", [{ date: addDays(todayStr(), -DAYS + 15), action: "shared_activity", level: "early", flagged: 2, helped: false }]);

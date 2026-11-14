@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible, Bricolage_Grotesque } from "next/font/google";
+import { Schibsted_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const body = Atkinson_Hyperlegible({ variable: "--nf-body", subsets: ["latin"], weight: ["400", "700"] });
-const display = Bricolage_Grotesque({ variable: "--nf-display", subsets: ["latin"] });
+// Tipografía nórdica (diseñada para un diario noruego): sobria y muy legible
+const sans = Schibsted_Grotesk({ variable: "--nf-sans", subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
 
 export const metadata: Metadata = {
   title: "Relay · peer support after TMS",
@@ -11,11 +11,11 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Relay", statusBarStyle: "default" },
 };
 
-export const viewport: Viewport = { themeColor: "#1e3b35" };
+export const viewport: Viewport = { themeColor: "#17332d" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${body.variable} ${display.variable} h-full antialiased`}>
+    <html lang="en" className={`${sans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

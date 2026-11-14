@@ -24,6 +24,7 @@ export type User = {
   formerMenteeIds?: string[]; // antiguo mentor → a quién sigue apoyando
   story?: string; // mentor: su historia en una frase (para la fase "conocerse")
   crisisAt?: string; // ha pedido ayuda y la clínica aún no lo ha atendido
+  sessions?: { done: number; total: number; next?: string }; // MOCK: progreso del tratamiento (vendría de la clínica)
   demo?: boolean;
 };
 

@@ -78,17 +78,17 @@ export default function JoinPage() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-md px-5 py-10">
+    <main className="mx-auto w-full max-w-md px-5 py-10 sm:py-16">
       <Link href="/">
         <Logo className="text-2xl" />
       </Link>
 
-      {step === "loading" && <p className="mt-8 text-pine/70">Loading…</p>}
+      {step === "loading" && <p className="muted mt-8">Loading…</p>}
 
       {step === "code" && (
         <form onSubmit={checkCode} className="mt-8 flex flex-col gap-4">
-          <h1 className="font-display text-3xl font-bold">Join Relay</h1>
-          <p className="text-pine/80">Your clinic gives you a 6-letter invite code when they add you to Relay.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Join Relay</h1>
+          <p className="muted">Your clinic gives you a 6-letter invite code when they add you to Relay.</p>
           <Field label="Invite code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} autoCapitalize="characters" required maxLength={6} hint="Try OSK4RI to see how a new patient joins." />
           <ErrorText>{error}</ErrorText>
           <Button type="submit" disabled={busy || code.trim().length < 6}>
@@ -102,8 +102,8 @@ export default function JoinPage() {
 
       {step === "account" && invite && (
         <form onSubmit={createAccount} className="mt-8 flex flex-col gap-4">
-          <h1 className="font-display text-3xl font-bold">Hi {invite.name}</h1>
-          <p className="text-pine/80">
+          <h1 className="text-3xl font-bold tracking-tight">Hi {invite.name}</h1>
+          <p className="muted">
             {invite.clinic} invited you to Relay as {invite.role === "mentor" ? "a mentor" : "someone starting TMS"}. Create your account.
           </p>
           <Field label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -117,7 +117,7 @@ export default function JoinPage() {
 
       {step === "welcome" && invite && (
         <div className="mt-8">
-          <h1 className="font-display text-3xl font-bold">Welcome, {invite.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome, {invite.name}</h1>
           {invite.role === "pupil" ? (
             <div className="mt-4 flex flex-col gap-3 text-lg">
               <p>Your clinic will match you with a mentor: someone who finished TMS not long ago and knows what it&apos;s like.</p>
@@ -139,7 +139,7 @@ export default function JoinPage() {
 
       {step === "consent" && (
         <div className="mt-8">
-          <h1 className="font-display text-3xl font-bold">Your data, your choice</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Your data, your choice</h1>
           <dl className="mt-4 flex flex-col gap-3">
             <Item term="What Relay notices">How often you open the app, how quickly you reply, and use after midnight. Later, with your permission, sleep and steps from your phone or ring.</Item>
             <Item term="Compared with whom">Only with yourself. Relay learns your usual week and looks for changes that last several days, not one bad day.</Item>
@@ -147,7 +147,7 @@ export default function JoinPage() {
             <Item term="Who decides">Relay suggests; a person always decides. The clinic reviews every serious alert.</Item>
             <Item term="Your rights">Withdraw consent, download or delete your data anytime from the Me tab.</Item>
           </dl>
-          <label className="mt-5 flex items-start gap-3 rounded-xl border border-mist p-3">
+          <label className="card mt-5 flex cursor-pointer items-start gap-3 p-4">
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1 h-5 w-5 accent-[var(--color-pine)]" />
             <span>I understand and agree that Relay may use these signals to help my {invite?.role === "mentor" ? "clinic" : "mentor and clinic"} reach out at the right moment.</span>
           </label>
@@ -155,7 +155,7 @@ export default function JoinPage() {
           <Button className="mt-4 w-full" disabled={!agree || busy} onClick={() => consent(true)}>
             Agree and continue
           </Button>
-          <Button kind="ghost" className="mt-2 w-full" disabled={busy} onClick={() => consent(false)}>
+          <Button kind="quiet" className="mt-2 w-full" disabled={busy} onClick={() => consent(false)}>
             Continue without signals
           </Button>
         </div>
@@ -163,8 +163,8 @@ export default function JoinPage() {
 
       {step === "mentor" && (
         <form onSubmit={saveMentor} className="mt-8 flex flex-col gap-4">
-          <h1 className="font-display text-3xl font-bold">One last thing</h1>
-          <p className="text-pine/80">This helps your clinic match you, and your mentee know you.</p>
+          <h1 className="text-3xl font-bold tracking-tight">One last thing</h1>
+          <p className="muted">This helps your clinic match you, and your mentee know you.</p>
           <Field label="When are you usually available?" placeholder="e.g. Weekdays 17–20" value={availability} onChange={(e) => setAvailability(e.target.value)} />
           <Field label="Your story in one sentence" placeholder="e.g. Finished TMS in spring; walks helped me most." value={story} onChange={(e) => setStory(e.target.value)} />
           <ErrorText>{error}</ErrorText>
@@ -181,7 +181,7 @@ function Item({ term, children }: { term: string; children: React.ReactNode }) {
   return (
     <div>
       <dt className="font-bold">{term}</dt>
-      <dd className="text-pine/80">{children}</dd>
+      <dd className="muted">{children}</dd>
     </div>
   );
 }

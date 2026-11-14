@@ -30,11 +30,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-sm px-5 py-12">
+    <main className="mx-auto w-full max-w-sm px-5 py-12 sm:py-20">
       <Link href="/">
         <Logo className="text-2xl" />
       </Link>
-      <h1 className="mt-8 font-display text-3xl font-bold">Log in</h1>
+      <h1 className="mt-8 text-3xl font-bold tracking-tight">Log in</h1>
       <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
         <Field label="Email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         <Field label="Password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />

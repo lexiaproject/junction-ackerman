@@ -1,22 +1,45 @@
 @import "tailwindcss";
 
-/* Paleta: bosque finlandés */
+/* Paleta: bosque nórdico, sobria. Estados con texto oscuro para contraste AA. */
 @theme inline {
-  --color-birch: #eef0eb; /* fondo */
-  --color-paper: #fbfcfa; /* pantallas */
-  --color-pine: #1e3b35; /* texto y principal */
-  --color-moss: #6e8b74; /* estable */
-  --color-mist: #cbd3cc; /* bordes */
-  --color-cloudberry: #d9952b; /* primeras señales */
-  --color-lingon: #b8243f; /* riesgo alto / crisis */
-  --font-sans: var(--nf-body);
-  --font-display: var(--nf-display);
+  --color-birch: #f3f4f1; /* fondo de página */
+  --color-paper: #ffffff; /* superficies */
+  --color-pine: #17332d; /* tinta y acción principal */
+  --color-pine-deep: #0e231f;
+  --color-mist: #dde2dc; /* bordes */
+  --color-line: #c9d0c8; /* bordes de controles */
+  --color-moss: #3f7a5a; /* estable */
+  --color-moss-ink: #2c5c42;
+  --color-cloudberry: #c27a17; /* primeras señales / acento de marca */
+  --color-cloudberry-ink: #8a530a;
+  --color-lingon: #a3203a; /* riesgo alto / crisis */
+  --color-lingon-ink: #8a1a30;
+  --font-sans: var(--nf-sans);
+  --font-display: var(--nf-sans);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background: var(--color-birch);
   color: var(--color-pine);
-  font-family: var(--nf-body), system-ui, sans-serif;
+  font-family: var(--nf-sans), system-ui, sans-serif;
+  font-feature-settings: "ss01";
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  letter-spacing: -0.015em;
+}
+p,
+li,
+dd {
+  text-wrap: pretty;
 }
 
 :focus-visible {
@@ -24,12 +47,255 @@ body {
   outline-offset: 2px;
 }
 
-/* Un único momento de movimiento: la tarjeta de acción que llega al mentor */
-@keyframes arrive {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: none; }
+@layer components {
+  /* Botones: rectangulares con esquinas suaves, nada de pastillas */
+  .btn {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0 1rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    transition-property: background-color, border-color, box-shadow, transform, color;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+    cursor: pointer;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: linear-gradient(180deg, #23463e 0%, var(--color-pine) 100%);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 1px 2px rgb(14 35 31 / 0.25), 0 4px 12px -6px rgb(14 35 31 / 0.45);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #1b3c35 0%, var(--color-pine-deep) 100%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 1px 2px rgb(14 35 31 / 0.25), 0 8px 18px -8px rgb(14 35 31 / 0.55);
+  }
+  /* Brillo: un reflejo de luz que cruza el botón al pasar el ratón */
+  .btn-primary::after,
+  .btn-danger::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.22) 50%, transparent 65%);
+    transform: translateX(-120%);
+    transition: transform 0s;
+  }
+  .btn-primary:hover:not(:disabled)::after,
+  .btn-danger:hover:not(:disabled)::after {
+    transform: translateX(120%);
+    transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .btn-secondary {
+    background: var(--color-paper);
+    color: var(--color-pine);
+    border-color: var(--color-line);
+    box-shadow: 0 1px 2px rgb(14 35 31 / 0.06);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--color-birch);
+    border-color: #b3bcb2;
+  }
+  .btn-danger {
+    background: linear-gradient(180deg, #b52a46 0%, var(--color-lingon) 100%);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 1px 2px rgb(90 10 25 / 0.3);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: var(--color-lingon-ink);
+  }
+  .btn-danger-outline {
+    background: var(--color-paper);
+    color: var(--color-lingon-ink);
+    border-color: rgb(163 32 58 / 0.35);
+  }
+  .btn-danger-outline:hover:not(:disabled) {
+    background: rgb(163 32 58 / 0.06);
+  }
+  .btn-quiet {
+    background: transparent;
+    color: var(--color-pine);
+  }
+  .btn-quiet:hover:not(:disabled) {
+    background: rgb(23 51 45 / 0.06);
+  }
+  .btn-sm {
+    min-height: 2.25rem;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 7px;
+  }
+  .btn-lg {
+    min-height: 3rem;
+    padding: 0 1.25rem;
+    font-size: 1rem;
+  }
+
+  /* Superficies */
+  .card {
+    background: var(--color-paper);
+    border: 1px solid var(--color-mist);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgb(14 35 31 / 0.04), 0 6px 16px -10px rgb(14 35 31 / 0.12);
+  }
+  /* Franja lateral que indica el estado (el color nunca va solo: siempre con texto) */
+  .card-status {
+    position: relative;
+    overflow: hidden;
+  }
+  .card-status::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--status, var(--color-mist));
+  }
+
+  /* Etiqueta de estado: punto + texto */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 1.625rem;
+    padding: 0 0.5rem;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--chip-bg, #eef1ed);
+    color: var(--chip-fg, var(--color-pine));
+  }
+  .chip::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 99px;
+    background: var(--chip-dot, currentColor);
+  }
+
+  /* Campos */
+  .input {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-line);
+    background: var(--color-paper);
+    font-size: 1rem;
+    transition-property: border-color, box-shadow;
+    transition-duration: 150ms;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--color-pine);
+    box-shadow: 0 0 0 3px rgb(23 51 45 / 0.14);
+  }
+  .label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.375rem;
+  }
+  .muted {
+    color: #55685f;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
 }
-.arrive { animation: arrive 420ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* Tarjetas que se pueden pulsar: se elevan un poco */
+.lift {
+  transition-property: transform, box-shadow, background-color;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+}
+.lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgb(14 35 31 / 0.05), 0 12px 24px -14px rgb(14 35 31 / 0.25);
+}
+
+/* Entrada escalonada al abrir una pantalla (una sola vez) */
+.stagger > * {
+  animation: arrive 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(n + 6) { animation-delay: 250ms; }
+
+/* La línea de los gráficos se dibuja al aparecer */
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.draw {
+  stroke-dasharray: 1;
+  animation: draw 900ms cubic-bezier(0.3, 0.6, 0.2, 1) both;
+}
+
+/* Línea de marca: del pino al naranja de la mora ártica */
+.brand-rule {
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-pine) 0%, var(--color-moss) 55%, var(--color-cloudberry) 100%);
+}
+
+/* Fondo de la portada: curvas de nivel, como un mapa de bosque */
+.topo {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Cg fill='none' stroke='%2317332d' stroke-opacity='0.07' stroke-width='1'%3E%3Cpath d='M-20 320C80 260 160 300 240 250S420 140 620 190'/%3E%3Cpath d='M-20 290C90 230 170 270 250 220S420 110 620 160'/%3E%3Cpath d='M-20 260C100 200 180 240 260 190S430 80 620 130'/%3E%3Cpath d='M-20 230C110 170 190 210 270 160S440 50 620 100'/%3E%3Cpath d='M-20 360C70 300 150 340 230 290S410 180 620 230'/%3E%3Cpath d='M-20 390C60 330 140 370 220 320S400 210 620 260'/%3E%3Cellipse cx='470' cy='95' rx='60' ry='26'/%3E%3Cellipse cx='470' cy='95' rx='34' ry='13'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 900px auto;
+  background-position: right -120px top -40px;
+  background-repeat: no-repeat;
+}
+
+/* Un único momento de movimiento: lo nuevo que llega (tarjeta de acción, hoja de ayuda) */
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.arrive {
+  animation: arrive 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 @media (prefers-reduced-motion: reduce) {
-  .arrive { animation: none; }
+  .arrive,
+  .stagger > *,
+  .draw {
+    animation: none;
+  }
+  .lift:hover {
+    transform: none;
+  }
+  .btn-primary::after,
+  .btn-danger::after {
+    display: none;
+  }
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
 }

@@ -53,28 +53,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("visibilitychange", ping);
   }, []);
 
-  if (!me || me.user.role === "clinic" || !me.user.consent) return <p className="p-6 text-pine/70">Loading…</p>;
+  if (!me || me.user.role === "clinic" || !me.user.consent) return <p className="muted p-6">Loading…</p>;
 
   return (
     <MeContext.Provider value={{ me, reload }}>
-      <div className="mx-auto flex h-dvh w-full max-w-md flex-col bg-paper sm:border-x sm:border-mist">
-        <header className="flex items-center justify-between bg-pine px-4 py-3 text-paper">
+      <div className="mx-auto flex h-dvh w-full max-w-md flex-col bg-birch sm:border-x sm:border-mist sm:shadow-[0_0_48px_-24px_rgb(14_35_31/0.3)]">
+        <div className="brand-rule" />
+        <header className="flex items-center justify-between border-b border-mist bg-paper px-4 py-2.5">
           <Logo className="text-xl" />
-          <button onClick={() => setHelp(true)} className="rounded-full bg-lingon px-3 py-1.5 text-sm font-bold">
-            Help
+          <button onClick={() => setHelp(true)} className="btn btn-sm btn-danger-outline">
+            Get help
           </button>
         </header>
         <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
-        <nav className="grid grid-cols-3 border-t border-mist bg-paper">
+        <nav className="grid grid-cols-3 border-t border-mist bg-paper pb-[env(safe-area-inset-bottom)]">
           {TABS.map((t) => {
             const active = t.href === "/app" ? path === "/app" : path.startsWith(t.href);
             return (
               <Link
                 key={t.href}
                 href={t.href}
-                className={`flex flex-col items-center gap-0.5 py-2 text-xs ${active ? "font-bold text-pine" : "text-pine/55"}`}
+                aria-current={active ? "page" : undefined}
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-1 text-xs transition-colors ${
+                  active ? "font-semibold text-pine" : "text-pine/50 hover:text-pine/80"
+                }`}
               >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden>
+                {active && <span className="absolute inset-x-8 top-0 h-0.5 rounded-b bg-pine" />}
+                <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" aria-hidden>
                   <path d={t.icon} />
                 </svg>
                 {t.label}
@@ -103,30 +108,31 @@ function HelpSheet({ me, onClose, onSent }: { me: Me; onClose: () => void; onSen
     }
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-pine/40" onClick={onClose}>
-      <div role="dialog" aria-label="Get help" className="arrive w-full max-w-md rounded-t-3xl bg-paper p-5 pb-8" onClick={(e) => e.stopPropagation()}>
-        <h2 className="font-display text-2xl font-bold">Get help</h2>
-        <p className="mt-1 text-pine/75">If you or someone else is in danger right now, call the emergency number.</p>
-        <a href="tel:112" className="mt-4 block rounded-2xl bg-lingon px-4 py-3 text-center text-lg font-bold text-paper">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-pine-deep/45" onClick={onClose}>
+      <div role="dialog" aria-label="Get help" className="arrive w-full max-w-md rounded-t-2xl bg-paper px-5 pb-8 pt-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-4 h-1 w-10 rounded bg-mist" />
+        <h2 className="text-2xl font-bold">Get help</h2>
+        <p className="muted mt-1">If you or someone else is in danger right now, call the emergency number.</p>
+        <a href="tel:112" className="btn btn-danger btn-lg mt-4 w-full">
           Call 112
         </a>
         {me.clinic && (
-          <a href={`tel:${me.clinic.phone.replace(/\s/g, "")}`} className="mt-2 block rounded-2xl border border-pine px-4 py-3 text-center font-bold">
-            Call your clinic ({me.clinic.phone})
+          <a href={`tel:${me.clinic.phone.replace(/\s/g, "")}`} className="btn btn-secondary btn-lg mt-2 w-full">
+            Call your clinic <span className="num font-normal">{me.clinic.phone}</span>
           </a>
         )}
         <div className="mt-5 border-t border-mist pt-4">
           {sent ? (
-            <p className="rounded-xl bg-moss/15 px-3 py-2">{sent}</p>
+            <p className="rounded-lg border border-moss/30 bg-moss/10 px-3 py-2.5">{sent}</p>
           ) : (
             <>
-              <p className="text-sm text-pine/75">Not an emergency, but you need the clinic to reach out?</p>
+              <p className="muted text-sm">Not an emergency, but you need the clinic to reach out?</p>
               <div className="mt-2 flex flex-col gap-2">
-                <Button kind="danger" disabled={busy} onClick={() => alertClinic("me")}>
+                <Button kind="danger-outline" disabled={busy} onClick={() => alertClinic("me")}>
                   {me.user.role === "pupil" ? "I need help now" : "Ask the clinic to contact me"}
                 </Button>
                 {me.user.role === "mentor" && (
-                  <Button kind="line" disabled={busy} onClick={() => alertClinic("mentee")}>
+                  <Button kind="secondary" disabled={busy} onClick={() => alertClinic("mentee")}>
                     I&apos;m worried about my mentee
                   </Button>
                 )}
@@ -134,7 +140,7 @@ function HelpSheet({ me, onClose, onSent }: { me: Me; onClose: () => void; onSen
             </>
           )}
         </div>
-        <Button kind="ghost" className="mt-4 w-full" onClick={onClose}>
+        <Button kind="quiet" className="mt-3 w-full" onClick={onClose}>
           Close
         </Button>
       </div>

@@ -20,7 +20,7 @@ const KEYS = Object.keys(SIGNALS) as SignalKey[];
 
 export const BASELINE_DAYS = 7;
 
-export type SignalStatus = { key: SignalKey; mean: number; value?: number; delta?: number; run: number; series: (number | null)[] };
+export type SignalStatus = { key: SignalKey; mean: number; threshold: number; value?: number; delta?: number; run: number; series: (number | null)[] };
 export type Assessment = { level: Level; statuses: SignalStatus[]; flagged: number; dates: string[]; daysOfData: number };
 
 // Convierte lo registrado en valores diarios por señal
@@ -63,6 +63,7 @@ export function analyse(stats: Record<string, DayStats>, health: Record<string, 
     statuses.push({
       key,
       mean,
+      threshold,
       value,
       delta: value === undefined ? undefined : value - mean,
       run,

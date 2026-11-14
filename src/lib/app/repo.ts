@@ -36,7 +36,7 @@ export async function clinicPatients(c: Clinic) {
 /* ---------- Mensajes ---------- */
 const threadKey = (a: string, b: string) => `thread:${[a, b].sort().join(":")}`;
 export const getThread = async (a: string, b: string) => (await kget<Message[]>(threadKey(a, b))) ?? [];
-export const saveThread = (a: string, b: string, msgs: Message[]) => kset(threadKey(a, b), msgs);
+export const saveThread = (a: string, b: string, msgs: Message[]) => kset(threadKey(a, b), [...msgs].sort((x, y) => x.at.localeCompare(y.at)));
 
 // Envía un mensaje y registra las señales reales: el otro "recibe" y, si el emisor contestaba a algo, cuenta como respuesta
 export async function sendMessage(from: User, to: User, text: string, plan?: Message["plan"]) {

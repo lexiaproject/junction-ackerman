@@ -19,7 +19,7 @@ import {
   saveSuggestion,
   todayStr,
 } from "./repo";
-import { analyse, describe, oneLine, type Assessment } from "./signals";
+import { SIGNALS, analyse, describe, oneLine, type Assessment } from "./signals";
 import type { Clinic, Level, User } from "./types";
 
 export const asOfDate = () => addDays(todayStr(), -1); // se evalúan días completos (hasta ayer)
@@ -129,6 +129,7 @@ export async function pupilToday(pupil: User) {
     mentor: mentor ? { id: mentor.id, name: mentor.name, availability: mentor.availability ?? "", paused: !!mentor.paused, story: mentor.story ?? "" } : null,
     invites: invites.map((m) => ({ id: m.id, text: m.text, action: CATALOG[m.plan!.action] ?? m.plan!.action, at: m.at })),
     crisis: !!pupil.crisisAt,
+    sessions: pupil.sessions ?? null,
   };
 }
 
@@ -167,6 +168,20 @@ export async function clinicOverview(clinic: Clinic) {
       paused: !!p.paused,
       learned: [...new Set(log.filter((x) => x.helped).map((x) => CATALOG[x.action] ?? x.action))],
       canPromote: p.role === "pupil" && p.treatment === "finished" && (a.level === "stable" || a.level === "learning"),
+      // Detalle para el equipo clínico: cada señal frente a la línea base de la persona
+      dates: a.dates,
+      signals: a.statuses.map((s) => ({
+        key: s.key,
+        label: SIGNALS[s.key].label,
+        unit: SIGNALS[s.key].unit,
+        kind: SIGNALS[s.key].kind,
+        digits: SIGNALS[s.key].digits,
+        mean: s.mean,
+        threshold: s.threshold,
+        run: s.run,
+        off: s.run >= clinic.earlyDays,
+        series: s.series,
+      })),
     });
   }
   rows.sort((x, y) => PRIORITY[x.level] - PRIORITY[y.level]);
@@ -178,9 +193,73 @@ export async function clinicOverview(clinic: Clinic) {
     .map((p) => ({ id: p.id, name: p.name, availability: p.availability ?? "" }));
   const unpaired = patients.filter((p) => p.role === "pupil" && p.status === "active" && !p.mentorId).map((p) => ({ id: p.id, name: p.name }));
 
+  // Evolución del grupo: estado de cada persona en cada uno de los últimos 14 días
+  const active = patients.filter((p) => p.status === "active" && hasConsent(p));
+  const data = await Promise.all(active.map(async (p) => ({ stats: await getStats(p.id), health: await getHealth(p.id) })));
+  const history = [];
+  for (let k = 13; k >= 0; k--) {
+    const d = addDays(asOfDate(), -k);
+    const c = { date: d, high: 0, early: 0, stable: 0, learning: 0 };
+    for (const x of data) {
+      const lvl = analyse(x.stats, x.health, d, clinic.earlyDays).level;
+      if (lvl === "high" || lvl === "crisis") c.high++;
+      else if (lvl === "early") c.early++;
+      else if (lvl === "stable") c.stable++;
+      else c.learning++;
+    }
+    history.push(c);
+  }
+
+  // Actividad de la red en los últimos 7 días (mensajes e invitaciones reales del chat)
+  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
+  let messages = 0;
+  let invites = 0;
+  let accepted = 0;
+  for (const p of patients.filter((x) => x.role === "pupil" && x.mentorId)) {
+    for (const m of await getThread(p.id, p.mentorId!)) {
+      if (m.at < weekAgo) continue;
+      messages++;
+      if (m.plan) {
+        invites++;
+        if (m.plan.answer === "yes") accepted++;
+      }
+    }
+  }
+
+  // El relevo: quién acompañó a quién (antiguos mentores → mentores → pupilos)
+  type Node = { id: string; name: string; role: string; level: Level; current: boolean; children: Node[] };
+  const levelOf = new Map(rows.map((r) => [r.id, r.level]));
+  const build = (u: User, current: boolean, seen: Set<string>): Node => {
+    seen.add(u.id);
+    const kids: Node[] = [];
+    for (const fid of u.formerMenteeIds ?? []) {
+      const f = byId.get(fid);
+      if (f && !seen.has(f.id)) kids.push(build(f, false, seen));
+    }
+    const mentee = u.menteeId ? byId.get(u.menteeId) : undefined;
+    if (mentee && !seen.has(mentee.id)) kids.push(build(mentee, true, seen));
+    return { id: u.id, name: u.name, role: u.role, level: levelOf.get(u.id) ?? "learning", current, children: kids };
+  };
+  const seen = new Set<string>();
+  const chain = patients
+    .filter((p) => p.role === "mentor" && p.status === "active" && !p.supportId)
+    .map((p) => build(p, true, seen))
+    .filter((n) => n.children.length > 0);
+
   return {
     clinic: { name: clinic.name, phone: clinic.phone, earlyDays: clinic.earlyDays },
     needCall: rows.filter((r) => r.level === "crisis" || r.level === "high").length,
+    stats: {
+      people: rows.length,
+      pairs: patients.filter((p) => p.role === "pupil" && p.mentorId).length,
+      early: rows.filter((r) => r.level === "early").length,
+      stable: rows.filter((r) => r.level === "stable").length,
+      messages,
+      invites,
+      accepted,
+    },
+    history,
+    chain,
     rows,
     alerts: alerts
       .filter((x) => !x.handledAt)

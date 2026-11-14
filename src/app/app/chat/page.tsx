@@ -2,7 +2,7 @@
 // Pestaña "Chat": conversaciones reales con el mentor/pupilo (y con el antiguo mentor de apoyo)
 
 import { useEffect, useState } from "react";
-import { Button, ErrorText, api, timeAgo, useLive } from "../../ui";
+import { Avatar, Button, Chevron, ErrorText, api, timeAgo, useLive } from "../../ui";
 import { useMe } from "../AppShell";
 
 type ThreadItem = { id: string; name: string; relation: string; last: { text: string; at: string; mine: boolean } | null };
@@ -33,30 +33,27 @@ export default function ChatPage() {
     );
 
   return (
-    <div className="p-4">
-      <h1 className="font-display text-3xl font-bold">Chat</h1>
+    <div className="px-4 pb-8 pt-5">
+      <h1 className="text-[1.75rem] font-bold leading-tight">Messages</h1>
       {!data ? (
-        <p className="mt-4 text-pine/70">Loading…</p>
+        <div className="card mt-4 h-32 animate-pulse" />
       ) : data.threads.length === 0 ? (
-        <p className="mt-4 text-pine/75">Once your clinic matches you with someone, your conversation will appear here.</p>
+        <p className="muted mt-4">Once your clinic matches you with someone, your conversation appears here.</p>
       ) : (
-        <ul className="mt-4 divide-y divide-mist">
+        <ul className="card mt-4 divide-y divide-mist">
           {data.threads.map((t) => (
             <li key={t.id}>
-              <button onClick={() => setOpen(t.id)} className="flex w-full items-center gap-3 py-3 text-left">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-pine font-display text-lg font-bold text-paper">
-                  {t.name[0]}
-                </span>
+              <button onClick={() => setOpen(t.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-birch/60">
+                <Avatar name={t.name} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="font-bold">{t.name}</span>
-                    <span className="shrink-0 text-xs text-pine/55">{t.last ? timeAgo(t.last.at) : ""}</span>
+                    <span className="font-semibold">{t.name}</span>
+                    <span className="muted num shrink-0 text-xs">{t.last ? timeAgo(t.last.at) : ""}</span>
                   </span>
-                  <span className="block text-xs text-pine/60">{t.relation}</span>
-                  <span className="block truncate text-sm text-pine/80">
-                    {t.last ? `${t.last.mine ? "You: " : ""}${t.last.text}` : "No messages yet. Say hello."}
-                  </span>
+                  <span className="muted block text-xs">{t.relation}</span>
+                  <span className="block truncate text-sm">{t.last ? `${t.last.mine ? "You: " : ""}${t.last.text}` : "No messages yet. Say hello."}</span>
                 </span>
+                <Chevron />
               </button>
             </li>
           ))}
@@ -107,65 +104,78 @@ function Thread({ id, onBack }: { id: string; onBack: () => void }) {
   const msgs = data?.messages ?? [];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-mist px-2 py-2">
-        <button onClick={onBack} className="rounded-full px-3 py-1.5 text-sm font-bold" aria-label="Back to conversations">
-          ← Back
+      <div className="flex items-center gap-2 border-b border-mist bg-paper px-2 py-2">
+        <button onClick={onBack} className="btn btn-quiet btn-sm" aria-label="Back to messages">
+          <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="m12 5-5 5 5 5" />
+          </svg>
+          Back
         </button>
-        <p className="font-display text-lg font-bold">{data?.with.name ?? ""}</p>
+        {data && (
+          <span className="flex items-center gap-2">
+            <Avatar name={data.with.name} />
+            <span className="font-semibold">{data.with.name}</span>
+          </span>
+        )}
       </div>
       <ErrorText>{error}</ErrorText>
       <div className="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-3 py-3">
-        <div className="flex flex-col gap-1.5">
-          {msgs.length === 0 && data && <p className="py-8 text-center text-sm text-pine/60">No messages yet. Say hello to {data.with.name}.</p>}
+        <div className="flex flex-col gap-1">
+          {msgs.length === 0 && data && <p className="muted py-10 text-center text-sm">No messages yet. Say hello to {data.with.name}.</p>}
           {msgs.map((m, i) => {
             const mine = m.from === me.user.id;
             const day = new Date(m.at).toDateString();
             const newDay = i === 0 || new Date(msgs[i - 1].at).toDateString() !== day;
+            const time = new Date(m.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
             return (
               <div key={m.id} className="flex flex-col">
                 {newDay && (
-                  <p className="my-2 text-center text-[11px] text-pine/50">
-                    {new Date(m.at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                  <p className="muted my-3 text-center text-xs font-medium">
+                    {new Date(m.at).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
                   </p>
                 )}
                 {m.plan ? (
-                  <div className={`max-w-[85%] rounded-2xl border-2 border-cloudberry bg-paper px-3 py-2 text-sm ${mine ? "self-end" : "self-start"}`}>
-                    <p className="text-xs text-pine/60">Invitation</p>
-                    <p>{m.text}</p>
+                  <div className={`card w-[85%] overflow-hidden ${mine ? "self-end" : "self-start"}`}>
+                    <p className="flex items-center gap-1.5 border-b border-mist bg-[#f8eedd] px-3 py-1.5 text-xs font-semibold text-cloudberry-ink">
+                      <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                        <rect x="2" y="3" width="12" height="11" rx="1.5" />
+                        <path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" />
+                      </svg>
+                      Invitation
+                    </p>
+                    <p className="px-3 pt-2 text-[0.9375rem]">{m.text}</p>
                     {m.plan.answer ? (
-                      <p className="mt-1 text-xs font-bold">{m.plan.answer === "yes" ? "Accepted" : "Not this time"}</p>
+                      <p className="px-3 pb-2.5 pt-1.5 text-sm font-semibold">{m.plan.answer === "yes" ? "Accepted" : "Not this time"}</p>
                     ) : !mine ? (
-                      <div className="mt-2 flex gap-2">
-                        <Button className="flex-1 !py-1.5" onClick={() => answer(m.id, true)}>
+                      <div className="flex gap-2 p-3">
+                        <Button size="sm" className="flex-1" onClick={() => answer(m.id, true)}>
                           Sounds good
                         </Button>
-                        <Button kind="line" className="flex-1 !py-1.5" onClick={() => answer(m.id, false)}>
+                        <Button size="sm" kind="secondary" className="flex-1" onClick={() => answer(m.id, false)}>
                           Not now
                         </Button>
                       </div>
                     ) : (
-                      <p className="mt-1 text-xs text-pine/60">Waiting for an answer</p>
+                      <p className="muted px-3 pb-2.5 pt-1.5 text-sm">Waiting for an answer</p>
                     )}
                   </div>
                 ) : (
                   <p
-                    className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-1.5 text-sm ${
-                      mine ? "self-end rounded-br-sm bg-pine text-paper" : "self-start rounded-bl-sm bg-birch"
+                    className={`max-w-[82%] whitespace-pre-wrap px-3 py-2 text-[0.9375rem] leading-snug ${
+                      mine ? "self-end rounded-[14px] rounded-br-[4px] bg-pine text-white" : "self-start rounded-[14px] rounded-bl-[4px] border border-mist bg-paper"
                     }`}
                   >
                     {m.text}
                   </p>
                 )}
-                <span className={`mt-0.5 text-[10px] text-pine/45 ${mine ? "self-end" : "self-start"}`}>
-                  {new Date(m.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-                </span>
+                <span className={`muted num mb-1.5 mt-0.5 text-[11px] ${mine ? "self-end" : "self-start"}`}>{time}</span>
               </div>
             );
           })}
         </div>
       </div>
       <ErrorText>{sendError}</ErrorText>
-      <form onSubmit={send} className="flex items-end gap-2 border-t border-mist px-3 py-2">
+      <form onSubmit={send} className="flex items-end gap-2 border-t border-mist bg-paper px-3 py-2.5">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -175,7 +185,7 @@ function Thread({ id, onBack }: { id: string; onBack: () => void }) {
           rows={Math.min(4, Math.max(1, text.split("\n").length))}
           placeholder={`Message ${data?.with.name ?? ""}`}
           aria-label="Message"
-          className="min-w-0 flex-1 resize-none rounded-2xl border border-mist bg-birch/60 px-3 py-2 text-sm"
+          className="input min-w-0 flex-1 resize-none py-2.5 leading-snug"
         />
         <Button type="submit" disabled={busy || !text.trim()}>
           Send

@@ -48,23 +48,17 @@ export function useLive<T>(path: string | null, every = 0) {
   return { data, error, reload };
 }
 
+type Kind = "primary" | "secondary" | "danger" | "danger-outline" | "quiet";
+
 export function Button({
   children,
   kind = "primary",
+  size,
   className = "",
   ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { kind?: "primary" | "ghost" | "danger" | "line" }) {
-  const styles = {
-    primary: "bg-pine text-paper",
-    danger: "bg-lingon text-paper",
-    line: "border border-pine text-pine",
-    ghost: "text-pine underline underline-offset-4",
-  }[kind];
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { kind?: Kind; size?: "sm" | "lg" }) {
   return (
-    <button
-      {...rest}
-      className={`rounded-full px-4 py-2.5 text-sm font-bold transition-opacity disabled:opacity-40 ${styles} ${className}`}
-    >
+    <button {...rest} className={`btn btn-${kind} ${size ? `btn-${size}` : ""} ${className}`}>
       {children}
     </button>
   );
@@ -73,9 +67,9 @@ export function Button({
 export function Field({ label, hint, ...rest }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
   return (
     <label className="block">
-      <span className="text-sm font-bold">{label}</span>
-      <input {...rest} className="mt-1 block w-full rounded-xl border border-mist bg-paper px-3 py-2.5" />
-      {hint && <span className="mt-1 block text-xs text-pine/60">{hint}</span>}
+      <span className="label">{label}</span>
+      <input {...rest} className="input" />
+      {hint && <span className="muted mt-1.5 block text-sm">{hint}</span>}
     </label>
   );
 }
@@ -83,21 +77,60 @@ export function Field({ label, hint, ...rest }: React.InputHTMLAttributes<HTMLIn
 export function ErrorText({ children }: { children: React.ReactNode }) {
   if (!children) return null;
   return (
-    <p role="alert" className="rounded-lg bg-lingon/10 px-3 py-2 text-sm text-lingon">
+    <p role="alert" className="rounded-lg border border-lingon/25 bg-lingon/5 px-3 py-2 text-sm text-lingon-ink">
       {children}
     </p>
   );
 }
 
+// Estados: siempre punto + texto, nunca solo color
+export type Level = "learning" | "stable" | "early" | "high" | "crisis" | "paused";
+export const STATUS: Record<Level, { text: string; color: string; bg: string; fg: string }> = {
+  crisis: { text: "Crisis", color: "var(--color-lingon)", bg: "#f8e6ea", fg: "var(--color-lingon-ink)" },
+  high: { text: "High risk", color: "var(--color-lingon)", bg: "#f8e6ea", fg: "var(--color-lingon-ink)" },
+  early: { text: "Early signs", color: "var(--color-cloudberry)", bg: "#f8eedd", fg: "var(--color-cloudberry-ink)" },
+  stable: { text: "Stable", color: "var(--color-moss)", bg: "#e5efe8", fg: "var(--color-moss-ink)" },
+  learning: { text: "Learning baseline", color: "#8a9a92", bg: "#eef1ed", fg: "#4c5e56" },
+  paused: { text: "No consent", color: "#8a9a92", bg: "#eef1ed", fg: "#4c5e56" },
+};
+
+export function StatusChip({ level, label }: { level: Level; label?: string }) {
+  const s = STATUS[level];
+  return (
+    <span className="chip" style={{ "--chip-bg": s.bg, "--chip-fg": s.fg, "--chip-dot": s.color } as React.CSSProperties}>
+      {label ?? s.text}
+    </span>
+  );
+}
+
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 font-display font-extrabold tracking-tight ${className}`}>
-      <svg viewBox="0 0 40 24" className="h-[0.9em] w-auto" aria-hidden>
-        <circle cx="12" cy="12" r="11" fill="currentColor" opacity="0.35" />
-        <circle cx="27" cy="12" r="11" fill="var(--color-cloudberry)" />
+    <span className={`inline-flex items-center gap-2 font-extrabold tracking-tight ${className}`}>
+      <svg viewBox="0 0 34 20" className="h-[0.85em] w-auto" aria-hidden>
+        <circle cx="10" cy="10" r="9" fill="currentColor" opacity="0.28" />
+        <circle cx="23" cy="10" r="9" fill="var(--color-cloudberry)" />
       </svg>
       Relay
     </span>
+  );
+}
+
+export function Avatar({ name, large }: { name: string; large?: boolean }) {
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-full bg-[#e3e9e2] font-bold text-pine ${large ? "h-12 w-12 text-lg" : "h-10 w-10"}`}
+      aria-hidden
+    >
+      {name[0]}
+    </span>
+  );
+}
+
+export function Chevron() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0 text-pine/40" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="m8 5 5 5-5 5" />
+    </svg>
   );
 }
 

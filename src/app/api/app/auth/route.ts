@@ -23,6 +23,14 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, role: u.role });
   }
 
+  if (body.action === "demo") {
+    // Acceso con un clic para el jurado: SOLO cuentas de prueba
+    const u = await getUserByEmail(email);
+    if (!u || !u.demo) return bad("That isn't a test account.", 403);
+    await startSession(u.id);
+    return Response.json({ ok: true, role: u.role });
+  }
+
   if (body.action === "join") {
     const u = await getUserByInvite(body.code ?? "");
     if (!u || u.status !== "invited") return bad("That invite code isn't valid. Check it with your clinic.");
