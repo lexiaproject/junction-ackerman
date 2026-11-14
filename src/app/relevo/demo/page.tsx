@@ -284,10 +284,11 @@ export default function DemoPage() {
 function Column({ title, sub, right, children }: { title: string; sub: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex h-[640px] min-h-0 flex-col last:sm:col-span-2 last:h-[440px] lg:h-auto last:lg:col-span-1 last:lg:h-auto">
-      <div className="mb-2 flex items-center gap-2">
-        <p className="font-semibold" style={{ fontFamily: "var(--rv-display)" }}>{title}</p>
-        <p className="rv-muted truncate text-[12.5px]">{sub}</p>
-        <div className="ml-auto">{right}</div>
+      {/* Misma altura en las tres columnas (con o sin selector Pablo/Marta) para que los dos móviles midan lo mismo */}
+      <div className="mb-2 flex h-9 items-center gap-2">
+        <p className="shrink-0 font-semibold" style={{ fontFamily: "var(--rv-display)" }}>{title}</p>
+        <p className="rv-muted line-clamp-2 min-w-0 text-[12.5px] leading-tight" title={sub}>{sub}</p>
+        <div className="ml-auto shrink-0">{right}</div>
       </div>
       <div className="min-h-0 flex-1">{children}</div>
     </div>
