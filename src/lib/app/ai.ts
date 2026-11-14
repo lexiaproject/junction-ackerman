@@ -11,7 +11,7 @@ export const CATALOG: Record<string, string> = {
   hello: "A short hello",
 };
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 function fallback(level: Level, pupil: string, learned: string[]): Suggestion {
   if (level === "high")
@@ -65,6 +65,7 @@ Rules:
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           responseMimeType: "application/json",
+          thinkingConfig: { thinkingLevel: "low" },
           responseSchema: {
             type: "OBJECT",
             properties: {

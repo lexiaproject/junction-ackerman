@@ -4,9 +4,9 @@
 // plantilla. El usuario no nota nada.
 import { FORBIDDEN } from "./texts.ts";
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
-async function gemini<T>(prompt: string, schema: object, timeoutMs = 6000): Promise<T | null> {
+async function gemini<T>(prompt: string, schema: object, timeoutMs = 10000): Promise<T | null> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -15,7 +15,7 @@ async function gemini<T>(prompt: string, schema: object, timeoutMs = 6000): Prom
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
         signal: AbortSignal.timeout(timeoutMs),
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: 0.6 } }),
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: 0.6, thinkingConfig: { thinkingLevel: "low" } } }),
       });
       if (!res.ok) throw new Error(`Gemini ${res.status}`);
       const data = await res.json();
@@ -51,7 +51,7 @@ export async function analyseNote(text: string) {
 - crisis: true only if it suggests a risk of self-harm or suicide
 Transcript: "${text}"`,
     { type: "OBJECT", properties: { afecto_negativo: { type: "NUMBER" }, orientacion_accion: { type: "NUMBER" }, crisis: { type: "BOOLEAN" } }, required: ["afecto_negativo", "orientacion_accion", "crisis"] },
-    4500,
+    8000,
   );
   if (!out || typeof out.afecto_negativo !== "number" || typeof out.orientacion_accion !== "number") return null;
   const c = (v: number) => Math.max(0, Math.min(1, v));

@@ -2,7 +2,7 @@
 // Si no hay clave o falla, usamos una respuesta fija para que la demo nunca se rompa.
 import { CATALOG, fallbackSuggestion, type Level, type Suggestion } from "./engine";
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 export async function suggest(level: Level, changes: string[], learned: string[]): Promise<Suggestion> {
   const fallback = fallbackSuggestion(level);
@@ -35,6 +35,7 @@ Rules:
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           responseMimeType: "application/json",
+          thinkingConfig: { thinkingLevel: "low" },
           responseSchema: {
             type: "OBJECT",
             properties: {
