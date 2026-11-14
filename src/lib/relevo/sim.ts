@@ -60,7 +60,7 @@ export type Plan = {
 };
 export type Note = {
   id: string; from: PersonId | "clinic"; to: PersonId | "clinic"; t: number; text: string; duration: number; audio: boolean;
-  kind: string; scripted: boolean; analysis?: { indice_queja: number; afecto_negativo: number; repeticion: number; orientacion_accion: number; crisis: boolean; source: string };
+  kind: string; scripted: boolean; thankedAt?: number; analysis?: { indice_queja: number; afecto_negativo: number; repeticion: number; orientacion_accion: number; crisis: boolean; source: string };
 };
 export type Alert = {
   id: string; person: PersonId; kind: "level2" | "severe" | "help" | "message" | "data_request" | "worried" | "support"; t: number; text: string;
@@ -127,6 +127,7 @@ export const SCRIPT: Scripted[] = [
   { t: at(47, "08:41"), by: "pablo", type: "v1_answer", p: { choice: "yes" } },
   { t: at(47, "09:05"), by: "pablo", type: "note", p: { to: "luis", duration: 8, fromCard: true } },
   { t: at(47, "11:20"), by: "luis", type: "plan", p: { choice: "in" } },
+  { t: at(47, "11:20"), by: "luis", type: "thanks", p: { from: "pablo" } },
   { t: at(48, "11:30"), by: "luis", type: "plan_feedback", p: { feedback: "good" } },
   { t: at(54, "09:10"), by: "pablo", type: "v1_answer", p: { choice: "cant" } },
   { t: at(54, "10:10"), by: "clinic", type: "call", p: { person: "luis", mode: "schedule", at: at(55, "12:00") } },
@@ -651,6 +652,15 @@ export function evaluate(world: World, nowIn?: number): Sim {
         log(t, by, "plan", `How did it go? “${plan.feedback === "good" ? "Good" : plan.feedback === "ok" ? "So-so" : "Didn't go"}”`);
         trace(t, name(by), `How did it go? → ${plan.feedback}`, scripted);
         learn(plan, rewardFrom(true, plan.feedback ?? null, null, null), t);
+        return true;
+      }
+      case "thanks": {
+        // "Thanks" de un toque a una nota recibida: un gesto sin tener que grabar nada. No es un aviso ni cuenta como push.
+        const n = p.noteId ? sim.notes.find((x) => x.id === p.noteId) : [...sim.notes].reverse().find((x) => x.from === p.from && x.to === by && x.t <= t);
+        if (!n || n.to !== by || n.from === "clinic" || n.thankedAt !== undefined || n.t > t || n.analysis?.crisis) return false;
+        n.thankedAt = t;
+        log(t, by, "note", `Said thanks for ${name(n.from)}'s note`);
+        trace(t, name(by), `“Thanks” for ${name(n.from)}'s note`, scripted);
         return true;
       }
       case "notice": {

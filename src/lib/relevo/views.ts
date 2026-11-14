@@ -45,6 +45,7 @@ function noteView(sim: Sim, n: Note, me: string) {
   return {
     id: n.id, from: n.from, fromName: name(n.from), mine: n.from === me, t: n.t, when: when(sim.now, n.t), duration: withheld ? 0 : n.duration,
     text: withheld ? `This note was passed to ${name(n.from)}'s clinic team.` : n.text, audio: withheld ? false : n.audio, kind: n.kind, withheld,
+    thanked: n.thankedAt !== undefined && n.thankedAt <= sim.now,
   };
 }
 const conversation = (sim: Sim, a: string, b: string) =>
@@ -164,11 +165,23 @@ export function mentorView(sim: Sim, id: PersonId) {
     ? { variant: s.rhythmProposal.screen === "M5_pause" ? "pause" : "light", mentorName: myMentor ? name(myMentor) : null, menteeName: menteeId ? name(menteeId) : null }
     : null;
   const m6 = mentee && mentee.level === 3 ? { menteeName: name(menteeId!) } : null;
+  // Cierre tras la crisis: el día que la clínica la resuelve, el mentor sabe que el equipo está con la persona (sin ningún dato de
+  // salud) y que puede escribirle cuando quiera. No se le pide nada si está en pausa.
+  const m6After = !m6 && mentee && s.rhythm !== 0 && sim.alerts.some((a) => a.person === menteeId && (a.kind === "severe" || a.kind === "help") && a.status === "resolved" && a.resolvedAt !== undefined && a.resolvedAt <= now && dayOf(a.resolvedAt) === dayOf(now))
+    ? { menteeName: name(menteeId!) } : null;
   const card = m6 ? null : sim.cards.find((c) => c.mentor === id && c.t <= now && dayOf(c.t) === dayOf(now) && (c.status === "waiting" || c.status === "shown"));
   const sent = sim.cards.find((c) => c.mentor === id && c.status === "sent" && c.sentAt !== undefined && dayOf(c.sentAt) === dayOf(now));
   const myPlans = sim.plans.filter((p) => p.mentor === id && p.created <= now);
-  const running = [...myPlans].reverse().find((p) => (p.status === "accepted" && p.whenT >= now - 120) || ((p.status === "proposed" || p.status === "change_requested") && p.whenT > now) || ((p.status === "cant" || p.status === "other_day") && now - (p.respondedAt ?? 0) < DAY));
+  // Un plan del que ya llegó un "Good" deja sitio a la tarjeta de abajo (no se repite la misma noticia dos veces)
+  const running = [...myPlans].reverse().find((p) => (p.status === "accepted" && p.whenT >= now - 120 && !p.feedback) || ((p.status === "proposed" || p.status === "change_requested") && p.whenT > now) || ((p.status === "cant" || p.status === "other_day") && now - (p.respondedAt ?? 0) < DAY));
   const copilot = sim.copilots.find((c) => c.mentor === id && c.status === "active" && c.t <= now && now - c.t < 3 * DAY);
+  // Cerrar el círculo: el mentor se entera de que su plan fue bien (solo "Good"; "So-so" y "Didn't go" no le llegan, nadie se siente culpable)
+  const good = [...myPlans].reverse().find((p) => p.feedback === "good" && p.feedbackAt !== undefined && p.feedbackAt <= now && now - p.feedbackAt < DAY);
+  // ...o de que la persona le dio las gracias por una nota (gana el gesto más reciente; solo uno a la vez)
+  const thanks = menteeId ? [...sim.notes].reverse().find((n) => n.from === id && n.to === menteeId && n.thankedAt !== undefined && n.thankedAt <= now && now - n.thankedAt < DAY) : undefined;
+  const kind = good && (!thanks || good.feedbackAt! >= thanks.thankedAt!)
+    ? { menteeName: name(good.mentee), text: `${name(good.mentee)} said it went well`, detail: good.title.replace(` with ${name(id)}`, "") }
+    : thanks ? { menteeName: name(menteeId!), text: `${name(menteeId!)} said thanks for your note`, detail: null } : null;
   const cardView = (c: Card) => {
     const mn = name(c.mentee);
     const item = c.kind === "idea" && c.action ? CATALOG[c.action] : null;
@@ -185,7 +198,7 @@ export function mentorView(sim: Sim, id: PersonId) {
   const rhythmLabel = ["Pause", "Light", "Normal", "Intense"][s.rhythm];
   return {
     clock: clock(sim), me: { id, name: name(id) }, greeting: `${greeting}, ${name(id)}`,
-    m0, self, mentorNote, m5, m6,
+    m0, self, mentorNote, m5, m6, m6After,
     card: card ? cardView(card) : null,
     sent: sent && !card ? { menteeName: name(sent.mentee) } : null,
     plan: running ? { id: running.id, title: running.title.replace(` with ${name(id)}`, ""), when: planWhen(now, running), whenT: running.whenT, icon: running.icon, menteeName: name(running.mentee), status: running.status } : null,
@@ -197,6 +210,7 @@ export function mentorView(sim: Sim, id: PersonId) {
       mentee: menteeId ? conversation(sim, id, menteeId) : [],
       mentor: myMentor ? conversation(sim, id, myMentor) : [],
     },
+    kind,
     copilot: copilot ? { id: copilot.id, text: COPILOT.text(name(copilot.mentee)), example: COPILOT.example } : null,
     rhythm: { value: s.rhythm, label: rhythmLabel, paused: s.rhythm === 0, reviewing: s.reviewPace },
     devices: devices(sim, id),

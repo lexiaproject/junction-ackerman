@@ -20,11 +20,13 @@ export type MentorData = {
   mentorNote: NoteV | null;
   m5: { variant: "pause" | "light"; mentorName: string | null; menteeName: string | null } | null;
   m6: { menteeName: string } | null;
+  m6After: { menteeName: string } | null;
   card: Card | null;
   sent: { menteeName: string } | null;
   plan: { id: string; title: string; when: string; whenT: number; icon: string; menteeName: string; status: string } | null;
   mentee: { id: string; name: string } | null;
   menteeQuiet: { until: string } | null;
+  kind: { menteeName: string; text: string; detail: string | null } | null;
   myMentor: { id: string; name: string } | null;
   conversations: { mentee: NoteV[]; mentor: NoteV[] };
   copilot: { id: string; text: string; example: string } | null;
@@ -127,7 +129,8 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
                       </div>
                     )}
                     {notes.length === 0 && <p className="rv-muted py-8 text-center">No notes yet.</p>}
-                    {notes.map((n) => <VoiceNote key={n.id} note={n} player={player} bubble />)}
+                    {/* "Thanks" solo hacia arriba en la cadena (a las notas de su propio mentor) */}
+                    {notes.map((n) => <VoiceNote key={n.id} note={n} player={player} bubble onThanks={other === mine ? () => act(w, as, "thanks", { noteId: n.id }).catch(() => {}) : undefined} />)}
                   </div>
                   <div className="sticky bottom-0 border-t border-rv-line bg-rv-bg/95 px-4 pb-4 pt-3 backdrop-blur">
                     {/* Solo para mentores: ideas de respuesta privadas, basadas en técnicas de apoyo entre iguales */}
@@ -231,7 +234,7 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
   const mine = data.myMentor;
   const recentMentorNote = data.mentorNote;
   const showMentorNote = recentMentorNote && !data.self.some((s) => s.code === "V5") && /today|yesterday|min ago|just now/.test(recentMentorNote.when);
-  const nothing = !card && !data.plan && !data.m6 && !data.sent && !data.copilot;
+  const nothing = !card && !data.plan && !data.m6 && !data.sent && !data.copilot && !data.kind && !data.m6After;
   return (
     <div className="flex flex-col gap-3 px-4 pb-6 pt-1">
       {/* Avisos para sí mismo */}
@@ -261,7 +264,7 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
       {showMentorNote && mine && (
         <div className="rv-card p-3">
           <p className="px-1 pb-1 font-semibold">{mine.name} left you a note</p>
-          <VoiceNote note={recentMentorNote!} player={player} />
+          <VoiceNote note={recentMentorNote!} player={player} onThanks={() => act(w, as, "thanks", { noteId: recentMentorNote!.id }).catch(() => {})} />
         </div>
       )}
       {data.m5 && (
@@ -286,6 +289,16 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="shield" /></span>
           <p className="mt-3 text-[17px] font-semibold leading-snug">Anna, {data.m6.menteeName}&apos;s nurse, and the clinic team have been told. You don&apos;t need to do anything else.</p>
           {mine && <button onClick={() => onTab("chat", "mentor")} className="rv-btn rv-btn-secondary mt-4 w-full">Talk to {mine.name}</button>}
+        </div>
+      )}
+
+      {/* Cierre tras la crisis: que el mentor no se quede con la preocupación sin saber cómo acaba */}
+      {data.m6After && mentee && (
+        <div className="rv-card rv-in p-5">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="shield" /></span>
+          <p className="mt-3 text-[17px] font-semibold leading-snug">Anna&apos;s team is with {data.m6After.menteeName} now. Thank you for being there.</p>
+          <p className="rv-muted mt-1">When you feel ready, a short note is welcome. No need to mention what happened.</p>
+          <button className="rv-btn rv-btn-secondary mt-4 w-full" onClick={() => onTab("chat", "mentee")}><Icon name="mic" size={18} />Note to {mentee.name}</button>
         </div>
       )}
 
@@ -334,6 +347,18 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
         <div className="rv-card flex items-center gap-3 p-4">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="check" /></span>
           <p className="font-semibold">Sent. {data.sent.menteeName} will hear it whenever it suits.</p>
+        </div>
+      )}
+
+      {/* Lo que le llega de vuelta de la persona que acompaña (un "Good" tras un plan): que sepa que su ayuda sirve */}
+      {data.kind && (
+        <div className="rv-card rv-in flex items-center gap-3 p-4">
+          <Avatar name={data.kind.menteeName} size={40} />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold leading-snug">{data.kind.text}</p>
+            {data.kind.detail && <p className="rv-muted text-[13.5px]">{data.kind.detail.replace(/^./, (c) => c.toUpperCase())}</p>}
+          </div>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="heart" size={18} /></span>
         </div>
       )}
 
@@ -405,7 +430,7 @@ function Relay({ w, as, data, player, onTalk, onWorried }: { w: string; as: stri
       )}
       {mine && (
         <PersonCard name={mine.name} role="Walks with you" me={data.me.name}>
-          {data.mentorNote ? <div className="mt-3"><VoiceNote note={data.mentorNote} player={player} /></div> : <p className="rv-muted mt-3">{mine.name} will write to you soon.</p>}
+          {data.mentorNote ? <div className="mt-3"><VoiceNote note={data.mentorNote} player={player} onThanks={() => act(w, as, "thanks", { noteId: data.mentorNote!.id }).catch(() => {})} /></div> : <p className="rv-muted mt-3">{mine.name} will write to you soon.</p>}
           <button className="rv-btn rv-btn-secondary mt-3 w-full" onClick={onTalk}><Icon name="chat" size={18} />Talk to {mine.name}</button>
         </PersonCard>
       )}

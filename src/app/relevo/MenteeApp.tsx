@@ -212,7 +212,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
                   </span>
                   <Icon name="chevron" className="ml-auto text-rv-ink2" />
                 </button>
-                <VoiceNote note={data.last} player={player} />
+                <VoiceNote note={data.last} player={player} onThanks={() => act(w, as, "thanks", { noteId: data.last!.id }).catch(() => {})} />
               </div>
             ) : (
               <div className="rv-card flex items-center gap-3 p-4">
@@ -246,7 +246,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
             <div className="flex flex-1 flex-col gap-2.5 px-4 pb-4 pt-2">
               {data.conversation.length === 0 && <p className="rv-muted py-10 text-center">No notes yet.</p>}
               {data.conversation.map((n) => (
-                <VoiceNote key={n.id} note={n} player={player} bubble />
+                <VoiceNote key={n.id} note={n} player={player} bubble onThanks={() => act(w, as, "thanks", { noteId: n.id }).catch(() => {})} />
               ))}
             </div>
             <ChatBar w={w} as={as} to={mentor!.id} toName={mName} />

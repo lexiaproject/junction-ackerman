@@ -294,9 +294,13 @@ export function usePlayer(w: string | null) {
 export const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
 /* ---------- Burbuja / tarjeta de nota de voz (con transcripción plegable) ---------- */
-export type NoteV = { id: string; from: string; fromName: string; mine: boolean; when: string; duration: number; text: string; audio: boolean; kind?: string; withheld?: boolean };
-export function VoiceNote({ note, player, bubble = false }: { note: NoteV; player: ReturnType<typeof usePlayer>; bubble?: boolean }) {
+export type NoteV = { id: string; from: string; fromName: string; mine: boolean; when: string; duration: number; text: string; audio: boolean; kind?: string; withheld?: boolean; thanked?: boolean };
+/** onThanks: si se pasa, una nota recibida lleva un "Thanks" de un toque (un gesto sin tener que grabar nada). */
+export function VoiceNote({ note, player, bubble = false, onThanks }: { note: NoteV; player: ReturnType<typeof usePlayer>; bubble?: boolean; onThanks?: () => void }) {
   const [open, setOpen] = useState(false);
+  const [thanked, setThanked] = useState(false);
+  const canThank = !!onThanks && !note.mine;
+  const isThanked = thanked || !!note.thanked;
   // K-14: nota retenida para la clínica: sin reproducir ni enseñar su contenido
   if (note.withheld)
     return (
@@ -330,7 +334,16 @@ export function VoiceNote({ note, player, bubble = false }: { note: NoteV; playe
           <button onClick={() => setOpen((o) => !o)} className="underline-offset-2 hover:underline" aria-expanded={open}>
             {open ? "Hide text" : "Show text"}
           </button>
-          <span>{note.when}</span>
+          <span className="flex items-center gap-2">
+            {canThank && (isThanked ? (
+              <span className="flex items-center gap-1 font-semibold text-rv-teal"><Icon name="heart" size={14} filled />Thanked</span>
+            ) : (
+              <button onClick={() => { setThanked(true); onThanks!(); }} className="-my-2 flex min-h-[36px] items-center gap-1 rounded-full px-2 font-semibold text-rv-teal hover:bg-rv-sage" aria-label={`Say thanks to ${note.fromName}`}>
+                <Icon name="heart" size={14} />Thanks
+              </button>
+            ))}
+            <span>{note.when}</span>
+          </span>
         </div>
         {open && <p className={`mt-1.5 text-[14px] leading-snug ${note.mine && bubble ? "text-white" : ""}`}>{revealNames(note.text)}</p>}
       </div>
