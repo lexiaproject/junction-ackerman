@@ -254,7 +254,7 @@ export default function DemoPage() {
       </div>
 
       {/* Capa de explicación: solo existe en la demo */}
-      <section className={`shrink-0 border-t border-rv-line bg-white ${explain ? "lg:h-[30vh] lg:min-h-[220px]" : ""}`}>
+      <section className={`shrink-0 border-t border-rv-line bg-white ${explain ? "lg:h-[292px]" : ""}`}>
         <div className="flex items-center gap-3 px-5 py-2">
           <label className="flex cursor-pointer items-center gap-2.5 font-semibold">
             <button role="switch" aria-checked={explain} onClick={() => setExplain((e) => !e)} className={`relative h-6 w-10 rounded-full transition-colors ${explain ? "bg-rv-teal" : "bg-[#cdd3ce]"}`}>
@@ -267,8 +267,8 @@ export default function DemoPage() {
           <span className="rv-chip ml-auto bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</span>
         </div>
         {explain && (
-          <div className="rv-scroll grid grid-cols-1 gap-5 px-5 pb-3 lg:h-[calc(100%-44px)] lg:grid-cols-[minmax(0,1fr)_300px] lg:overflow-hidden">
-            <div className="rv-scroll min-w-0 overflow-y-auto pr-1"><Explain data={data} onFocus={(id) => setFocus((f) => ({ id, n: (f?.n ?? 0) + 1 }))} /></div>
+          <div className="grid grid-cols-1 gap-4 px-5 pb-4 lg:h-[calc(100%-44px)] lg:grid-cols-3">
+            <Explain data={data} onFocus={(id) => setFocus((f) => ({ id, n: (f?.n ?? 0) + 1 }))} />
             <EngineLog trace={data.trace} />
           </div>
         )}
@@ -363,13 +363,21 @@ function Timeline({ data, onPick, onMoment }: { data: DemoData; onPick: (t: numb
   );
 }
 
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-0 min-w-0 flex-col rounded-2xl bg-rv-bg px-4 py-3.5">
+      <h3 className="shrink-0 text-[15px] leading-tight">{title}</h3>
+      <div className="rv-scroll mt-1.5 min-h-0 flex-1 overflow-y-auto pr-1 text-[12.5px] leading-snug">{children}</div>
+    </div>
+  );
+}
+
 function EngineLog({ trace }: { trace: DemoData["trace"] }) {
   return (
-    <div className="flex min-h-0 flex-col rounded-2xl bg-rv-bg p-3">
-      <p className="text-[13px] font-semibold">What just happened</p>
-      <ul className="rv-scroll mt-1 min-h-0 flex-1 overflow-y-auto text-[12px]">
+    <Card title="What just happened">
+      <ul>
         {trace.map((e, i) => (
-          <li key={i} className="border-b border-rv-line py-1.5 last:border-0">
+          <li key={i} className="border-b border-rv-line py-1.5 first:pt-0 last:border-0">
             <span className="rv-muted rv-num">{e.when}</span> · <span className="font-semibold">{e.who}</span>
             {e.scripted && <span className="rv-muted"> (script)</span>}
             <br />
@@ -377,90 +385,93 @@ function EngineLog({ trace }: { trace: DemoData["trace"] }) {
           </li>
         ))}
       </ul>
-    </div>
+    </Card>
   );
 }
 
-/* ---------- Contenido de la capa según el momento ---------- */
+/* ---------- Contenido de la capa según el momento: siempre dos tarjetas (qué y por qué · los datos) ---------- */
 function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | null) => void }) {
   const g = data.group;
   const L = data.luis;
   const Pb = data.pablo;
+  const legend = <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px]">{Object.keys(DOM_LABEL).map((k) => <span key={k} className="flex items-center gap-1.5"><span className="h-0.5 w-3.5 rounded" style={{ background: DOM_COLOR[k] }} />{DOM_LABEL[k]}</span>)}</div>;
+  const link = (id: string, label: string) => <button className="mt-2 font-semibold text-rv-teal underline" onClick={() => onFocus(id)}>{label}</button>;
+
   if (g === "match") {
-    const dims = ["Sleep", "Rhythm", "Mobility", "Phone & connection", "Physiology", "Sleep direction"];
+    const dims = ["Sleep", "Rhythm", "Mobility", "Phone", "Physiology", "Sleep dir."];
     const rows: [string, number[]][] = [["Luis", data.match.luis], ["Pablo", data.match.pablo], ["Sara", data.match.sara]];
     return (
-      <div className="grid grid-cols-2 gap-6">
-        <div>
-          <H>Matching by how relapses started</H>
-          <p className="rv-muted mt-1 text-[13.5px]">Entry questionnaire: what changed in their last relapse (0 no, 1 a bit, 2 a lot; sleep direction +1 more, −1 less).</p>
-          <table className="mt-2 w-full text-[13px]">
-            <thead><tr><th className="py-1 text-left"></th>{dims.map((d) => <th key={d} className="rv-muted px-1 py-1 text-center text-[11.5px] font-semibold">{d}</th>)}</tr></thead>
-            <tbody>{rows.map(([n, v]) => <tr key={n} className="border-t border-rv-line"><td className="py-1.5 font-semibold">{n}</td>{v.map((x, i) => <td key={i} className="rv-num text-center">{x > 0 && i === 5 ? `+${x}` : x}</td>)}</tr>)}</tbody>
+      <>
+        <Card title="Matching by how relapses started">
+          <p className="rv-muted">Entry questionnaire: what changed in their last relapse (0 no, 1 a bit, 2 a lot; sleep direction +1 more, −1 less).</p>
+          <table className="mt-2 w-full">
+            <thead><tr><th />{dims.map((d) => <th key={d} className="rv-muted px-0.5 pb-1 text-center text-[11px] font-semibold">{d}</th>)}</tr></thead>
+            <tbody>{rows.map(([n, v]) => <tr key={n} className="border-t border-rv-line"><td className="py-1 font-semibold">{n}</td>{v.map((x, i) => <td key={i} className="rv-num text-center">{x > 0 && i === 5 ? `+${x}` : x}</td>)}</tr>)}</tbody>
           </table>
-        </div>
-        <div>
-          <p className="text-[13px] font-semibold">affinity = 0.6 · fingerprint similarity + 0.2 · schedules + 0.2 · language and preferences</p>
-          {[["Pablo → Luis", data.match.pabloLuis], ["Sara → Luis", data.match.saraLuis]].map(([n, m]) => {
+          <Quote>Sara started with insomnia; Luis and Pablo both started out sleeping more and going out less.</Quote>
+        </Card>
+        <Card title="Affinity with Luis">
+          <p className="rv-muted">0.6 · fingerprint similarity + 0.2 · schedules + 0.2 · language and preferences</p>
+          {[["Pablo", data.match.pabloLuis], ["Sara", data.match.saraLuis]].map(([n, m]) => {
             const mm = m as DemoData["match"]["pabloLuis"];
             return (
               <div key={n as string} className="mt-3">
                 <div className="flex justify-between text-[14px]"><span className="font-semibold">{n as string}</span><span className="rv-num font-semibold">{mm ? `${+(mm.affinity * 100).toFixed(1)}%` : ""}</span></div>
-                <div className="mt-1 h-2.5 rounded-full bg-[#eef1ee]"><div className="h-full rounded-full bg-rv-teal" style={{ width: `${(mm?.affinity ?? 0) * 100}%` }} /></div>
-                <p className="rv-muted mt-1 text-[12.5px]">{mm?.reasons.join(" · ")}</p>
+                <div className="mt-1 h-2 rounded-full bg-white"><div className="h-full rounded-full bg-rv-teal" style={{ width: `${(mm?.affinity ?? 0) * 100}%` }} /></div>
+                <p className="rv-muted mt-1 text-[12px]">{mm?.reasons.join(" · ")}</p>
               </div>
             );
           })}
-          <Quote>Sara started with insomnia; Luis and Pablo both started out sleeping more and going out less.</Quote>
-        </div>
-      </div>
+        </Card>
+      </>
     );
   }
-  if (g === "baseline")
+  if (g === "baseline") {
+    const areas: [string, number][] = [["Sleep", 0.3], ["Mobility", 0.25], ["Phone & connection", 0.2], ["Rhythm", 0.15], ["Physiology", 0.1]];
     return (
-      <div className="max-w-3xl">
-        <H>Learning Luis&apos;s usual</H>
-        <Quote>Relevo doesn&apos;t compare Luis with anyone. It learns his usual for four weeks: the median and a robust scale of each of his 16 features.</Quote>
-        <p className="mt-3 text-[14px]">From day 28, each feature is expressed as how far it is from <em>his</em> usual (robust z, clipped at ±4). Areas: sleep 0.30 · mobility 0.25 · phone &amp; connection 0.20 · rhythm 0.15 · physiology 0.10.</p>
-        <p className="rv-muted mt-2 text-[13px]">The phones look exactly the same as before: there is nothing for Luis or Pablo to see.</p>
-      </div>
+      <>
+        <Card title="Learning Luis's usual">
+          <p>Relevo doesn&apos;t compare Luis with anyone. For four weeks it learns his usual: the median and a robust scale of each of his 16 features.</p>
+          <p className="mt-2">From day 28, each feature is measured as how far it is from <em>his</em> usual (robust z, clipped at ±4).</p>
+          <Quote>The phones look exactly the same as before: there is nothing for Luis or Pablo to see.</Quote>
+        </Card>
+        <Card title="Weight of each area in the risk score">
+          {areas.map(([n, v]) => (
+            <div key={n} className="mt-2 first:mt-0">
+              <div className="flex justify-between"><span>{n}</span><span className="rv-num font-semibold">{v.toFixed(2)}</span></div>
+              <div className="mt-1 h-2 rounded-full bg-white"><div className="h-full rounded-full bg-rv-teal" style={{ width: `${(v / 0.3) * 100}%` }} /></div>
+            </div>
+          ))}
+        </Card>
+      </>
     );
+  }
   if (g === "copilot")
     return (
-      <div>
-        <H>Copilot: a complaint loop, seen only by Pablo</H>
-        <p className="rv-muted mt-1 text-[13.5px]">For every voice note: complaint index = 0.4 · negative affect + 0.4 · repetition + 0.2 · (1 − action orientation). Repetition = similarity with the 3 previous notes.</p>
-        <table className="mt-2 w-full text-[13px]">
-          <thead className="text-[12px] text-rv-ink2"><tr><th className="py-1 text-left">Note</th><th>Negative</th><th>Repetition</th><th>Action</th><th>Index</th></tr></thead>
-          <tbody>
-            {data.copilot.notes.map((n, i) => (
-              <tr key={i} className="border-t border-rv-line">
-                <td className="py-1.5 pr-3">{n.who}: “{revealNames(n.text)}”</td>
-                <td className="rv-num text-center">{n.afecto_negativo}</td><td className="rv-num text-center">{n.repeticion}</td><td className="rv-num text-center">{n.orientacion_accion}</td>
-                <td className="rv-num text-center font-semibold" style={{ color: n.indice_queja >= 0.7 ? LEVEL_COLOR[2] : undefined }}>{n.indice_queja}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <Quote>{data.copilot.fired ? "Two notes in a row at 0.7 or more: Pablo gets a private suggestion in his conversation (then 72 h of silence). Luis sees nothing." : "When the last two notes both reach 0.7, Pablo gets a private suggestion."}</Quote>
-      </div>
+      <>
+        <Card title="Copilot: a complaint loop, seen only by Pablo">
+          <p className="rv-muted">For every voice note: complaint index = 0.4 · negative affect + 0.4 · repetition + 0.2 · (1 − action orientation). Repetition = similarity with the 3 previous notes.</p>
+          <Quote>{data.copilot.fired ? "Two notes in a row at 0.7 or more: Pablo gets a private suggestion in his conversation (then 72 h of silence). Luis sees nothing." : "When the last two notes both reach 0.7, Pablo gets a private suggestion."}</Quote>
+        </Card>
+        <Card title="Luis's last notes">
+          {data.copilot.notes.map((n, i) => (
+            <div key={i} className="border-t border-rv-line py-1.5 first:border-0 first:pt-0">
+              <p>{n.who}: “{revealNames(n.text)}”</p>
+              <p className="rv-muted rv-num mt-0.5 text-[12px]">negative {n.afecto_negativo} · repetition {n.repeticion} · action {n.orientacion_accion} → <b style={{ color: n.indice_queja >= 0.7 ? LEVEL_COLOR[2] : "var(--color-rv-ink)" }}>index {n.indice_queja}</b></p>
+            </div>
+          ))}
+        </Card>
+      </>
     );
   if (g === "detect" || g === "high" || g === "crisis") {
     const t = L.today;
     return (
-      <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-6">
-        <div>
-          <H>{g === "detect" ? "Detecting the prodrome" : g === "high" ? "High risk: the clinic steps in" : "Severe protocol"}</H>
-          <p className="rv-muted mb-1 mt-1 text-[12.5px]">Luis · smoothed deviation by area (EWMA, λ 0.3) and level since day 28</p>
-          <LineChart ariaLabel="Luis: smoothed deviation by area" labels={L.series.labels} height={170} lines={Object.entries(L.series.domains).filter(([, v]) => v.some((x) => x !== null)).map(([k, v]) => ({ values: v, color: DOM_COLOR[k], label: DOM_LABEL[k] }))} thresholds={[{ v: 1.5, label: "area threshold 1.5" }]} steps={L.series.level} digits={2} />
-          <div className="mt-1 flex flex-wrap gap-3 text-[12px]">{Object.keys(DOM_LABEL).map((k) => <span key={k} className="flex items-center gap-1.5"><span className="h-0.5 w-3.5 rounded" style={{ background: DOM_COLOR[k] }} />{DOM_LABEL[k]}</span>)}</div>
-        </div>
-        <div className="text-[13.5px]">
-          <p className="font-semibold">Today · {t.date}</p>
+      <>
+        <Card title={g === "detect" ? "Detecting the prodrome" : g === "high" ? "High risk: the clinic steps in" : "Severe protocol"}>
           {!t.baselineDone ? <p className="rv-muted">Baseline still in progress.</p> : (
             <>
-              <div className="mt-1 flex items-center gap-2"><LevelTag level={t.level} /><span className="rv-num">R smoothed <b>{t.Rs}</b></span>{t.cand > t.level && t.level < 3 && <span className="rv-chip bg-rv-notice text-rv-notice-ink">candidate {Math.min(3, t.cand)} · day {t.streak} of 3</span>}</div>
-              <table className="mt-2 w-full">
+              <div className="flex flex-wrap items-center gap-2"><span className="font-semibold">Today · {t.date}</span><LevelTag level={t.level} /><span className="rv-num">R smoothed <b>{t.Rs}</b></span>{t.cand > t.level && t.level < 3 && <span className="rv-chip bg-rv-notice text-rv-notice-ink">candidate {Math.min(3, t.cand)} · day {t.streak} of 3</span>}</div>
+              <table className="mt-1.5 w-full">
                 <tbody>
                   {t.domains.filter((d) => d.s !== null).map((d) => (
                     <tr key={d.key} className="border-t border-rv-line">
@@ -472,7 +483,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
                   ))}
                 </tbody>
               </table>
-              <p className="rv-muted mt-1 text-[12.5px]">Highest: {t.top.map((x) => `${x.name} z ${x.z}`).join(" · ")}</p>
+              <p className="rv-muted mt-1 text-[12px]">Highest: {t.top.map((x) => `${x.name} z ${x.z}`).join(" · ")}</p>
             </>
           )}
           {g === "detect" && <Quote>No single data point fires anything. It takes three days in a row of a clear change in one area with several features.</Quote>}
@@ -480,83 +491,94 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
             <>
               <p className="mt-2 font-semibold">Notices today and the one-push-a-day rule</p>
               <ul className="mt-1">{data.notices.map((n, i) => <li key={i} className="border-t border-rv-line py-1 text-[12.5px]"><b>{n.code}</b> → {n.to} · {n.time} · {n.status}{n.pushed ? " · push" : ""}{n.why ? <span className="rv-muted"> — {n.why}</span> : null}</li>)}</ul>
-              <button className="mt-2 text-[13px] font-semibold text-rv-teal underline" onClick={() => onFocus("luis")}>Open Luis&apos;s file in the clinic</button>
+              {link("luis", "Open Luis's file in the clinic")}
             </>
           )}
           {g === "crisis" && (
             <>
               <Quote>A phrase from the fixed list → level 3 without waiting three days. The AI doesn&apos;t decide: the list rules, the AI could only add.</Quote>
-              {data.crisis.alert && <p className="mt-2 text-[13px]">Alert: {data.crisis.alert.text} · {data.crisis.alert.when} · {data.crisis.alert.status}{data.crisis.alert.forwarded ? " · forwarded to on-call after 15 min" : ""}</p>}
+              {data.crisis.alert && <p className="mt-2">Alert: {data.crisis.alert.text} · {data.crisis.alert.when} · {data.crisis.alert.status}{data.crisis.alert.forwarded ? " · forwarded to on-call after 15 min" : ""}</p>}
             </>
           )}
-        </div>
-      </div>
+        </Card>
+        <Card title="Luis · smoothed deviation by area since day 28">
+          <LineChart ariaLabel="Luis: smoothed deviation by area" labels={L.series.labels} height={142} lines={Object.entries(L.series.domains).filter(([, v]) => v.some((x) => x !== null)).map(([k, v]) => ({ values: v, color: DOM_COLOR[k], label: DOM_LABEL[k] }))} thresholds={[{ v: 1.5, label: "area threshold 1.5" }]} steps={L.series.level} digits={2} />
+          {legend}
+        </Card>
+      </>
     );
   }
   if (g === "solution") {
     const b = data.bandit;
-    const cols: [string, P[]][] = [["Evidence prior", b.evidence], ["What worked for Pablo (with Marta)", b.pablo], ["Pablo & Luis start (half and half)", b.start], ["Now", b.now]];
+    const cols: [string, string, P[]][] = [["Evidence", "Evidence prior", b.evidence], ["Pablo", "What worked for Pablo (with Marta)", b.pablo], ["Start", "Pablo & Luis start (half and half)", b.start], ["Now", "Now", b.now]];
     return (
-      <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-6">
-        <div>
-          <H>A personal solution: Thompson sampling</H>
-          <p className="rv-muted mt-1 text-[13px]">Context = Luis&apos;s most changed area today ({b.contextLabel}). Only actions offered in that context compete; each has a Beta probability of “working” for this pair.</p>
-          <table className="mt-2 w-full text-[13px]">
-            <thead className="text-[11.5px] text-rv-ink2"><tr><th className="py-1 text-left">Action</th>{cols.map(([h]) => <th key={h} className="px-1 font-semibold">{h}</th>)}</tr></thead>
+      <>
+        <Card title="A personal solution: Thompson sampling">
+          <p className="rv-muted">Context = Luis&apos;s most changed area today ({b.contextLabel}). Only actions offered in that context compete; each has a Beta probability of “working” for this pair.</p>
+          {b.cards.slice(-2).map((cd, i) => (
+            <p key={i} className="mt-1.5 border-t border-rv-line pt-1.5"><b>{cd.day}</b>: drew {cd.draws.map((d) => `${d.label} ${d.p?.toFixed(2)}`).join(", ")} → <b>{cd.label}</b>{cd.level >= 2 ? " (direct only)" : ""}{cd.prepared ? " · prepared for the next day" : ""}</p>
+          ))}
+          {b.history.slice(-2).map((h, i) => <p key={i} className="mt-1.5 border-t border-rv-line pt-1.5">{h.when}: {h.label} gets reward <b>{h.reward}</b> ({h.context})</p>)}
+          <Quote>This is how it learns what works for this pair, not for the average.</Quote>
+        </Card>
+        <Card title="Chance that each action works for Pablo and Luis">
+          <table className="w-full">
+            <thead className="text-[11.5px] text-rv-ink2"><tr><th className="pb-1 text-left font-semibold">Action</th>{cols.map(([h, full]) => <th key={h} title={full} className="px-1 pb-1 text-center font-semibold">{h}</th>)}</tr></thead>
             <tbody>
               {b.evidence.map((a, i) => (
                 <tr key={a.key} className="border-t border-rv-line">
-                  <td className="py-1.5 font-semibold">{a.label}</td>
-                  {cols.map(([h, v]) => <td key={h} className="rv-num text-center" style={{ fontWeight: h === "Now" ? 700 : 400, color: h === "Now" && v[i].p !== b.start[i].p ? "#0E6B5C" : undefined }}>{v[i].p?.toFixed(2)}</td>)}
+                  <td className="py-1 font-semibold">{a.label}</td>
+                  {cols.map(([h, , v]) => <td key={h} className="rv-num text-center" style={{ fontWeight: h === "Now" ? 700 : 400, color: h === "Now" && v[i].p !== b.start[i].p ? "#0E6B5C" : undefined }}>{v[i].p?.toFixed(2)}</td>)}
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-        <div className="text-[13.5px]">
-          {b.cards.slice(-2).map((cd, i) => (
-            <p key={i} className="border-t border-rv-line py-1.5"><b>{cd.day}</b>: drew {cd.draws.map((d) => `${d.label} ${d.p?.toFixed(2)}`).join(", ")} → <b>{cd.label}</b>{cd.level >= 2 ? " (direct only)" : ""}{cd.prepared ? " · prepared for the next day" : ""}</p>
-          ))}
-          {b.history.slice(-2).map((h, i) => <p key={i} className="border-t border-rv-line py-1.5">{h.when}: {h.label} gets reward <b>{h.reward}</b> ({h.context})</p>)}
-          <Quote>This is how it learns what works for this pair, not for the average.</Quote>
-        </div>
-      </div>
+          <p className="rv-muted mt-1.5 text-[11.5px]">Evidence prior · what worked for Pablo with Marta · this pair&apos;s start (half and half) · now</p>
+        </Card>
+      </>
     );
   }
   if (g === "mentor" || g === "mentor2") {
     const t = Pb.today;
     return (
-      <div className="grid grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] gap-6">
-        <div>
-          <H>Protecting the mentor</H>
-          <p className="rv-muted mb-1 mt-1 text-[12.5px]">Pablo is watched exactly like Luis: smoothed deviation by area and level</p>
-          <LineChart ariaLabel="Pablo: smoothed deviation by area" labels={Pb.series.labels} height={170} lines={Object.entries(Pb.series.domains).filter(([, v]) => v.some((x) => x !== null)).map(([k, v]) => ({ values: v, color: DOM_COLOR[k], label: DOM_LABEL[k] }))} thresholds={[{ v: 1.5, label: "area threshold 1.5" }]} steps={Pb.series.level} digits={2} />
-        </div>
-        <div className="text-[13.5px]">
+      <>
+        <Card title="Protecting the mentor">
           <div className="flex items-center gap-2"><LevelTag level={t.level} /><span className="rv-num">R smoothed <b>{t.Rs}</b></span></div>
           <p className="mt-2">{g === "mentor" ? "Pablo enters level 1. Marta is asked first (“Would you like to talk to Pablo today?”). Only when she says yes does Pablo read “Marta would like to talk to you”." : "Pablo enters level 2: he's offered a pause, ideas for Luis are paused even if he prefers to continue, and the clinic sees “Review pace” and can propose a temporary mentor in Matching."}</p>
           <Quote>Pablo never sees a number about himself. We never tell him he&apos;s worse.</Quote>
-          <button className="mt-2 text-[13px] font-semibold text-rv-teal underline" onClick={() => onFocus("pablo")}>Open Pablo&apos;s file in the clinic</button>
-        </div>
-      </div>
+          {link("pablo", "Open Pablo's file in the clinic")}
+        </Card>
+        <Card title="Pablo · smoothed deviation by area">
+          <LineChart ariaLabel="Pablo: smoothed deviation by area" labels={Pb.series.labels} height={142} lines={Object.entries(Pb.series.domains).filter(([, v]) => v.some((x) => x !== null)).map(([k, v]) => ({ values: v, color: DOM_COLOR[k], label: DOM_LABEL[k] }))} thresholds={[{ v: 1.5, label: "area threshold 1.5" }]} steps={Pb.series.level} digits={2} />
+          {legend}
+        </Card>
+      </>
     );
   }
   const e = data.evaluation;
   return (
-    <div className="grid grid-cols-3 gap-4">
-      <div className="col-span-3"><H>What the simulation shows</H><p className="rv-muted mt-1 text-[13px]">{e.people} synthetic people we generated, {e.relapses} simulated relapses, default thresholds. This checks that the logic works as designed, not that it predicts relapse in real patients.</p></div>
-      {[["Level 1 catches", `${Math.round(e.l1.sensitivity * 100)}%`, "of simulated relapses"], ["Median lead time", `${e.l1.lead} days`, `IQR ${e.l1.iqr[0]}–${e.l1.iqr[1]} days`], ["False alarms, level 1", `${e.l1.fa}`, "per person per year: a walk with the mentor"]].map(([a, b, cc]) => (
-        <div key={a} className="rounded-2xl bg-rv-bg p-4"><p className="rv-num text-[30px] font-semibold text-rv-teal" style={{ fontFamily: "var(--rv-display)" }}>{b}</p><p className="font-semibold">{a}</p><p className="rv-muted text-[12.5px]">{cc}</p></div>
-      ))}
-      <p className="col-span-3 text-[14px]">Level 2 is much stricter: it catches <b>{Math.round(e.l2.sensitivity * 100)}%</b> with a median of <b>{e.l2.lead} {e.l2.lead === 1 ? "day's" : "days'"}</b> notice, and gives <b>{e.l2.fa}</b> false alarms per person per year. <i>Cheap false alarms (a walk) go to the mentor; costly ones reach the clinic far less often. Real-world accuracy would need a clinical study.</i></p>
-      <p className="rv-muted col-span-3 text-[12px]">Levels: {LEVEL_TEXT.map((l, i) => `${i} ${l}`).join(" · ")}</p>
-    </div>
+    <>
+      <Card title="What the simulation shows">
+        <p className="rv-muted">{e.people} synthetic people we generated, {e.relapses} simulated relapses, default thresholds. This checks that the logic works as designed, not that it predicts relapse in real patients.</p>
+        <p className="mt-2">Level 2 is much stricter: it catches <b>{Math.round(e.l2.sensitivity * 100)}%</b> with a median of <b>{e.l2.lead} {e.l2.lead === 1 ? "day's" : "days'"}</b> notice, and gives <b>{e.l2.fa}</b> false alarms per person per year.</p>
+        <Quote>Cheap false alarms (a walk) go to the mentor; costly ones reach the clinic far less often. Real-world accuracy would need a clinical study.</Quote>
+      </Card>
+      <Card title="Level 1 in the simulation">
+        <div className="grid grid-cols-3 gap-2">
+          {[["catches", `${Math.round(e.l1.sensitivity * 100)}%`, "of simulated relapses"], ["median lead time", `${e.l1.lead} days`, `IQR ${e.l1.iqr[0]}–${e.l1.iqr[1]} days`], ["false alarms", `${e.l1.fa}`, "per person per year: a walk with the mentor"]].map(([a, v, cc]) => (
+            <div key={a} className="rounded-xl bg-white p-3">
+              <p className="rv-num text-[24px] font-semibold leading-none text-rv-teal" style={{ fontFamily: "var(--rv-display)" }}>{v}</p>
+              <p className="mt-1.5 font-semibold">{a}</p>
+              <p className="rv-muted text-[11.5px]">{cc}</p>
+            </div>
+          ))}
+        </div>
+        <p className="rv-muted mt-2 text-[11.5px]">Levels: {LEVEL_TEXT.map((l, i) => `${i} ${l}`).join(" · ")}</p>
+      </Card>
+    </>
   );
 }
 
-function H({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-[19px] leading-tight">{children}</h3>;
-}
 function Quote({ children }: { children: React.ReactNode }) {
-  return <p className="mt-2 border-l-2 border-rv-teal pl-3 text-[14.5px] italic text-rv-ink">{children}</p>;
+  return <p className="mt-2 border-l-2 border-rv-teal pl-3 italic text-rv-ink">{children}</p>;
 }
