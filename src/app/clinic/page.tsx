@@ -164,19 +164,26 @@ function Alerts({ alerts, act }: { alerts: Overview["alerts"]; act: Act }) {
             <li
               key={a.id}
               className={`card card-status arrive flex flex-wrap items-center justify-between gap-3 py-3 pl-5 pr-4 ${crisis ? "bg-[#fdf4f6]" : ""}`}
-              style={{ "--status": crisis ? "var(--color-lingon)" : "var(--color-cloudberry)" } as React.CSSProperties}
+              style={{ "--status": crisis ? "var(--color-lingon)" : a.kind === "data_request" ? "var(--color-pine)" : "var(--color-cloudberry)" } as React.CSSProperties}
             >
               <div className="min-w-0">
                 <p className="flex items-center gap-2 font-semibold">
                   {crisis && <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lingon opacity-60" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-lingon" /></span>}
-                  {crisis ? "Help requested" : a.kind === "mentor_paused" ? "Mentor paused" : "Mentor may need support"}
+                  {crisis ? "Help requested" : a.kind === "mentor_paused" ? "Mentor paused" : a.kind === "data_request" ? "Data request" : "Mentor may need support"}
                   <span className="muted text-xs font-normal">{timeAgo(a.at)}</span>
                 </p>
                 <p className="mt-0.5">{a.text}</p>
               </div>
-              <Button kind={crisis ? "danger" : "secondary"} size="sm" onClick={() => act({ action: "handle", alertId: a.id })}>
-                Mark as handled
-              </Button>
+              <div className="flex gap-2">
+                {a.kind === "data_request" && (
+                  <a href={`/api/app/export?id=${a.userId}`} className="btn btn-secondary btn-sm">
+                    Download file
+                  </a>
+                )}
+                <Button kind={crisis ? "danger" : "secondary"} size="sm" onClick={() => act({ action: "handle", alertId: a.id })}>
+                  Mark as handled
+                </Button>
+              </div>
             </li>
           );
         })}

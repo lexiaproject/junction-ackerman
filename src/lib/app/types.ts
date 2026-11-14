@@ -54,7 +54,7 @@ export type ActionLog = { date: string; action: string; level: Level; flagged: n
 export type Alert = {
   id: string;
   userId: string;
-  kind: "crisis" | "mentor_support" | "mentor_paused";
+  kind: "crisis" | "mentor_support" | "mentor_paused" | "data_request";
   text: string;
   at: string;
   handledAt?: string;

@@ -19,6 +19,7 @@ export default function MePage() {
   const [availability, setAvailability] = useState(u.availability);
   const [story, setStory] = useState(u.story);
   const [saved, setSaved] = useState(false);
+  const [requested, setRequested] = useState(false);
   const [error, setError] = useState("");
 
   async function act(body: Record<string, unknown>) {
@@ -97,11 +98,6 @@ export default function MePage() {
       </Section>
 
       <Section title="Your data">
-        <Row title="Download my data" detail="Everything Relay stores about you, in one file.">
-          <a href="/api/app/export" className="btn btn-secondary btn-sm">
-            Download
-          </a>
-        </Row>
         <Row title="Delete my account" detail="Removes your profile, signals and conversations for good.">
           <Button
             size="sm"
@@ -126,6 +122,23 @@ export default function MePage() {
       >
         Log out
       </Button>
+
+      {/* Discreto, al final: pedir a la clínica una copia de tus datos */}
+      <p className="muted -mt-2 text-center text-xs">
+        {requested ? (
+          "Request sent. Your clinic will send you a copy of your data."
+        ) : (
+          <button
+            className="underline underline-offset-4 hover:text-pine"
+            onClick={async () => {
+              await act({ action: "data_request" });
+              setRequested(true);
+            }}
+          >
+            Request a copy of my data from the clinic
+          </button>
+        )}
+      </p>
     </div>
   );
 }
@@ -211,7 +224,7 @@ function Switch({ on, onChange, label, disabled }: { on: boolean; onChange: () =
       onClick={onChange}
       className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-40 ${on ? "bg-moss" : "bg-line"}`}
     >
-      <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ${on ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+      <span className={`absolute left-0 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200 ${on ? "translate-x-[22px]" : "translate-x-0.5"}`} />
     </button>
   );
 }

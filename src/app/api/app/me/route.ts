@@ -68,6 +68,11 @@ export async function POST(req: Request) {
       });
       return Response.json({ ok: true });
     }
+    case "data_request": {
+      // Derecho de acceso: la persona pide una copia y la clínica se la entrega (los gráficos no se muestran en la app)
+      await raiseAlert(u.clinicId, { userId: u.id, kind: "data_request", text: `${u.name} asked for a copy of their data. Send it to them within one month.` });
+      return Response.json({ ok: true });
+    }
     case "pause": {
       if (u.role !== "mentor") return bad("Only mentors can pause.");
       await saveUser({ ...u, paused: !!body.paused });

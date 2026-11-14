@@ -1,10 +1,15 @@
-// Derecho de acceso: la persona descarga todos sus datos en un archivo
+// Derecho de acceso: la clínica descarga todos los datos de una persona de su clínica para entregárselos
+// (el paciente lo pide desde la app; no ve sus gráficos directamente)
 import { currentUser, unauthorized } from "@/lib/app/auth";
-import { getActions, getHealth, getStats, getThread } from "@/lib/app/repo";
+import { getActions, getHealth, getStats, getThread, getUser } from "@/lib/app/repo";
 
-export async function GET() {
-  const u = await currentUser();
-  if (!u) return unauthorized();
+export async function GET(req: Request) {
+  const me = await currentUser();
+  if (!me) return unauthorized();
+  const id = new URL(req.url).searchParams.get("id");
+  const u = me.role === "clinic" && id ? await getUser(id) : null;
+  if (!u || u.clinicId !== me.clinicId) return Response.json({ error: "Only your clinic can export this data." }, { status: 403 });
+
   const { passwordHash: _hidden, ...profile } = u;
   void _hidden;
   const partners = [u.mentorId, u.menteeId, u.supportId, ...(u.formerMenteeIds ?? [])].filter((x): x is string => !!x);
@@ -20,7 +25,7 @@ export async function GET() {
   return new Response(JSON.stringify(data, null, 2), {
     headers: {
       "Content-Type": "application/json",
-      "Content-Disposition": `attachment; filename="relay-my-data.json"`,
+      "Content-Disposition": `attachment; filename="relay-data-${u.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json"`,
     },
   });
 }
