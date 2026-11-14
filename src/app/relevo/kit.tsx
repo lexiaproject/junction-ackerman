@@ -1,7 +1,17 @@
 "use client";
 // Piezas comunes de Relevo: datos en vivo, iconos de trazo, avatares, notas de voz con onda, grabadora y hojas.
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { crisisFlag } from "@/lib/relevo/engine";
 import { hideNames, revealNames } from "@/lib/relevo/pseudo";
+
+/** La pantalla de ayuda de un teléfono se abre cuando su propio dueño escribe una frase de la lista fija (K-15). */
+export function useLocalHelp(as: string, open: () => void) {
+  useEffect(() => {
+    const on = (e: Event) => (e as CustomEvent<{ as: string }>).detail?.as === as && open();
+    window.addEventListener("relevo:help", on);
+    return () => window.removeEventListener("relevo:help", on);
+  }, [as, open]);
+}
 
 /* ---------- Mundo de la demo: uno por navegador; ?w=ID para compartirlo entre teléfonos ---------- */
 export function useWid() {
@@ -121,6 +131,7 @@ const PATHS: Record<string, string> = {
   sliders: "M4 7h10M18 7h2M4 17h4M12 17h8M16 5v4M10 15v4",
   list: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
   panel: "M4 4h16v16H4zM9 4v16",
+  bulb: "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-1.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z",
   sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6 19 19M5 19l1.4-1.4M17.6 6.4 19 5",
   text: "M5 6h14M5 12h14M5 18h9",
   undo: "M9 7 4 12l5 5M4 12h11a5 5 0 0 1 0 10h-2",
@@ -229,9 +240,22 @@ export function usePlayer(w: string | null) {
 export const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
 /* ---------- Burbuja / tarjeta de nota de voz (con transcripción plegable) ---------- */
-export type NoteV = { id: string; from: string; fromName: string; mine: boolean; when: string; duration: number; text: string; audio: boolean; kind?: string };
+export type NoteV = { id: string; from: string; fromName: string; mine: boolean; when: string; duration: number; text: string; audio: boolean; kind?: string; withheld?: boolean };
 export function VoiceNote({ note, player, bubble = false }: { note: NoteV; player: ReturnType<typeof usePlayer>; bubble?: boolean }) {
   const [open, setOpen] = useState(false);
+  // K-14: nota retenida para la clínica: sin reproducir ni enseñar su contenido
+  if (note.withheld)
+    return (
+      <div className={bubble ? "max-w-[86%] self-start" : ""}>
+        <div className={`${bubble ? "rounded-[20px] rounded-bl-md shadow-[0_0_0_1px_rgb(22_33_28/0.05)]" : ""} flex items-start gap-3 bg-white px-3 py-2.5`}>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="shield" size={18} /></span>
+          <div className="min-w-0 pt-0.5">
+            <p className="text-[14px] leading-snug">{note.text}</p>
+            <p className="rv-muted mt-0.5 text-[12px]">{note.when}</p>
+          </div>
+        </div>
+      </div>
+    );
   const on = player.playing === note.id;
   const tone = note.mine ? "bg-rv-teal text-white" : "bg-white text-rv-ink";
   return (
@@ -337,6 +361,9 @@ type SR = { lang: string; continuous: boolean; interimResults: boolean; start: (
 type Pending = { text: string; duration: number; audio?: string; mime?: string };
 
 async function sendNote(w: string, as: string, to: string, n: Pending, extra: Record<string, unknown>) {
+  // K-15: si la frase está en la lista fija, el propio móvil abre la ayuda (112, MIELI…) aunque no haya consentimiento de
+  // análisis ni conexión. No envía nada a nadie: el aviso a la clínica sigue dependiendo del servidor y del consentimiento.
+  if (crisisFlag(n.text.replace(/[‘’ʼ]/g, "'"))) window.dispatchEvent(new CustomEvent("relevo:help", { detail: { as } }));
   const body = { w, as, to, text: hideNames(n.text), duration: n.duration, audio: n.audio, mime: n.mime, ...extra };
   try {
     const r = await fetch("/api/relevo/note", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

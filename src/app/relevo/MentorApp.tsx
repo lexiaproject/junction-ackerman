@@ -1,8 +1,8 @@
 "use client";
 // App del mentor (Pablo, y Marta como mentora de Pablo): como mucho una acción al día, y protege al mentor
 // tanto como al acompañado. Nunca ve datos ni niveles de nadie, tampoco los suyos.
-import { useState } from "react";
-import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, usePlayer, useView, type NoteV } from "./kit";
+import { useCallback, useEffect, useState } from "react";
+import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, useLocalHelp, usePlayer, useView, type NoteV } from "./kit";
 import { CONSENT_TEXT, Chain, DataRights, DeviceList, HelpSheet, Toggle, ics, type MeData } from "./MenteeApp";
 
 type Card = { id: string; menteeName: string; kind: string; question: string | null; title: string; reason: string; message: string; aiDrafted: boolean; icon: string; prepared: boolean };
@@ -44,6 +44,9 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
   const [tab, setTab] = useState<Tab>("today");
   const [thread, setThread] = useState<"mentee" | "mentor">("mentee");
   const [help, setHelp] = useState(false);
+  const openHelp = useCallback(() => setHelp(true), []);
+  useLocalHelp(as, openHelp); // K-15: si el propio mentor escribe una frase de la lista fija, su móvil le abre la ayuda
+  const [ideasOpen, setIdeasOpen] = useState(false);
   const [compose, setCompose] = useState<{ to: string; toName: string; script?: string; cardId?: string; kind?: string; title: string } | null>(null);
   const [m5Open, setM5Open] = useState(true);
   // La demo cambia resetKey al pasar de momento: el teléfono vuelve a Today y se cierran las hojas abiertas
@@ -118,10 +121,18 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
                     {notes.length === 0 && <p className="rv-muted py-8 text-center">No notes yet.</p>}
                     {notes.map((n) => <VoiceNote key={n.id} note={n} player={player} bubble />)}
                   </div>
-                  <div className="sticky bottom-0 flex items-center gap-3 border-t border-rv-line bg-rv-bg/95 px-4 pb-4 pt-3 backdrop-blur">
-                    <Recorder w={w} as={as} to={other.id} toName={other.name} compact />
-                    <p className="rv-muted flex-1 text-[13px]">Hold to talk to {other.name}</p>
-                    <button className="rv-btn rv-btn-ghost px-2" aria-label="Write instead" onClick={() => setCompose({ to: other.id, toName: other.name, title: `Note to ${other.name}` })}><Icon name="text" /></button>
+                  <div className="sticky bottom-0 border-t border-rv-line bg-rv-bg/95 px-4 pb-4 pt-3 backdrop-blur">
+                    {/* Solo para mentores: ideas de respuesta privadas, basadas en técnicas de apoyo entre iguales */}
+                    {thread === "mentee" && mentee && (
+                      <button className="rv-btn rv-btn-secondary rv-btn-sm mb-3 w-full gap-1.5" onClick={() => setIdeasOpen(true)}>
+                        <Icon name="bulb" size={16} className="text-rv-teal" />Not sure what to say? Get reply ideas
+                      </button>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Recorder w={w} as={as} to={other.id} toName={other.name} compact />
+                      <p className="rv-muted flex-1 text-[13px]">Hold to talk to {other.name}</p>
+                      <button className="rv-btn rv-btn-ghost px-2" aria-label="Write instead" onClick={() => setCompose({ to: other.id, toName: other.name, title: `Note to ${other.name}` })}><Icon name="text" /></button>
+                    </div>
                   </div>
                 </>
               );
@@ -164,6 +175,23 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
       {data.m0 && <M0 w={w} as={as} m0={data.m0} />}
       {data.m5 && m5Open && !data.m0 && <M5 w={w} as={as} m5={data.m5} onLater={() => setM5Open(false)} />}
       {help && <HelpSheet w={w} as={as} mentorName={mine?.name ?? null} clinic={{ phone: "+358 9 4512 3300" }} onClose={() => setHelp(false)} />}
+      {ideasOpen && mentee && (
+        <ReplyIdeas
+          w={w}
+          as={as}
+          menteeName={mentee.name}
+          mentorOfMe={mine?.name ?? null}
+          onClose={() => setIdeasOpen(false)}
+          onUse={(message) => {
+            setIdeasOpen(false);
+            setCompose({ to: mentee.id, toName: mentee.name, script: message, title: `Note to ${mentee.name}` });
+          }}
+          onHelp={() => {
+            setIdeasOpen(false);
+            setHelp(true);
+          }}
+        />
+      )}
       {compose && (
         <Sheet onClose={() => setCompose(null)} label={compose.title}>
           <h2 className="text-[22px]">{compose.title}</h2>
@@ -238,7 +266,7 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
       {data.m6 && (
         <div className="rv-card rv-in p-5">
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-rv-sage text-rv-teal"><Icon name="shield" /></span>
-          <p className="mt-3 text-[17px] font-semibold leading-snug">The clinic team is in touch with {data.m6.menteeName}. You don&apos;t need to do anything else.</p>
+          <p className="mt-3 text-[17px] font-semibold leading-snug">{data.m6.menteeName}&apos;s clinic team has been told. You don&apos;t need to do anything else.</p>
           {mine && <button onClick={() => onTab("chat", "mentor")} className="rv-btn rv-btn-secondary mt-4 w-full">Talk to {mine.name}</button>}
         </div>
       )}
@@ -448,5 +476,71 @@ function M5({ w, as, m5, onLater }: { w: string; as: string; m5: NonNullable<Men
         </>
       )}
     </div>
+  );
+}
+
+/* ---------- Ideas de respuesta (solo mentores): privadas, cálidas y basadas en técnicas de apoyo entre iguales ---------- */
+type ReplyIdea = { message: string; why: string; technique: string };
+type IdeasResult = { status: "ok"; opener: string; ideas: ReplyIdea[]; source: "gemini" | "template" } | { status: "consent" | "clinic" | "worried"; menteeName: string };
+function ReplyIdeas({ w, as, menteeName, mentorOfMe, onClose, onUse, onHelp }: { w: string; as: string; menteeName: string; mentorOfMe: string | null; onClose: () => void; onUse: (message: string) => void; onHelp: () => void }) {
+  const [res, setRes] = useState<IdeasResult | null>(null);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/relevo/reply-ideas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ w, as }) })
+      .then(async (r) => {
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error ?? "Couldn't get ideas right now");
+        if (alive) setRes(j);
+      })
+      .catch((e) => alive && setErr((e as Error).message));
+    return () => {
+      alive = false;
+    };
+  }, [w, as]);
+  return (
+    <Sheet onClose={onClose} label="Ideas for your reply">
+      <h2 className="pr-12 text-[22px] leading-tight">Ideas for your reply</h2>
+      <p className="mt-1 flex items-center gap-1.5 text-[12.5px] font-semibold text-rv-notice-ink"><Icon name="lock" size={14} />Only you see this</p>
+      {!res && !err && (
+        <div className="mt-5 flex items-center gap-3 rounded-2xl bg-white p-4" role="status">
+          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rv-teal" aria-hidden />
+          <p className="text-[15px]">Reading your conversation with {menteeName}…</p>
+        </div>
+      )}
+      {err && <p className="mt-5 rounded-2xl bg-white p-4 text-[15px]">{err}. You know {menteeName} best: a few honest words are always enough.</p>}
+      {res?.status === "consent" && (
+        <p className="mt-5 rounded-2xl bg-white p-4 text-[15px] leading-snug">
+          {res.menteeName} hasn&apos;t turned on the analysis of their notes, so Relevo can&apos;t read your conversation. That&apos;s their choice. You can still write from the heart: a short, warm note is always a good reply.
+        </p>
+      )}
+      {(res?.status === "clinic" || res?.status === "worried") && (
+        <div className="mt-5 rounded-2xl bg-white p-4">
+          <p className="text-[16px] font-semibold leading-snug">
+            {res.status === "clinic" ? `${res.menteeName}'s clinic team is involved. You don't need to handle this alone.` : `This sounds like something to share with ${res.menteeName}'s clinic team.`}
+          </p>
+          <p className="rv-muted mt-1 text-[14px]">If you&apos;re worried about {res.menteeName}&apos;s safety right now, use Help.{mentorOfMe ? ` And if you need someone to talk to, ${mentorOfMe} is there for you.` : ""}</p>
+          <button className="rv-btn rv-btn-help mt-3 w-full" onClick={onHelp}><Icon name="heart" size={16} />Help</button>
+        </div>
+      )}
+      {res?.status === "ok" && (
+        <>
+          <p className="rv-notice mt-4 p-4 text-[15px] leading-snug">{res.opener}</p>
+          <ul className="mt-3 flex flex-col gap-3">
+            {res.ideas.map((idea, i) => (
+              <li key={i} className="rv-card p-4">
+                <span className="rv-chip bg-rv-sage text-rv-teal">{idea.technique}</span>
+                <p className="mt-2 rounded-2xl bg-rv-bg p-3 text-[15px] leading-snug">“{idea.message}”</p>
+                <p className="rv-muted mt-2 text-[13px] leading-snug"><span className="font-semibold text-rv-ink">Why it can help: </span>{idea.why}</p>
+                <button className="rv-btn rv-btn-primary rv-btn-sm mt-3 w-full" onClick={() => onUse(idea.message)}>Use this</button>
+              </li>
+            ))}
+          </ul>
+          <p className="rv-muted mt-4 text-[12px] leading-snug">
+            {res.source === "gemini" ? "Suggested with AI" : "Suggested"} from peer-support practice (feeling heard, small shared steps, hope), not medical advice. Make it yours: your own words matter most.
+          </p>
+        </>
+      )}
+    </Sheet>
   );
 }

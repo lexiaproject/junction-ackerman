@@ -14,7 +14,8 @@ export async function POST(req: Request) {
   if (!validWid(b.w ?? null)) return bad("Missing world id");
   const as = b.as ?? "";
   if (!["luis", "pablo", "marta"].includes(as)) return bad("Unknown person", 403);
-  const text = (typeof b.text === "string" ? b.text : "").trim().slice(0, 1200); // K-26: solo higiene de tipo
+  // K-16: los móviles escriben el apóstrofo curvo (don’t); se normaliza para que la lista fija lo reconozca (solo añade coincidencias)
+  const text = (typeof b.text === "string" ? b.text : "").replace(/[‘’ʼ]/g, "'").trim().slice(0, 1200);
   if (!text) return bad("The note is empty");
   if (b.audio !== undefined && typeof b.audio !== "string") return bad("Bad recording");
   if (b.audio && b.audio.length > 1_600_000) return bad("The recording is too long");
@@ -28,7 +29,10 @@ export async function POST(req: Request) {
 
   const previous = sim.notes.filter((n) => (n.from === as && n.to === to) || (n.from === to && n.to === as)).map((n) => n.text);
   let analysis = null as null | ReturnType<typeof complaintIndex> & { source: string };
-  if (me.consents.notes) {
+  if (me.consents.notes && crisisFlag(text)) {
+    // K-02: la lista fija ya lo ha detectado; no se espera a Gemini (podía tardar hasta ~16 s) para avisar a la clínica
+    analysis = { ...complaintIndex(text, previous), crisis: true, source: "crisis list" };
+  } else if (me.consents.notes) {
     const g = await analyseNote(text); // con seudónimos; si falla, léxico fijo
     const ci = complaintIndex(text, previous, g);
     analysis = { ...ci, crisis: crisisFlag(text) || !!g?.crisis, source: g ? "gemini" : "lexicon" };

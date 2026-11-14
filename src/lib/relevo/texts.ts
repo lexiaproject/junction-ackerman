@@ -111,3 +111,26 @@ export const COPILOT = {
 };
 
 export const LEVEL_LABEL = ["Stable", "Early signs", "High risk", "Severe"] as const;
+
+// Ideas de respuesta de respaldo (si Gemini no está o falla). Técnicas de apoyo entre iguales con evidencia; nunca consejo clínico.
+type FallbackIdea = { message: string; why: string; technique: "Validation" | "Reflective listening" | "Small shared step" | "Hope and recovery" | "Open question" | "Gentle check-in" };
+export function replyFallback(mentee: string, mentor: string, mood: "low" | "neutral" | "empty") {
+  const opener =
+    mood === "low"
+      ? `It's clear you care about ${mentee}, and asking for ideas is part of caring well. There's no perfect reply; being there is what counts most.`
+      : `Thanks for taking a moment to think about ${mentee}. A few honest words from someone who's been there can mean more than you'd expect.`;
+  const ideas: FallbackIdea[] =
+    mood === "low"
+      ? [
+          { technique: "Validation", message: `That sounds really heavy, ${mentee}. Thank you for telling me. I'm here, and I'm not going anywhere.`, why: "People feel helped once they feel heard: naming the feeling before suggesting anything is the first step of peer support." },
+          { technique: "Small shared step", message: "Would a short walk together tomorrow help a little? Ten minutes is plenty, and it's completely fine if today isn't the day.", why: "When energy is low, one small plan done together is easier to start than a big one, and doing comes before feeling better." },
+          { technique: "Hope and recovery", message: "I had weeks that felt just like this after my treatment. They did ease, slowly. You don't have to rush anything.", why: "Sharing your own experience briefly and honestly offers hope without pressure, which is the heart of being a peer." },
+        ]
+      : [
+          { technique: "Open question", message: `How has your week been, ${mentee}, honestly? No need for a long answer.`, why: "An open question invites someone to share at their own pace, without feeling questioned." },
+          { technique: "Gentle check-in", message: "Just thinking of you today. No need to reply, I only wanted you to know.", why: "A small, no-pressure message keeps the connection alive without asking for energy someone may not have." },
+          { technique: "Small shared step", message: "Fancy a coffee or a short walk sometime this week? Whatever suits you.", why: "Shared, simple plans help people stay connected to the things that keep them well." },
+        ];
+  if (mood === "empty") ideas.unshift({ technique: "Gentle check-in", message: `Hi ${mentee}, it's ${mentor}. I'm around whenever you feel like talking.`, why: "A friendly first step, with no expectations, makes it easier for the other person to answer when they're ready." });
+  return { opener, ideas: ideas.slice(0, 3) };
+}

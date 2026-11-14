@@ -37,7 +37,13 @@ function planWhen(now: number, p: Plan) {
 const clock = (sim: Sim) => ({ t: sim.now, day: sim.now >= 0 ? dayOf(sim.now) : 0, time: hhmm(sim.now), date: longDate(dayOf(sim.now)), short: dayLabel(dayOf(sim.now)) });
 
 function noteView(sim: Sim, n: Note, me: string) {
-  return { id: n.id, from: n.from, fromName: name(n.from), mine: n.from === me, t: n.t, when: when(sim.now, n.t), duration: n.duration, text: n.text, audio: n.audio, kind: n.kind };
+  // K-14: una nota que activó la lista de crisis no llega tal cual a la otra persona de la pareja (el mentor también está en
+  // mantenimiento). Solo la ve quien la escribió y, si dio consentimiento, la clínica.
+  const withheld = !!n.analysis?.crisis && n.from !== me;
+  return {
+    id: n.id, from: n.from, fromName: name(n.from), mine: n.from === me, t: n.t, when: when(sim.now, n.t), duration: withheld ? 0 : n.duration,
+    text: withheld ? `This note was passed to ${name(n.from)}'s clinic team.` : n.text, audio: withheld ? false : n.audio, kind: n.kind, withheld,
+  };
 }
 const conversation = (sim: Sim, a: string, b: string) =>
   sim.notes.filter((n) => n.t <= sim.now && ((n.from === a && n.to === b) || (n.from === b && n.to === a))).map((n) => noteView(sim, n, a));
@@ -113,6 +119,7 @@ export function menteeView(sim: Sim, id: PersonId) {
     plans: plans.slice(-6).map(planView).reverse(),
     social: mentorId ? { label: `Plans with ${name(mentorId)} this month: ${social}` } : null,
     openHelp: s.openHelp,
+    helpNote: s.crisis?.source === "note" && s.openHelp === s.crisis.alertId, // K-29: la ayuda se abrió por una nota que ya avisó a la clínica
     devices: devices(sim, id),
     clinic: { name: "Aalto TMS Clinic", phone: "+358 9 4512 3300" },
     requests: sim.requests.filter((r) => r.person === id).map((r) => ({ kind: r.kind, when: when(now, r.t) })),

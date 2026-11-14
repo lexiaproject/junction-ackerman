@@ -1,9 +1,9 @@
 "use client";
 // App del acompañado (Luis): se puede usar sin hacer nada. Abrir, escuchar, aceptar un plan o cerrar.
 // Sin pestañas, sin contadores, sin rojos, sin gráficos. Nunca ve un número de salud.
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { revealNames } from "@/lib/relevo/pseudo";
-import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, usePlayer, useView, type NoteV } from "./kit";
+import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, useLocalHelp, usePlayer, useView, type NoteV } from "./kit";
 
 type Notice = { id: string; code: string; text: string; buttons: { id: string; label: string }[]; from: string | null; noteId: string | null };
 type PlanV = { id: string; title: string; icon: string; when: string; whenT: number; status: string; feedback: string | null; past: boolean; askFeedback: boolean; mentorName: string; note: NoteV | null; place: string | null };
@@ -22,6 +22,7 @@ export type MeData = {
   plans: PlanV[];
   social: { label: string } | null;
   openHelp: string | null;
+  helpNote: boolean;
   devices: { rows: DeviceRow[]; types: { key: string; label: string; purpose: string; on: boolean }[]; simulated: boolean };
   clinic: { name: string; phone: string };
   requests: { kind: string; when: string }[];
@@ -35,6 +36,8 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
   const [seenHelp, setSeenHelp] = useState<string | null>(null);
   const [writeClinic, setWriteClinic] = useState(false);
   const [toast, setToast] = useState("");
+  const openHelp = useCallback(() => setHelp(true), []);
+  useLocalHelp(as, openHelp); // K-15: frase de la lista fija → ayuda en su propio móvil, aunque no haya red ni consentimiento
 
   // A3 se abre sola si una nota activa el filtro de crisis (o si pide ayuda desde V7)
   useEffect(() => {
@@ -185,7 +188,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
           {toast}
         </div>
       )}
-      {help && <HelpSheet w={w} as={as} mentorName={mentor && mentor.state !== "left" ? mName : null} clinic={data.clinic} onClose={() => setHelp(false)} />}
+      {help && <HelpSheet w={w} as={as} mentorName={mentor && mentor.state !== "left" ? mName : null} clinic={data.clinic} clinicKnows={data.helpNote && !!data.openHelp} onClose={() => setHelp(false)} />}
       {writeClinic && (
         <Sheet onClose={() => setWriteClinic(false)} label="Write to your clinic">
           <h2 className="text-[22px]">Write to your clinic</h2>
@@ -341,13 +344,15 @@ function PlanDetail({ w, as, plan, player, onToast }: { w: string; as: string; p
 }
 
 /* ---------- A3 · Ayuda (también M7) ---------- */
-export function HelpSheet({ w, as, mentorName, clinic, onClose }: { w: string; as: string; mentorName: string | null; clinic: { phone: string }; onClose: () => void }) {
+export function HelpSheet({ w, as, mentorName, clinic, onClose, clinicKnows = false }: { w: string; as: string; mentorName: string | null; clinic: { phone: string }; onClose: () => void; clinicKnows?: boolean }) {
   const [done, setDone] = useState<{ clinic?: boolean; mentor?: boolean }>({});
   const big = "rv-btn w-full !min-h-[72px] !rounded-[22px] text-[17px] justify-start px-5";
   return (
     <Sheet onClose={onClose} label="Need help right now?">
       <h2 className="text-[26px] leading-tight">Need help right now?</h2>
       <p className="rv-muted mt-1 text-[15px]">You&apos;re not alone. Choose what you need.</p>
+      {/* K-29: solo cuando es verdad (la nota activó la alerta a la clínica) */}
+      {clinicKnows && <p className="mt-2 text-[15px] font-semibold text-rv-teal">Your clinic team has been told about your note.</p>}
       <div className="mt-5 flex flex-col gap-2.5">
         <a href="tel:112" className={`${big} rv-btn-emergency`}><Icon name="phone" />Emergency · 112</a>
         <a href="tel:+358925250111" className={`${big} rv-btn-secondary`}>

@@ -708,9 +708,16 @@ export function evaluate(world: World, nowIn?: number): Sim {
         a.resolvedAt = t;
         a.assignee ??= "Nurse Virtanen";
         const s = P[a.person];
+        if (a.kind === "severe" || a.kind === "help") {
+          // K-05: resolver cierra también las demás alertas graves abiertas de esa persona (p. ej. nota + "Talk to my clinic")
+          for (const o of sim.alerts) if (o !== a && o.person === a.person && (o.kind === "severe" || o.kind === "help") && o.status !== "resolved") Object.assign(o, { status: "resolved", resolvedAt: t, assignee: o.assignee ?? a.assignee });
+        }
         if ((a.kind === "severe" || a.kind === "help") && s.crisis) {
           // Al resolver, el nivel pasa directamente al que indiquen los datos
           s.crisis = null;
+          // K-04: si la crisis fue hoy mismo, el día deja de contar como "crisis" para el motor; si no, el día de la crisis
+          // mantendría a la persona en nivel 3 aunque la clínica ya la haya atendido
+          s.crisisDays.delete(dateOf(day));
           s.resolutions.add(dateOf(day));
           s.openHelp = null;
           const run = (sim.runs[a.person] = engineRun(a.person, s, cfg));

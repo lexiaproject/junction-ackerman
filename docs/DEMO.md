@@ -83,12 +83,12 @@ itself: she is asked first about Pablo. Press 21: back on Pablo, he reads "Marta
 Do **not** press the play button on Luis's note, and do not read the note aloud.
 Press 22. Left column: the help sheet opens on Luis's phone ("Need help right now?": 112, the MIELI crisis line, his
 clinic, ask Pablo to write). Right column: **1 Severe alert**, Luis at **3 · Severe** with "Call now". Middle column:
-Pablo reads "The clinic team is in touch with Luis. You don't need to do anything else."
+Pablo reads "Luis's clinic team has been told. You don't need to do anything else." (and sees "This note was passed to Luis's clinic team." instead of the note itself)
 > "A phrase from a fixed list moves Luis to level 3 immediately. Help opens on his phone, the clinic gets a severe
 > alert, and Pablo is told he doesn't have to carry this."
 
 Press 23: "Unattended 15 min → on-call lead" (shown in the layer's "What just happened" log, if E is open).
-**Do not press "Resolve" in the clinic or "Talk to my clinic" on Luis's phone**; the script resolves it on day 59.
+No need to press anything: the script resolves the alert on day 59. (If you do press "Resolve" earlier, Luis goes back to the level his data show and every open severe alert for him closes.)
 
 **Step 7, second half · Days 59-60 · Protecting the mentor (presses 24-26).**
 Press 24: the clinic resolves the alert; Luis goes back to what his data say (level 2). Press 25: Pablo is at level 2;
@@ -128,8 +128,7 @@ The layer shows **88 %**, **5 days**, **2.45**.
 - [ ] **Projector** at 1920×1080 if possible. Practise opening and closing the layer with the **E** key.
 - [ ] **Only forward** during the demo: Next moment or the right arrow. To repeat, More → Go back to day 0.
 - [ ] Don't project the URL with `?w=` or the More menu: anyone with that link can move the demo.
-- [ ] **Day 57: do NOT press "Resolve" in the clinic or "Talk to my clinic" on Luis's phone.** Known limitation of the
-      crisis logic, left untouched on purpose; the script resolves it on day 59.
+- [ ] Day 57: let the script resolve the alert on day 59 (pressing "Resolve" earlier is safe, but it changes the story you tell).
 - [ ] Content note said before step 6; the crisis note is never played aloud.
 
 ---

@@ -17,8 +17,7 @@ Lista corta para quien presenta. Todo sale de los informes de la fase 1 y de DEC
 - No proyectar la URL con `?w=` ni el menú "More": quien tenga el enlace puede mover la demo.
 - Paso 3: pulsar "Yes" en el móvil de Pablo. Si Gemini tarda o falla, el mensaje sale igual con el texto de respaldo
   (se ve "Suggested · you can change it" en vez de "Suggested with AI").
-- **Día 57 (crisis): NO pulsar "Resolve" en la clínica ni "Talk to my clinic" en el móvil de Luis.** El guion resuelve
-  solo el día 59. (Limitación conocida de la lógica de crisis, que no se ha tocado: DECISIONES 6.)
+- Día 57 (crisis): dejar que el guion resuelva el día 59. Pulsar "Resolve" antes ya es seguro (Luis vuelve al nivel de sus datos), pero cambia la historia.
 - No reproducir en voz alta la nota de crisis de Luis (botón de play) delante del jurado: basta con decir que una frase de
   la lista fija la ha activado. Aviso de contenido antes del paso 6.
 - Si la red cae: plan B local con `npm run build && npm start` y abrir http://localhost:3000/relevo/demo (sin variables
