@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Relevo — recovery that passes forward
 
-## Getting Started
+**Junction 2026 · Aalto challenge "Beyond the Clinic": home maintenance after TMS for depression.**
 
-First, run the development server:
+Relevo is a chain of TMS patients. Each person who has just finished TMS is accompanied by a peer mentor who finished
+a few months earlier, and later becomes a mentor for someone behind. Relevo quietly compares each person with their
+own usual (sleep, movement, daily rhythm, phone use). When something drifts, nobody gets an alarm: a human gets a small,
+private nudge to reach out. **Only the clinic ever sees health data.** Mentors only receive the voice notes sent to them.
+
+## ▶ Live demo
+
+### **[junction-ackerman.vercel.app/relevo/demo](https://junction-ackerman.vercel.app/relevo/demo)**
+
+Three surfaces side by side (Luis's phone, his mentor Pablo's phone, the clinic web), a day slider, and a
+**"Show how Relevo decides"** layer that shows what the engine computed behind each screen.
+Press **Next moment** (or the arrow keys) to walk through the story.
+Presenting it? See the 3-minute script, checklist and plan B in [docs/DEMO.md](docs/DEMO.md).
+
+## The problem
+
+TMS works for many people with depression, but the course ends after a few weeks and the person goes home. The months
+after are when relapse risk is high, and the clinic only sees the person again when things are already bad. Patients
+don't want to be watched by an app, and clinics can't call everyone every week. Relevo tries to catch the early drift
+and answer it with a person who has been there, not with a red notification.
+
+## The demo in 8 steps
+
+Day 0 is 7 September, the day after Luis's last TMS session. The contract numbers below (0.87, 0.758, 0.62 → 0.70, 88 %, 5 days, 2.45, 200) are checked automatically by `scripts/relevo-demo-walk.mjs` against the running app.
+
+1. **Day 0 · Matching.** The clinic proposes a mentor for Luis: affinity **0.87** with Pablo vs **0.758** with Sara.
+   Pablo accepts and records an intro.
+2. **Day 40 · Copilot.** Luis's third voice note in a complaint loop → Pablo gets a private tip on how to reply.
+   Luis sees nothing.
+3. **Day 47 · Two-step ask.** Luis has been drifting for three days (level 1). Pablo is asked first, privately. Only after
+   he says "Yes" does Luis read "Pablo would like to talk to you". Pablo receives an idea: a walk (drafted by Gemini, or
+   by a template if the AI is unavailable).
+4. **Days 47-48 · The walk.** Pablo sends it as a voice note, Luis taps "I'm in", then "Good" → the idea's learned
+   probability goes **0.62 → 0.70**.
+5. **Days 54-55 · Level 2.** Pablo says "Can't today": he gets no idea for Luis that day. The clinic schedules a call (notice V4); the
+   next notice (V3) is held until the following day (one push per day); a direct call idea is ready on 31 October.
+6. **Day 57 · Crisis phrase.** A note with a crisis phrase → level 3 immediately: the help sheet opens on Luis's phone,
+   a severe alert appears at the clinic, and Pablo gets a calm message telling him he doesn't need to do anything else. Unattended for 15 minutes, it goes
+   to the on-call lead.
+7. **Days 56-60 · Protecting the mentor.** Pablo starts to drift himself → his own mentor Marta is asked first, Pablo is
+   offered a lighter pace and then a pause, and the clinic sees "Review pace".
+8. **Close · What the simulation shows.** Level 1 catches **88 %** of simulated relapses with a median of **5 days** of
+   notice and **2.45 false alarms per person-year**, on **200 synthetic people** (100 simulated relapses). Level 2 is much
+   stricter: 48 %, 1 day, 0.5 false alarms.
+   These figures come from our offline evaluation of the reference engine on synthetic data that we generated
+   ourselves, with default thresholds. They show that the logic works as designed, **not** that it predicts relapse in
+   real patients; that would need a clinical study. The demo displays them; it does not recompute them.
+
+## What is real and what is simulated
+
+**Real (working code):**
+- The risk engine: a deterministic TypeScript port of our Python reference engine (`src/lib/relevo/engine.ts`). Each
+  person is compared only with their own baseline; levels 0-3 with persistence rules.
+- The simulation of the whole network (`src/lib/relevo/sim.ts`): every action is a timestamped event, replayed minute by
+  minute up to the demo clock (daily engine run at 03:15, notices V1-V8 with priorities and "one push a day", idea
+  selection by a small learning bandit, mentor pace, crisis path, clinic alerts). Same world + same clock = same result,
+  so the slider can go back and forth.
+- What each role can see (`src/lib/relevo/views.ts`): the mentee and mentor apps never receive levels, scores or
+  sensor features.
+- Voice notes recorded in the browser, the crisis-phrase filter, the copilot, the clinic panel and its settings.
+- Gemini (`gemini-3.8-flash`) drafts the mentor's idea message and analyses the text of new voice notes for the
+  copilot, only for people who turned on note analysis (it can add a crisis flag, never remove one). It never writes anything for the clinic, whose summaries are
+  deterministic templates. With no key, or if it fails, the template / rule-based result is used and nothing breaks.
+
+**Simulated / MOCK (marked `// MOCK:` in the code):**
+- **Sensor data.** All sleep, mobility, rhythm, phone and physiology data is synthetic. Luis and Pablo use the exact
+  data of the reference engine; Marta, Sara and five background people are generated. Nothing connects to Apple
+  Health, Health Connect or a ring.
+- **No login and no roles.** The role comes from the URL (`?as=luis|pablo|marta`) and each demo "world" from an id
+  (`?w=`). Anyone with the id can see that world. Every world is synthetic. In production: a session per role, and the
+  clinic behind SSO.
+- **Scripted story.** The characters' actions in the 8 steps are a fixed script of events; the presenter can also act
+  on any phone.
+- **Pseudonyms.** Before a note leaves the app, the names of the 9 people in Relevo are replaced by fixed codes (e.g.
+  ⟨P-41⟩). This happens in the browser, so the server API itself does not pseudonymise text sent to it directly. Browser dictation (Web Speech API, Chrome) stands in for on-device transcription. Scripted notes have no
+  recorded audio and are read aloud by the browser's voice. In production the AI provider would run under a
+  data-processing agreement, on a paid tier with no training on our data, in an EU region.
+- **Audio encryption is not implemented.** Recorded audio is stored as-is; production would use end-to-end encryption
+  with the recipient's key.
+- **Clinic and phone number are fictional.** "Aalto TMS Clinic" and "+358 9 4512 3300" are demo values.
+- **The crisis list is a short illustrative list.** A real deployment would use a clinically validated phrase list
+  reviewed by the clinic, with the AI only ever adding alerts, never removing them. The filter only runs on the notes of people who turned on
+  note analysis, and it misses phrasings that are not on the list.
+- Relevo does not diagnose, treat or replace emergency services.
+
+## Architecture
+
+Next.js 16 (App Router) with React 19, TypeScript and Tailwind CSS 4. The browser never computes risk: it polls small
+API routes (`src/app/api/relevo/*`) that rebuild the world from its event log with the deterministic simulation and
+return only what that role may see. The engine is a port of the Python reference and is checked by 33 automated
+checks (`scripts/relevo-check.mjs`: same outputs as the Python engine's CSVs, plus the acceptance list). Worlds are
+stored in Upstash Redis on Vercel (in local memory when no KV variables are set). Gemini 3.8 Flash is optional, with
+template fallbacks everywhere.
+
+## Run it locally (under 5 minutes)
+
+Requires Node.js 20+.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open **http://localhost:3000/relevo/demo**. No configuration is needed: without a Gemini key the AI texts use their
+templates, and without KV variables the worlds live in server memory (they reset when the server restarts).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Optional variables in `.env.local` (never commit it):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | What for |
+|---|---|
+| `GEMINI_API_KEY` | AI-drafted texts (get one at https://aistudio.google.com/apikey) |
+| `GEMINI_MODEL` | Override the model (default `gemini-3.8-flash`) |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Upstash Redis for persistent worlds (`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` also work) |
 
-## Learn More
+Checks:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+node scripts/relevo-check.mjs        # engine vs Python reference + acceptance list: 33 checks
+node scripts/relevo-demo-walk.mjs    # the 8 demo steps against a running server (default http://localhost:3000): 19 checks
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Other pages: `/relevo` (entry), `/relevo/app?as=luis` or `?as=pablo` (phone apps), `/relevo/clinic` (clinic web).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+> `/` is our earlier prototype (Relay). Relevo lives under `/relevo`.
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — see [LICENSE](LICENSE).

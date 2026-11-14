@@ -36,6 +36,11 @@ export const MOMENTS: Moment[] = [
   { t: at(62, "12:00"), key: "close", label: "What the simulation shows", group: "close" },
 ];
 
+// "What just happened" (J-05/U-09): las claves internas en castellano se sirven con su etiqueta en inglés
+const LABELS: Record<string, string> = { ...ACTION_LABEL, ...DOMAIN_LABEL };
+const KEYS = new RegExp(`\\b(${Object.keys(LABELS).join("|")})\\b`, "g");
+const english = (text: string) => text.replace(KEYS, (k) => LABELS[k]);
+
 const r2 = (v: number | null | undefined) => (v === null || v === undefined ? null : Math.round(v * 100) / 100);
 
 function engineSeries(sim: Sim, id: string) {
@@ -117,7 +122,9 @@ export function demoView(sim: Sim) {
     crisis: {
       alert: sim.alerts.filter((a) => a.person === "luis" && (a.kind === "severe" || a.kind === "help") && a.t <= now).map((a) => ({ text: a.text, when: `${dayLabel(dayOf(a.t))} ${hhmm(a.t)}`, status: a.status, forwarded: a.forwardedAt !== undefined && a.forwardedAt <= now })).at(-1) ?? null,
     },
-    trace: sim.trace.filter((e) => e.t <= now).sort((a, b) => a.t - b.t).slice(-14).reverse().map((e) => ({ when: `${dayLabel(dayOf(e.t))} ${hhmm(e.t)}`, who: e.who, text: e.text, scripted: !!e.scripted })),
+    trace: sim.trace.filter((e) => e.t <= now).sort((a, b) => a.t - b.t).slice(-14).reverse().map((e) => ({ when: `${dayLabel(dayOf(e.t))} ${hhmm(e.t)}`, who: e.who, text: english(e.text), scripted: !!e.scripted })),
+    // Aviso al presentador (K-06): si Luis apagó algún consentimiento, la historia de la demo no ocurre
+    luisConsents: { onboarded: sim.people.luis.onboarded, off: (["data", "notes", "ideas"] as const).filter((k) => !sim.people.luis.consents[k]) },
     evaluation: { l1: { sensitivity: 0.88, lead: 5, iqr: [2, 7.25], fa: 2.45 }, l2: { sensitivity: 0.48, lead: 1, fa: 0.5 }, people: 200, relapses: 100 },
   };
 }

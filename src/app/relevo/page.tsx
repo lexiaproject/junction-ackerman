@@ -24,7 +24,7 @@ export default function RelevoHome() {
           </Link>
         ))}
       </div>
-      <p className="rv-muted mt-8 text-[13px]">Sensor data in this demo is simulated. Voice notes, transcription, the copilot, the crisis filter, the risk engine, notices and learning are real.</p>
+      <p className="rv-muted mt-8 text-[13px]">Sensor data in this demo is simulated, and the browser&apos;s dictation stands in for on-device transcription. Voice notes, the copilot, the crisis filter, the risk engine, notices and learning are working code, not clinically validated. Relevo doesn&apos;t diagnose, treat or replace emergency services.</p>
     </main>
   );
 }

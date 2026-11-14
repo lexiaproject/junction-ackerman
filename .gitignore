@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 !.env.example
+
+# capturas y registros de Playwright (MCP); sin barra inicial: cubre también .claude/.playwright-mcp/
+.playwright-mcp/

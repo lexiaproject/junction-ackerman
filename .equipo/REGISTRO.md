@@ -1,0 +1,34 @@
+# REGISTRO
+
+- 10:58 · Director · inicio de sesión; árbol limpio; tag `inicio-sesion`; rama `sesion-autonoma`.
+- 11:00 · Director · línea base: relevo-check 33/33, build limpio.
+- 11:02 · Director · servidor local :3000 sin Gemini; creado scripts/relevo-demo-walk.mjs; recorrido 19/19 OK.
+- 11:04 · Director · escritos MAPA, ESTADO, DECISIONES, BACKLOG, REGISTRO.
+- 11:02 · Director · fase 1 lanzada: 9 especialistas de solo lectura en paralelo.
+- 11:07 · Seguridad · informe f1-seguridad.md: sin secretos en historial; S-01 alta (XSS vía mime de audio), S-02..S-10 media/baja.
+- 11:09 · Juez de Producto · f1-juez.md: nota 7,3 (8/8/7/6). Top: J-02 modo foco proyector, J-01 README, J-03/J-04 copiloto visible y visita corta de 8 paradas.
+- 11:10 · Arquitecto · f1-arquitecto.md: A-01/A-02 pérdida de escrituras por esperar a Gemini antes de guardar; A-03 reintentos de Gemini en cada sondeo; A-04 respuestas viejas pisan nuevas en useView; A-05 fallos silenciosos; A-06 ids de nota tras reset.
+- 11:12 · Diseñador visual · f1-diseno.md: demo ilegible a 1440 (escala 43-46 %); sin estado de error; relevo.css fuera de capa pisa Tailwind; timeline solapado; claves en castellano en el registro; ejes de gráficos raros.
+- 11:12 · Seguridad clínica · f1-clinica.md: 27 hallazgos, 11 altos: avisos que afirman falsedades (M6, M5, V3), nota de crisis literal a Pablo, crisis sin consentimiento de notas, apóstrofo tipográfico, M0 revela huella, consentimiento obligatorio, honestidad de cifras.
+- 11:12 · Accesibilidad · f1-accesibilidad.md: 25 hallazgos; crisis: foco no entra en la hoja de ayuda (X-01), confirmación en botón desactivado (X-02), sin botón cerrar (X-03); M0 foco detrás (X-04); grabadora sin clic (X-05).
+- 11:13 · Rendimiento · f1-rendimiento.md: LCP 0,73-0,94 s, CLS 0; evaluate 2-48 ms; acción→3 paneles ~0,2 s local, ~0,5-0,7 s prod (estimado); R-01 /mentor espera a Gemini y pisa escrituras; R-03/R-04 en useView.
+- 11:14 · Investigador UX · f1-ux.md: 22 hallazgos (7 altos): legibilidad, dónde mirar, copiloto oculto, guion responde antes que el presentador, hojas abiertas al avanzar, Can't today borra el paseo, flecha tras deslizador, numeración de capa, códigos en castellano, Tomorrow Sunday, botón ficha 2ª vez.
+- 11:15 · QA · f1-qa.md: línea base intacta; Q-01 eventos inválidos rompen el mundo (500 en todas las vistas); Q-02 resolver el mismo día de la crisis deja nivel 3; Q-03 A0 sin consentimientos rompe la demo; Q-06 el recorrido no detecta acciones que no hacen nada.
+- 11:16 · Director · fase 1: los 9 informes recibidos; lanzado Jefe de Calidad para consolidar. Nota de proceso: el navegador Playwright es compartido; en adelante solo un agente a la vez lo usa.
+- 11:25 · Jefe de Calidad · f1-calidad.md: 56 consolidados (K-01..K-56), 0 bloqueantes, 17 altos; decisiones de crisis del Director en DECISIONES 6-10.
+- 11:26 · Director · lanzados Juez (ordenar BACKLOG.md) y Arquitecto (planes y propiedad de archivos, f1-planes.md) en paralelo.
+- 11:40 · Director · ciclo 1 lanzado (Backend P1-P3, Frontend P4-P6, Diseño P11/P13/P14). Escrito GUION-ENSAYO.md (K-49).
+- 11:51 · Director · ciclo 1: implementación terminada (Backend P1-P3, Frontend P4-P6+K-06, Diseño P11/P13/P14). Lanzada la revisión: código, QA, seguridad, clínica, accesibilidad, rendimiento.
+- 12:04 · Revisores c1 · código, QA, seguridad, clínica, accesibilidad, rendimiento: ningún rechazo; coinciden en useView con red lenta (QC1-01/RC1-01/PC1-03); textos de README y franja (clínica); selector Jump (XC1-01). Lanzado Jefe de Calidad para veredicto.
+- 12:07 · Jefe de Calidad · c1-calidad.md: T1 T2 T3 T6 aprobadas; T4 T5 T7 con arreglos menores obligatorios (useView my>applied, texto franja, selector Jump con teclado, 8 textos README + LICENSE MIT). Lanzados los arreglos (Frontend, Diseño).
+- 12:14 · Segunda revisión c1 · QA y Clínica: APROBADO. Lanzado Integrador (7 commits por tarea con la puerta).
+- 12:22 · Integrador · ciclo 1 confirmado: 7 commits en verde (33/33, build, 19/19); protegidos intactos.
+- 12:22 · Director · ciclo 2 lanzado (Frontend, Backend, Diseño/a11y). U-06 queda fuera (Arquitecto: no cabe).
+- 12:30 · Director · ciclo 2: implementación terminada (Frontend 7 tareas, Backend 5, Diseño K-08/K-09/K-44/K-35 parcial). Lanzada revisión: código, QA, clínica, accesibilidad (seguridad y rendimiento no aplican: no se tocaron sus áreas).
+- 12:40 · Revisores c2 · clínica: aprobado con arreglos menores; código: rechaza D2 (RC2-01 foco en la demo, RC2-02 confirmaciones); accesibilidad: XC2-01 alta mismo fallo; QA: QC2-01 bloqueante mismo fallo. Lanzado Jefe de Calidad.
+- 12:43 · Jefe de Calidad · c2-calidad.md: B2 aprobado; F2 aprobado con 1 arreglo (texto); D2 rechazado hasta arreglar foco en la demo y confirmaciones. Los 3 arreglos asignados a Diseño (un solo dueño de demo/page.tsx).
+- 12:46 · Diseño · arreglos c2 aplicados (foco en la demo, confirmaciones separadas, 'health data'). Lanzada segunda revisión (QA, Clínica).
+- 12:54 · Segunda revisión c2 · QA y Clínica: APROBADO. Lanzado Integrador del ciclo 2.
+- 12:59 · Integrador · ciclo 2 confirmado: eb68636 B2, 1a6972a D2, 87ae2ce F2, 7a1bb6a memoria (puerta en verde).
+- 12:59 · Director · fases 3 y 4 en paralelo: Verificador de ojos frescos, QA x3, Rendimiento y Seguridad finales, Juez (repuntuación), Redactor (docs/DEMO.md).
+- 13:14 · Director · el usuario pide publicar ya: anonimizadas rutas de .equipo; puerta 33/33 y 19/19; fusión squash en main y push.

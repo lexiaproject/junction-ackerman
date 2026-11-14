@@ -1,6 +1,6 @@
 "use client";
 // Piezas comunes de Relevo: datos en vivo, iconos de trazo, avatares, notas de voz con onda, grabadora y hojas.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { hideNames, revealNames } from "@/lib/relevo/pseudo";
 
 /* ---------- Mundo de la demo: uno por navegador; ?w=ID para compartirlo entre teléfonos ---------- */
@@ -42,17 +42,31 @@ export function useView<T>(url: string | null, pollMs = 4000) {
   useEffect(() => {
     if (!url) return;
     let alive = true;
+    let last = 0; // número de la petición más reciente: una respuesta vieja que llega tarde no pisa a la nueva
+    let applied = 0; // número de la última respuesta aplicada: nunca se pinta una más vieja
+    let lastText = ""; // última respuesta aplicada: si llega igual, no se vuelve a pintar
     const load = async () => {
+      const my = ++last;
       try {
         const r = await fetch(url, { cache: "no-store" });
-        const j = await r.json();
+        const txt = await r.text();
+        let j;
+        try {
+          j = JSON.parse(txt);
+        } catch {
+          throw new Error(`Error ${r.status}`);
+        }
         if (!r.ok) throw new Error(j.error ?? `Error ${r.status}`);
-        if (alive) {
-          setData(j);
+        if (alive && my > applied) {
+          applied = my;
           setError("");
+          if (txt !== lastText) {
+            lastText = txt;
+            setData(j);
+          }
         }
       } catch (e) {
-        if (alive) setError((e as Error).message);
+        if (alive && my > applied) setError((e as Error).message || "Network error");
       }
     };
     load();
@@ -232,9 +246,9 @@ export function VoiceNote({ note, player, bubble = false }: { note: NoteV; playe
             <Icon name={on ? "pause" : "play"} size={18} filled={!on} />
           </button>
           <Waveform seed={note.id} progress={on ? player.progress : 0} color={note.mine && bubble ? "#fff" : "var(--color-rv-teal)"} />
-          <span className={`rv-num text-[12.5px] ${note.mine && bubble ? "text-white/80" : "rv-muted"}`}>{fmtDur(note.duration)}</span>
+          <span className={`rv-num text-[12.5px] ${note.mine && bubble ? "text-white/90" : "rv-muted"}`}>{fmtDur(note.duration)}</span>
         </div>
-        <div className={`mt-1 flex items-center justify-between gap-3 text-[12px] ${note.mine && bubble ? "text-white/75" : "rv-muted"}`}>
+        <div className={`mt-1 flex items-center justify-between gap-3 text-[12px] ${note.mine && bubble ? "text-white/90" : "rv-muted"}`}>
           <button onClick={() => setOpen((o) => !o)} className="underline-offset-2 hover:underline" aria-expanded={open}>
             {open ? "Hide text" : "Show text"}
           </button>
@@ -247,15 +261,70 @@ export function VoiceNote({ note, player, bubble = false }: { note: NoteV; playe
 }
 
 /* ---------- Hoja inferior (dentro del teléfono, no de la ventana) ---------- */
+// K-08: diálogo modal de verdad. Al abrirse el foco entra en el título (o en la hoja), Tab/Shift+Tab dan la vuelta dentro,
+// Escape cierra SOLO esta hoja (se escucha en la propia hoja, no en window) y al cerrar el foco vuelve a donde estaba.
+// Regla del propio teléfono: solo se toma el foco si estaba en <body> o dentro de la misma app; así, cuando la hoja de
+// Luis se abre sola en la crisis de la demo, no se le quita el foco al presentador ("Next moment").
+const FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
 export function Sheet({ onClose, children, label }: { onClose: () => void; children: React.ReactNode; label: string }) {
+  const id = useId();
+  const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [onClose]);
+    const el = box.current;
+    if (!el) return;
+    const title = el.querySelector("h2"); // todas las hojas abren con su h2; si no hay, vale el aria-label
+    if (title) {
+      title.id = id;
+      title.tabIndex = -1;
+    }
+    const prev = document.activeElement as HTMLElement | null;
+    const scope = el.parentElement?.parentElement ?? document.body; // la app del teléfono (la hoja cuelga de su raíz)
+    const embedded = !!el.closest("[data-rv-demo]"); // en la vista de demo, desde <body> el foco se queda con el presentador
+    const take = prev && prev !== document.body ? scope.contains(prev) : !embedded;
+    if (take) (title ?? el).focus({ preventScroll: true });
+    return () => {
+      const a = document.activeElement;
+      if (take && prev?.isConnected && (!a || a === document.body || el.contains(a))) prev.focus({ preventScroll: true });
+    };
+    // Solo al montar: el sondeo redibuja cada pocos segundos y no debe mover el foco.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key !== "Tab" || !box.current) return;
+    const list = Array.from(box.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((n) => n.getClientRects().length > 0);
+    if (!list.length) return;
+    const first = list[0];
+    const last = list[list.length - 1];
+    const a = document.activeElement;
+    if (e.shiftKey && (a === first || a === box.current)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && a === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
   return (
     <div className="absolute inset-0 z-40 flex items-end bg-[#16211c]/35" onClick={onClose}>
-      <div role="dialog" aria-label={label} className="rv-sheet rv-scroll max-h-[92%] w-full overflow-y-auto rounded-t-[26px] bg-rv-bg px-5 pb-7 pt-3" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={box}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={id}
+        aria-label={label}
+        tabIndex={-1}
+        onKeyDown={onKeyDown}
+        className="rv-sheet rv-scroll relative max-h-[92%] w-full overflow-y-auto rounded-t-[26px] bg-rv-bg px-5 pb-7 pt-3 focus:outline-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button type="button" onClick={onClose} aria-label="Close" className="rv-btn rv-btn-ghost absolute right-3 top-3 h-11 w-11 !px-0">
+          <Icon name="x" />
+        </button>
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#cfd5cf]" />
         {children}
       </div>

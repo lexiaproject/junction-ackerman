@@ -332,7 +332,9 @@ export function evaluate(world: World, nowIn?: number): Sim {
     });
   }
   function offerV3(mentee: PersonId, mentor: PersonId, t: number) {
-    offer({ id: `V3:${mentee}:${dayOf(t)}`, code: "V3", to: mentee, about: mentor, text: NOTICE_TEXT.V3(name(mentor)), buttons: [{ id: "note", label: "Send a note" }, { id: "not_now", label: "Not now" }], created: t, validUntil: t + DAY }, t);
+    // K-11: si hoy el mentor respondió "Can't today", el texto no dice nada de lo que él quiere
+    const cant = sim.cards.some((c) => c.mentor === mentor && c.mentee === mentee && c.twoStep?.status === "cant" && dayOf(c.t) === dayOf(t));
+    offer({ id: `V3:${mentee}:${dayOf(t)}`, code: "V3", to: mentee, about: mentor, text: (cant ? NOTICE_TEXT.V3_CANT : NOTICE_TEXT.V3)(name(mentor)), buttons: [{ id: "note", label: "Send a note" }, { id: "not_now", label: "Not now" }], created: t, validUntil: t + DAY }, t);
   }
 
   /* ----- Nivel 3: ayuda y clínica, nunca avisos amables ----- */
@@ -760,7 +762,12 @@ export function evaluate(world: World, nowIn?: number): Sim {
   for (let d = 0; d <= dayOf(now); d++) push(at(d, "03:15"), 0, () => engineTick(d));
   const userEvents = world.events.filter((e) => e.t <= now).sort((a, b) => a.t - b.t || a.seq - b.seq);
   for (const e of userEvents) push(e.t, 6 + e.seq / 1e6, () => {
-    if (!act(e, false)) trace(e.t, e.by, `(${e.type} ignored: no longer applicable)`);
+    // K-03: un evento con datos malos no puede dejar el mundo en 500 para siempre; se ignora y queda en la traza
+    try {
+      if (!act(e, false)) trace(e.t, e.by, `(${e.type} ignored: no longer applicable)`);
+    } catch {
+      trace(e.t, e.by, `(${e.type} ignored: invalid data)`);
+    }
   });
   // El guion se salta si la persona ya actuó por su cuenta ese día sobre lo mismo
   for (const s of SCRIPT) push(s.t, 6.5, () => {

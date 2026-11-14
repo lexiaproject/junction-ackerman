@@ -21,6 +21,9 @@ export function addEvent(world: World, by: Who, type: string, p: Record<string, 
   world.events.push(ev);
   return ev;
 }
+/** K-07: solo se guardan y sirven estos tipos de audio (Chrome webm, Firefox ogg, Safari mp4, mp3); cualquier otro → audio/webm */
+export const AUDIO_MIME = /^audio\/(webm|ogg|mp4|mpeg)(;[\w=.\-\s]*)?$/;
+export const safeAudioMime = (m: unknown) => (typeof m === "string" && AUDIO_MIME.test(m) ? m : "audio/webm");
 export async function saveAudio(w: string, id: string, b64: string, mime: string) {
   await kset(`relevo:a:${w}:${id}`, { b64, mime }, TTL); // se borra solo a los 30 días
 }

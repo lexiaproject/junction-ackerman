@@ -2,7 +2,7 @@
 // Vista de demo (sección 12): el móvil de Luis, el de Pablo (o Marta) y la web de la clínica a la vez,
 // con un deslizador de días y la "Capa de explicación" que enseña lo que calculó el motor.
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { revealNames } from "@/lib/relevo/pseudo";
 import { LEVEL_COLOR, LEVEL_TEXT, LineChart } from "../charts";
 import ClinicWeb, { LevelTag } from "../ClinicWeb";
@@ -24,6 +24,7 @@ type DemoData = {
   notices: { code: string; to: string; text: string; time: string; status: string; pushed: boolean; why: string | null }[];
   crisis: { alert: { text: string; when: string; status: string; forwarded: boolean } | null };
   trace: { when: string; who: string; text: string; scripted: boolean }[];
+  luisConsents?: { onboarded: boolean; off: ("data" | "notes" | "ideas")[] };
   evaluation: { l1: { sensitivity: number; lead: number; iqr: number[]; fa: number }; l2: { sensitivity: number; lead: number; fa: number }; people: number; relapses: number };
 };
 const DAY = 1440;
@@ -34,50 +35,98 @@ const DOM_LABEL: Record<string, string> = { sueno: "Sleep", movilidad: "Mobility
 export default function DemoPage() {
   const w = useWid();
   const [mentor, setMentor] = useState<"pablo" | "marta">("pablo");
-  const [explain, setExplain] = useState(true);
-  const [focus, setFocus] = useState<string | null | undefined>(undefined);
+  // Empieza cerrada para que los teléfonos se lean en el proyector; tecla E para abrir/cerrar
+  const [explain, setExplain] = useState(false);
+  // Ficha que la capa pide abrir en la clínica; n cuenta los clics para que funcione también la segunda vez
+  const [focus, setFocus] = useState<{ id: string | null; n: number } | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [lost, setLost] = useState(false);
   useOfflineQueue();
-  const { data } = useView<DemoData>(w ? `/api/relevo/demo?w=${w}` : null, 5000);
+  const { data, error } = useView<DemoData>(w ? `/api/relevo/demo?w=${w}` : null, 5000);
 
+  // Aviso "Connection lost" durante 4 s si falla una acción del presentador
+  const lostTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const viaKey = useRef(false); // el selector "Jump to moment" se está usando con teclado
+  const flagLost = useCallback(() => {
+    setLost(true);
+    clearTimeout(lostTimer.current);
+    lostTimer.current = setTimeout(() => setLost(false), 4000);
+  }, []);
+
+  // Último destino pedido del reloj: "Next" rápido parte de ahí y no del reloj que aún no ha llegado
+  const target = useRef<number | null>(null);
+  const chain = useRef<Promise<unknown>>(Promise.resolve());
+  const pending = useRef(0);
   const setClock = useCallback(
-    async (to: number) => {
+    (to: number) => {
       if (!w) return;
+      const t = Math.max(0, Math.min(END, to));
+      target.current = t;
+      pending.current++;
       setBusy(true);
-      await act(w, "demo", "clock", { to: Math.max(0, Math.min(END, to)) }).catch(() => {});
-      setBusy(false);
+      // En cadena: las peticiones llegan al servidor en el orden en que se pulsaron
+      chain.current = chain.current
+        .then(() => act(w, "demo", "clock", { to: t }))
+        .catch(() => {
+          if (target.current === t) target.current = null;
+          flagLost();
+        })
+        .finally(() => {
+          if (--pending.current === 0) setBusy(false);
+        });
+      setTimeout(() => {
+        if (target.current === t) target.current = null;
+      }, 5000);
     },
-    [w],
+    [w, flagLost],
+  );
+  useEffect(() => {
+    if (data && target.current === data.clock.t) target.current = null;
+  }, [data]);
+  // Un solo sitio que mueve el reloj a un momento y elige qué teléfono enseña la columna del mentor
+  const pickMoment = useCallback(
+    (m: DemoData["moments"][number]) => {
+      setClock(m.t);
+      if (m.group === "mentor" || m.group === "mentor2") setMentor(m.key === "pl1" ? "marta" : "pablo");
+      else if (m.group === "solution" || m.group === "high" || m.group === "crisis" || m.group === "detect") setMentor("pablo");
+    },
+    [setClock],
   );
   const next = useCallback(() => {
     if (!data) return;
-    const m = data.moments.find((x) => x.t > data.clock.t);
-    if (m) {
-      setClock(m.t);
-      if (m.group === "mentor" || m.group === "mentor2") setMentor(m.key === "pl1" || m.key === "pl2" ? "marta" : "pablo");
-      else if (m.group === "solution" || m.group === "high" || m.group === "crisis" || m.group === "detect") setMentor("pablo");
-    }
-  }, [data, setClock]);
+    const base = target.current ?? data.clock.t;
+    const m = data.moments.find((x) => x.t > base);
+    if (m) pickMoment(m);
+  }, [data, pickMoment]);
   const prev = useCallback(() => {
     if (!data) return;
-    const m = [...data.moments].reverse().find((x) => x.t < data.clock.t);
-    setClock(m ? m.t : 0);
-  }, [data, setClock]);
+    const base = target.current ?? data.clock.t;
+    const m = [...data.moments].reverse().find((x) => x.t < base);
+    if (m) pickMoment(m);
+    else setClock(0);
+  }, [data, pickMoment, setClock]);
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = e.target as HTMLElement;
+      const tag = el.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable) return;
+      if (el.closest?.('[role="dialog"],[role="radiogroup"]')) return;
       if (e.key === "ArrowRight") next();
       if (e.key === "ArrowLeft") prev();
+      if ((e.key === "e" || e.key === "E") && !e.shiftKey && !e.repeat) setExplain((x) => !x);
     };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, [next, prev]);
 
-  if (!w || !data) return <div className="rv-muted flex flex-1 items-center justify-center">Loading the demo…</div>;
+  if (!w || !data)
+    return <div className="rv-muted flex flex-1 items-center justify-center" role="status">{error ? "Can't reach Relevo right now · retrying…" : "Loading the demo…"}</div>;
   const c = data.clock;
   const moment = data.index >= 0 ? data.moments[data.index] : null;
   const share = typeof window !== "undefined" ? `${window.location.origin}/relevo/app?w=${w}` : "";
+  const CONSENT_LABEL = { data: "data summaries", notes: "notes analysis", ideas: "AI ideas" } as const;
+  const off = data.luisConsents?.onboarded ? data.luisConsents.off : [];
 
   return (
     <div className="flex min-h-dvh flex-col lg:h-dvh lg:min-h-[640px] lg:overflow-hidden">
@@ -90,13 +139,44 @@ export default function DemoPage() {
             <p className="rv-muted truncate text-[13px]">{moment ? moment.label : "Before the demo starts"}</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            {(error || lost) && <span role="status" className="rv-chip bg-rv-notice text-rv-notice-ink">Connection lost · retrying…</span>}
             <button className="rv-btn rv-btn-ghost rv-btn-sm" onClick={prev} disabled={busy} aria-label="Previous moment"><Icon name="back" size={18} /></button>
             <button className="rv-btn rv-btn-primary" onClick={next} disabled={busy || data.index >= data.moments.length - 1}>Next moment<Icon name="chevron" size={18} /></button>
-            <details className="relative">
+            <details
+              className="relative"
+              onKeyDown={(e) => {
+                if (e.key !== "Escape" || !e.currentTarget.open) return;
+                e.currentTarget.open = false;
+                e.currentTarget.querySelector("summary")?.focus();
+              }}
+            >
               <summary className="rv-btn rv-btn-ghost rv-btn-sm list-none">More</summary>
               <div className="absolute right-0 z-50 mt-1 w-72 rounded-2xl bg-white p-3 text-[13px] shadow-xl ring-1 ring-rv-line">
+                <label className="block px-2 pb-2">
+                  <span className="rv-muted block pb-1">Jump to moment</span>
+                  <select
+                    aria-label="Jump to moment"
+                    className="w-full rounded-lg border border-rv-line bg-white px-2 py-1.5"
+                    value={moment?.key ?? ""}
+                    onKeyDown={() => { viaKey.current = true; }}
+                    onPointerDown={() => { viaKey.current = false; }}
+                    onChange={(e) => {
+                      const m = data.moments.find((x) => x.key === e.target.value);
+                      if (m) pickMoment(m);
+                      if (viaKey.current) return; // con teclado el foco y el menú se quedan
+                      e.currentTarget.blur(); // las flechas vuelven a mover de momento
+                      const d = e.currentTarget.closest("details");
+                      if (d) d.open = false;
+                    }}
+                  >
+                    {!moment && <option value="">Before the demo starts</option>}
+                    {data.moments.map((m) => (
+                      <option key={m.key} value={m.key}>Day {m.day} {m.time} · {m.label}</option>
+                    ))}
+                  </select>
+                </label>
                 <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={() => setClock(8 * 60)}>Go back to day 0</button>
-                <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={async () => { await act(w, "demo", "reset"); }}>Reset everything people did (keep the time)</button>
+                <button className="block w-full rounded-lg px-2 py-2 text-left hover:bg-rv-bg" onClick={() => act(w, "demo", "reset").catch(flagLost)}>Reset everything people did (keep the time)</button>
                 <a className="block rounded-lg px-2 py-2 hover:bg-rv-bg" href={`/relevo/app?w=${w}&as=luis`} target="_blank">Open Luis&apos;s app on its own</a>
                 <a className="block rounded-lg px-2 py-2 hover:bg-rv-bg" href={`/relevo/clinic?w=${w}`} target="_blank">Open the clinic web on its own</a>
                 <p className="rv-muted mt-2 border-t border-rv-line px-2 pt-2">Same demo on a real phone: <span className="break-all font-semibold text-rv-ink">{share}</span></p>
@@ -104,11 +184,29 @@ export default function DemoPage() {
             </details>
           </div>
         </div>
-        <Timeline data={data} onPick={setClock} />
+        <Timeline data={data} onPick={setClock} onMoment={pickMoment} />
+        {/* J-08 · Antes del primer momento: por qué hace falta Relevo (sin cifras clínicas) */}
+        {data.index < 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-2xl bg-rv-sage px-4 py-3">
+            <p className="text-[19px] font-semibold text-rv-teal" style={{ fontFamily: "var(--rv-display)" }}>Beyond the clinic</p>
+            <ul className="min-w-0 flex-1 text-[14px] leading-snug">
+              <li>After the last TMS session, each person goes home on their own.</li>
+              <li>Relevo pairs every patient with someone who finished TMS a few months earlier.</li>
+              <li>The phone nudges a person, never an alarm, and only the clinic sees health data.</li>
+            </ul>
+            <p className="font-semibold">Press <kbd className="rounded-md border border-rv-line bg-white px-1.5 text-[13px]">→</kbd> to start</p>
+          </div>
+        )}
+        {off.length > 0 && (
+          <div role="status" className="mt-1 flex flex-wrap items-center gap-2 rounded-xl bg-rv-notice px-3 py-1.5 text-[13px] text-rv-notice-ink">
+            <span>Luis turned off {off.map((k) => CONSENT_LABEL[k]).join(" and ")}. That&apos;s his choice; the scripted story assumes all three are on.</span>
+            <button className="font-semibold underline" onClick={() => act(w, "demo", "reset").catch(flagLost)}>Reset</button>
+          </div>
+        )}
       </header>
 
       {/* Las tres superficies a la vez */}
-      <div className="grid grid-cols-1 gap-6 px-5 pt-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.6fr)] lg:gap-4">
+      <div data-rv-demo className="grid grid-cols-1 gap-6 px-5 pt-3 sm:grid-cols-2 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.6fr)] lg:gap-4">
         <Column title="Luis" sub="accompanied · just finished TMS">
           <Fit width={390} height={844}><Phone time={c.time} label="Luis's phone"><MenteeApp w={w} /></Phone></Fit>
         </Column>
@@ -123,32 +221,33 @@ export default function DemoPage() {
             </div>
           }
         >
-          <Fit width={390} height={844}><Phone time={c.time} label={`${mentor}'s phone`}><MentorApp key={mentor} w={w} as={mentor} /></Phone></Fit>
+          <Fit width={390} height={844}><Phone time={c.time} label={`${mentor}'s phone`}><MentorApp key={mentor} w={w} as={mentor} resetKey={data.index} /></Phone></Fit>
         </Column>
         <Column title="Clinic" sub="Aalto TMS Clinic · desktop web" right={<span className="rv-chip bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</span>}>
-          <Fit width={1280} height={820}>
-            <div className="h-[820px] w-[1280px] overflow-hidden rounded-2xl shadow-[0_0_0_1px_var(--color-rv-line),0_20px_40px_-24px_rgb(0_0_0/0.35)]">
-              <ClinicWeb w={w} onFocusPerson={focus} />
+          <Fit width={1100} height={820}>
+            <div className="h-[820px] w-[1100px] overflow-hidden rounded-2xl shadow-[0_0_0_1px_var(--color-rv-line),0_20px_40px_-24px_rgb(0_0_0/0.35)]">
+              <ClinicWeb w={w} onFocusPerson={focus} resetKey={data.index} />
             </div>
           </Fit>
         </Column>
       </div>
 
       {/* Capa de explicación: solo existe en la demo */}
-      <section className={`shrink-0 border-t border-rv-line bg-white ${explain ? "lg:h-[38vh] lg:min-h-[260px]" : ""}`}>
+      <section className={`shrink-0 border-t border-rv-line bg-white ${explain ? "lg:h-[30vh] lg:min-h-[220px]" : ""}`}>
         <div className="flex items-center gap-3 px-5 py-2">
           <label className="flex cursor-pointer items-center gap-2.5 font-semibold">
             <button role="switch" aria-checked={explain} onClick={() => setExplain((e) => !e)} className={`relative h-6 w-10 rounded-full transition-colors ${explain ? "bg-rv-teal" : "bg-[#cdd3ce]"}`}>
               <span className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${explain ? "translate-x-[18px]" : "translate-x-0.5"}`} />
             </button>
             Show how Relevo decides
+            <kbd className="rounded-md border border-rv-line bg-rv-bg px-1.5 text-[12px] font-semibold text-rv-ink2" aria-label="Keyboard shortcut E" title="Press E to show or hide">E</kbd>
           </label>
           <span className="rv-muted text-[13px]">What the engine computed to make the phones show what they show. Luis and Pablo never see any of this.</span>
           <span className="rv-chip ml-auto bg-[#f1ede4] text-[#6b5a2e]">Simulated sensor data</span>
         </div>
         {explain && (
           <div className="rv-scroll grid grid-cols-1 gap-5 px-5 pb-3 lg:h-[calc(100%-44px)] lg:grid-cols-[minmax(0,1fr)_300px] lg:overflow-hidden">
-            <div className="rv-scroll min-w-0 overflow-y-auto pr-1"><Explain data={data} onFocus={(id) => setFocus(id)} /></div>
+            <div className="rv-scroll min-w-0 overflow-y-auto pr-1"><Explain data={data} onFocus={(id) => setFocus((f) => ({ id, n: (f?.n ?? 0) + 1 }))} /></div>
             <EngineLog trace={data.trace} />
           </div>
         )}
@@ -170,26 +269,37 @@ function Column({ title, sub, right, children }: { title: string; sub: string; r
   );
 }
 
-function Timeline({ data, onPick }: { data: DemoData; onPick: (t: number) => void }) {
+function Timeline({ data, onPick, onMoment }: { data: DemoData; onPick: (t: number) => void; onMoment: (m: DemoData["moments"][number]) => void }) {
   const c = data.clock;
   const pct = (t: number) => (t / END) * 100;
   const [drag, setDrag] = useState<number | null>(null);
   const day = drag ?? c.day;
+  // Un punto por día (los momentos del mismo día se solapaban): lleva al primer momento de ese día
+  const days: { first: number; list: DemoData["moments"] }[] = [];
+  data.moments.forEach((m, i) => {
+    const g = days.at(-1);
+    if (g && data.moments[g.first].day === m.day) g.list.push(m);
+    else days.push({ first: i, list: [m] });
+  });
   return (
     <div className="relative mt-2 pb-1">
       <div className="relative h-5">
         {/* Línea base de Luis (días 0-27) */}
         <div className="absolute top-2 h-1 rounded-full bg-rv-sage" style={{ left: 0, width: `${pct(28 * DAY)}%` }} title="Luis's baseline: days 0-27" />
-        {data.moments.map((m, i) => (
-          <button
-            key={m.key}
-            onClick={() => onPick(m.t)}
-            title={`Day ${m.day} · ${m.time} · ${m.label}`}
-            aria-label={`Day ${m.day}, ${m.time}: ${m.label}`}
-            className={`absolute top-0.5 h-4 w-4 -translate-x-1/2 rounded-full border-2 transition-transform hover:scale-125 ${i <= data.index ? "border-rv-teal bg-rv-teal" : "border-rv-teal bg-white"}`}
-            style={{ left: `${pct(m.t)}%` }}
-          />
-        ))}
+        {days.map(({ first, list }) => {
+          const m = list[0];
+          const all = list.map((x) => `${x.time} · ${x.label}`).join("\n");
+          return (
+            <button
+              key={m.key}
+              onClick={() => onMoment(m)}
+              title={`Day ${m.day}\n${all}`}
+              aria-label={`Day ${m.day}: ${list.map((x) => `${x.time} ${x.label}`).join("; ")}`}
+              className={`absolute top-0.5 h-4 w-4 -translate-x-1/2 rounded-full border-2 transition-transform hover:scale-125 ${first <= data.index ? "border-rv-teal bg-rv-teal" : "border-rv-teal bg-white"}`}
+              style={{ left: `${pct(m.t)}%` }}
+            />
+          );
+        })}
       </div>
       <input
         type="range"
@@ -198,8 +308,15 @@ function Timeline({ data, onPick }: { data: DemoData; onPick: (t: number) => voi
         step={1}
         value={day}
         aria-label="Day of the demo"
+        aria-valuetext={`Day ${day}`}
         onChange={(e) => setDrag(Number(e.target.value))}
-        onPointerUp={() => drag !== null && (onPick(drag * DAY + (c.t % DAY)), setDrag(null))}
+        onPointerUp={(e) => {
+          if (drag !== null) {
+            onPick(drag * DAY + (c.t % DAY));
+            setDrag(null);
+          }
+          e.currentTarget.blur(); // tras arrastrar, las flechas vuelven a mover de momento (no de día)
+        }}
         onKeyUp={() => drag !== null && (onPick(drag * DAY + (c.t % DAY)), setDrag(null))}
         className="w-full accent-[#0E6B5C]"
       />
@@ -394,11 +511,11 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
   const e = data.evaluation;
   return (
     <div className="grid grid-cols-3 gap-4">
-      <div className="col-span-3"><H>8 · What the simulation shows</H><p className="rv-muted mt-1 text-[13px]">{e.people} synthetic people, {e.relapses} simulated relapses, default thresholds.</p></div>
+      <div className="col-span-3"><H>8 · What the simulation shows</H><p className="rv-muted mt-1 text-[13px]">{e.people} synthetic people we generated, {e.relapses} simulated relapses, default thresholds. This checks that the logic works as designed, not that it predicts relapse in real patients.</p></div>
       {[["Level 1 catches", `${Math.round(e.l1.sensitivity * 100)}%`, "of simulated relapses"], ["Median lead time", `${e.l1.lead} days`, `IQR ${e.l1.iqr[0]}–${e.l1.iqr[1]} days`], ["False alarms, level 1", `${e.l1.fa}`, "per person per year: a walk with the mentor"]].map(([a, b, cc]) => (
         <div key={a} className="rounded-2xl bg-rv-bg p-4"><p className="rv-num text-[30px] font-semibold text-rv-teal" style={{ fontFamily: "var(--rv-display)" }}>{b}</p><p className="font-semibold">{a}</p><p className="rv-muted text-[12.5px]">{cc}</p></div>
       ))}
-      <p className="col-span-3 text-[14px]">Level 2 is much stricter: <b>{e.l2.fa}</b> false alarms per person per year. <i>Cheap false alarms (a walk) go to the mentor; expensive ones almost never reach the clinic. This tests the logic, not clinical accuracy.</i></p>
+      <p className="col-span-3 text-[14px]">Level 2 is much stricter: it catches <b>{Math.round(e.l2.sensitivity * 100)}%</b> with a median of <b>{e.l2.lead} {e.l2.lead === 1 ? "day's" : "days'"}</b> notice, and gives <b>{e.l2.fa}</b> false alarms per person per year. <i>Cheap false alarms (a walk) go to the mentor; costly ones reach the clinic far less often. Real-world accuracy would need a clinical study.</i></p>
       <p className="rv-muted col-span-3 text-[12px]">Levels: {LEVEL_TEXT.map((l, i) => `${i} ${l}`).join(" · ")}</p>
     </div>
   );

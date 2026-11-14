@@ -1,7 +1,7 @@
 "use client";
 // Web de la clínica: responde primero a "¿a quién llamamos hoy?" y deja el detalle a un clic.
 // Es el único sitio con datos. Los resúmenes son plantillas deterministas (nunca IA).
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { revealNames } from "@/lib/relevo/pseudo";
 import { DomainBars, LEVEL_COLOR, LEVEL_TEXT, LineChart } from "./charts";
 import { Avatar, Icon, act, useView } from "./kit";
@@ -49,14 +49,21 @@ export function LevelTag({ level }: { level: number }) {
   );
 }
 
-export default function ClinicWeb({ w, clockLabel, onFocusPerson }: { w: string; clockLabel?: string; onFocusPerson?: string | null }) {
+export default function ClinicWeb({ w, clockLabel, onFocusPerson, resetKey }: { w: string; clockLabel?: string; onFocusPerson?: { id: string | null; n: number }; resetKey?: number }) {
   const [tab, setTab] = useState<Tab>("panel");
   const [person, setPerson] = useState<string | null>(null);
   const { data } = useView<ClinicData>(`/api/relevo/clinic?w=${w}${person ? `&person=${person}` : ""}`, 5000);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- la demo puede pedir abrir una ficha
-    if (onFocusPerson !== undefined) setPerson(onFocusPerson);
-  }, [onFocusPerson]);
+  // La demo puede pedir abrir una ficha (n cuenta los clics: funciona también la segunda vez)
+  // y, al pasar de momento (resetKey), la clínica vuelve al Panel
+  const [seen, setSeen] = useState({ n: onFocusPerson?.n, k: resetKey });
+  if (seen.n !== onFocusPerson?.n || seen.k !== resetKey) {
+    if (seen.k !== resetKey) {
+      setTab("panel");
+      setPerson(null);
+    }
+    if (onFocusPerson && seen.n !== onFocusPerson.n) setPerson(onFocusPerson.id);
+    setSeen({ n: onFocusPerson?.n, k: resetKey });
+  }
   if (!data) return <div className="rv-muted p-10">Loading…</div>;
   const newAlerts = data.alerts.filter((a) => a.status === "new").length;
   return (

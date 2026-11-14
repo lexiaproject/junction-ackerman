@@ -87,6 +87,8 @@ export const NOTICE_TEXT = {
   V1: (mentee: string) => `Would you like to talk to ${mentee} today?`,
   V2: (mentor: string) => `${mentor} would like to talk to you`,
   V3: (mentor: string) => `Fancy sending ${mentor} a note? ${mentor} would love to hear from you`,
+  // K-11: si ese día el mentor dijo "Can't today", V3 no afirma nada sobre él (texto de f1-clinica C-08)
+  V3_CANT: (mentor: string) => `Fancy sending ${mentor} a note? A few words are enough.`,
   V4: () => "Your clinic team will call you soon to see how you are",
   V4_LOCK: "Relevo: you have a notice",
   V5: (mentor: string) => `${mentor} would like to talk to you`,
@@ -103,7 +105,8 @@ export const FORBIDDEN = /\b(diagnos\w*|medicat\w*|medicine|dose|dosage|relapse\
 
 export const COPILOT = {
   text: (mentee: string) =>
-    `You've had several notes in a row about how badly you're both sleeping. Try validating how ${mentee} feels and suggesting something small.`,
+    // K-20/C-12: sin contenido de salud ni "both" (texto de f1-clinica)
+    `Your last few notes with ${mentee} keep going over the same ground. Try acknowledging how ${mentee} feels and suggesting something small together.`,
   example: "I get it, the same happened to me. How about we go down for a coffee at 9 tomorrow?",
 };
 

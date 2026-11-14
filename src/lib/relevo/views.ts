@@ -23,6 +23,17 @@ export function when(now: number, t: number) {
   if (dn < 7) return `${WD[weekdayOf(dayOf(t))]} ${hhmm(t)}`;
   return `${dayLabel(dayOf(t))}`;
 }
+// U-10/J-09: la etiqueta del plan se escribió al crearlo ("Tomorrow, Sunday, 10:00"); si era relativa y ya no es cierta, se recalcula
+const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+function planWhen(now: number, p: Plan) {
+  const day = dayOf(p.whenT);
+  const dn = day - dayOf(now);
+  if (!/^(Today|Tomorrow)\b/.test(p.whenLabel) || dn === day - dayOf(p.created)) return p.whenLabel;
+  const wd = WEEKDAY_LONG[weekdayOf(day)];
+  const label = dn === 0 ? "Today" : dn === 1 ? `Tomorrow, ${wd}` : dn === -1 ? "Yesterday" : Math.abs(dn) < 7 ? wd : dayLabel(day);
+  return `${label}, ${hhmm(p.whenT)}`;
+}
+
 const clock = (sim: Sim) => ({ t: sim.now, day: sim.now >= 0 ? dayOf(sim.now) : 0, time: hhmm(sim.now), date: longDate(dayOf(sim.now)), short: dayLabel(dayOf(sim.now)) });
 
 function noteView(sim: Sim, n: Note, me: string) {
@@ -84,7 +95,7 @@ export function menteeView(sim: Sim, id: PersonId) {
   });
   const plans = sim.plans.filter((p) => p.mentee === id && p.created <= now);
   const planView = (p: Plan) => ({
-    id: p.id, title: p.title, icon: p.icon, when: p.whenLabel, whenT: p.whenT, status: p.status, feedback: p.feedback ?? null,
+    id: p.id, title: p.title, icon: p.icon, when: planWhen(now, p), whenT: p.whenT, status: p.status, feedback: p.feedback ?? null,
     past: now >= p.whenT, askFeedback: p.status === "accepted" && now >= p.whenT && !p.feedback && now - p.whenT < 3 * DAY,
     mentorName: name(p.mentor), note: p.noteId ? conv.find((n) => n.id === p.noteId) ?? null : null, place: p.action === "actividad_con_sentido" ? "Hakaniemi market" : p.action === "paseo_juntos" ? "Shore path, by the bridge" : p.action === "ancla_manana" ? "Café Regatta" : null,
   });
@@ -121,7 +132,9 @@ export function mentorView(sim: Sim, id: PersonId) {
   })();
   // M0: propuesta de la clínica pendiente
   const proposal = Object.values(sim.people).find((x) => x.proposedMentor?.mentor === id && x.proposedMentor.status === "pending" && x.proposedMentor.t <= now);
-  const m0 = proposal ? matchFor(proposal.id, id) : null;
+  // K-12/C-11: antes del consentimiento, el mentor no lee cómo empezó la recaída del otro (la huella queda para la clínica y la demo)
+  const m0raw = proposal ? matchFor(proposal.id, id) : null;
+  const m0 = m0raw ? { ...m0raw, reasons: ["Your clinic thinks you have a lot in common", ...m0raw.reasons.slice(1)] } : null;
   const self = sim.notices
     .filter((n) => n.to === id && n.status === "active" && n.t <= now && n.validUntil >= now && ["V5", "HELP"].includes(n.code))
     .map((n) => ({ id: n.id, code: n.code, text: n.text, buttons: n.buttons.filter((b) => (n.code === "V5" ? hasNoteSince(sim, n.about!, id, n.t) ? b.id !== "note" : b.id !== "listen" : true)), from: n.about ? name(n.about) : null, noteId: lastNoteFrom(sim, n.about!, id)?.id ?? null }));
@@ -154,7 +167,7 @@ export function mentorView(sim: Sim, id: PersonId) {
     m0, self, mentorNote, m5, m6,
     card: card ? cardView(card) : null,
     sent: sent && !card ? { menteeName: name(sent.mentee) } : null,
-    plan: running ? { id: running.id, title: running.title.replace(` with ${name(id)}`, ""), when: running.whenLabel, whenT: running.whenT, icon: running.icon, menteeName: name(running.mentee), status: running.status } : null,
+    plan: running ? { id: running.id, title: running.title.replace(` with ${name(id)}`, ""), when: planWhen(now, running), whenT: running.whenT, icon: running.icon, menteeName: name(running.mentee), status: running.status } : null,
     mentee: menteeId ? { id: menteeId, name: name(menteeId) } : null,
     myMentor: myMentor ? { id: myMentor, name: name(myMentor) } : null,
     conversations: {

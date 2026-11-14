@@ -89,7 +89,7 @@ export default function MenteeApp({ w, as = "luis" }: { w: string; as?: string }
             <span className="text-[16px] text-rv-ink">{screen === "chat" ? mName : screen === "devices" ? "Devices and privacy" : "Plan"}</span>
           </button>
         )}
-        <button onClick={() => setHelp(true)} className="rv-btn rv-btn-help rv-btn-sm gap-1.5">
+        <button onClick={() => setHelp(true)} className="rv-btn rv-btn-help rv-btn-sm !min-h-[44px] gap-1.5">
           <Icon name="heart" size={16} />
           Help
         </button>
@@ -342,7 +342,7 @@ function PlanDetail({ w, as, plan, player, onToast }: { w: string; as: string; p
 
 /* ---------- A3 · Ayuda (también M7) ---------- */
 export function HelpSheet({ w, as, mentorName, clinic, onClose }: { w: string; as: string; mentorName: string | null; clinic: { phone: string }; onClose: () => void }) {
-  const [done, setDone] = useState("");
+  const [done, setDone] = useState<{ clinic?: boolean; mentor?: boolean }>({});
   const big = "rv-btn w-full !min-h-[72px] !rounded-[22px] text-[17px] justify-start px-5";
   return (
     <Sheet onClose={onClose} label="Need help right now?">
@@ -354,29 +354,39 @@ export function HelpSheet({ w, as, mentorName, clinic, onClose }: { w: string; a
           <Icon name="phone" className="text-rv-help" />
           <span className="text-left leading-tight">MIELI crisis line · 09 2525 0111<span className="rv-muted block text-[12.5px] font-normal">24 h, in Finnish</span></span>
         </a>
-        <button
-          className={`${big} rv-btn-secondary`}
-          disabled={done === "clinic"}
-          onClick={async () => {
-            await act(w, as, "help", { type: "clinic" }).catch(() => {});
-            setDone("clinic");
-          }}
-        >
-          <Icon name="users" className="text-rv-help" />
-          <span className="text-left leading-tight">Talk to my clinic{done === "clinic" && <span className="block text-[13px] font-normal text-rv-teal">They&apos;ll call you as soon as possible</span>}</span>
-        </button>
-        {mentorName && (
+        {/* K-09: la confirmación va fuera del botón (texto legible, anunciado con role=status); el botón no se
+            deshabilita (conserva el foco) y un segundo toque no repite la acción. */}
+        <div>
           <button
             className={`${big} rv-btn-secondary`}
-            disabled={done === "mentor"}
+            aria-disabled={!!done.clinic}
             onClick={async () => {
-              await act(w, as, "help", { type: "mentor" }).catch(() => {});
-              setDone("mentor");
+              if (done.clinic) return;
+              setDone((d) => ({ ...d, clinic: true }));
+              await act(w, as, "help", { type: "clinic" }).catch(() => {});
             }}
           >
-            <Icon name="chat" className="text-rv-help" />
-            <span className="text-left leading-tight">Ask {mentorName} to write to me{done === "mentor" && <span className="block text-[13px] font-normal text-rv-teal">{mentorName} has your message</span>}</span>
+            <Icon name="users" className="text-rv-help" />
+            <span className="text-left leading-tight">Talk to my clinic</span>
           </button>
+          <p role="status" className="px-5 text-[14px] font-semibold text-rv-teal">{done.clinic &&<span className="block pt-1.5">They&apos;ll call you as soon as possible</span>}</p>
+        </div>
+        {mentorName && (
+          <div>
+            <button
+              className={`${big} rv-btn-secondary`}
+              aria-disabled={!!done.mentor}
+              onClick={async () => {
+                if (done.mentor) return;
+                setDone((d) => ({ ...d, mentor: true }));
+                await act(w, as, "help", { type: "mentor" }).catch(() => {});
+              }}
+            >
+              <Icon name="chat" className="text-rv-help" />
+              <span className="text-left leading-tight">Ask {mentorName} to write to me</span>
+            </button>
+            <p role="status" className="px-5 text-[14px] font-semibold text-rv-teal">{done.mentor &&<span className="block pt-1.5">{mentorName} has your message</span>}</p>
+          </div>
         )}
       </div>
       {mentorName && <p className="rv-muted mt-4 text-center text-[13px]">{mentorName} doesn&apos;t see your health data.</p>}
@@ -447,7 +457,7 @@ export function DeviceList({ w, as, devices }: { w: string; as: string; devices:
 }
 export function Toggle({ on, onChange, label, disabled }: { on: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={disabled} onClick={(e) => { e.preventDefault(); onChange(!on); }} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${on ? "bg-rv-teal" : "bg-[#cdd3ce]"}`}>
+    <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={disabled} onClick={(e) => { e.preventDefault(); onChange(!on); }} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-40 ${on ? "bg-rv-teal" : "bg-[#77827d]"}`}>
       <span className={`absolute left-0 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[22px]" : "translate-x-0.5"}`} />
     </button>
   );

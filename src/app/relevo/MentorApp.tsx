@@ -38,7 +38,7 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
-export default function MentorApp({ w, as }: { w: string; as: "pablo" | "marta" }) {
+export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" | "marta"; resetKey?: number }) {
   const { data } = useView<MentorData>(`/api/relevo/mentor?w=${w}&as=${as}`);
   const player = usePlayer(w);
   const [tab, setTab] = useState<Tab>("today");
@@ -46,6 +46,16 @@ export default function MentorApp({ w, as }: { w: string; as: "pablo" | "marta" 
   const [help, setHelp] = useState(false);
   const [compose, setCompose] = useState<{ to: string; toName: string; script?: string; cardId?: string; kind?: string; title: string } | null>(null);
   const [m5Open, setM5Open] = useState(true);
+  // La demo cambia resetKey al pasar de momento: el teléfono vuelve a Today y se cierran las hojas abiertas
+  // (así no se puede enviar dos veces la nota del paseo con una hoja que se quedó abierta)
+  const [seenKey, setSeenKey] = useState(resetKey);
+  if (seenKey !== resetKey) {
+    setSeenKey(resetKey);
+    setTab("today");
+    setThread("mentee");
+    setCompose(null);
+    setHelp(false);
+  }
   if (!data) return <div className="flex flex-1 items-center justify-center rv-muted">Loading…</div>;
   const mentee = data.mentee;
   const mine = data.myMentor;
@@ -64,7 +74,7 @@ export default function MentorApp({ w, as }: { w: string; as: "pablo" | "marta" 
         </div>
         <div className="flex items-center gap-2 pt-1">
           <Avatar name={data.me.name} size={34} />
-          <button onClick={() => setHelp(true)} className="rv-btn rv-btn-help rv-btn-sm gap-1.5">
+          <button onClick={() => setHelp(true)} className="rv-btn rv-btn-help gap-1.5">
             <Icon name="heart" size={16} />
             Help
           </button>
@@ -183,7 +193,7 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
   const mine = data.myMentor;
   const recentMentorNote = data.mentorNote;
   const showMentorNote = recentMentorNote && !data.self.some((s) => s.code === "V5") && /today|yesterday|min ago|just now/.test(recentMentorNote.when);
-  const nothing = !card && !data.plan && !data.m6 && !data.sent;
+  const nothing = !card && !data.plan && !data.m6 && !data.sent && !data.copilot;
   return (
     <div className="flex flex-col gap-3 px-4 pb-6 pt-1">
       {/* Avisos para sí mismo */}
@@ -302,6 +312,15 @@ function Today({ w, as, data, player, onCompose, onTab, onM5 }: { w: string; as:
         </div>
       )}
 
+      {/* Copiloto visible en Today: solo el aviso privado, sin análisis; la sugerencia está en Conversation */}
+      {data.copilot && !data.m6 && mentee && (
+        <div className="rv-notice rv-in p-4">
+          <p className="flex items-center gap-1.5 text-[12.5px] font-semibold"><Icon name="lock" size={14} />Only you see this</p>
+          <p className="mt-1.5 text-[16px] font-semibold leading-snug">A private idea for your next note to {mentee.name}</p>
+          <button className="rv-btn rv-btn-notice mt-3 w-full" onClick={() => onTab("chat", "mentee")}>Open</button>
+        </div>
+      )}
+
       {nothing && mentee && (
         <div className="rv-card p-5 text-center">
           <p className="text-[16px] font-semibold">Nothing pending today.</p>
@@ -414,7 +433,7 @@ function M5({ w, as, m5, onLater }: { w: string; as: string; m5: NonNullable<Men
         <p className="rv-muted mt-3 text-[16px]">
           {pause ? `We suggest a pause. ${m5.menteeName ?? "The person you accompany"} will stay supported by the team and you can come back whenever you like.` : "Helping is tiring too. We suggest a light pace for a few days."}
         </p>
-        {m5.mentorName && <p className="mt-6 flex items-center gap-2 text-[15px]"><Avatar name={m5.mentorName} size={30} />{m5.mentorName} will write to you these days</p>}
+        {m5.mentorName && <p className="mt-6 flex items-center gap-2 text-[15px]"><Avatar name={m5.mentorName} size={30} />You can write to {m5.mentorName} whenever you like.</p>}
       </div>
       {pause ? (
         <>
