@@ -15,6 +15,7 @@ const CLINIC_NEEDS: Record<string, (p: Record<string, unknown>) => boolean> = {
   ideas_reactivate: (p) => isPerson(p.mentor),
   clinic_rhythm: (p) => isPerson(p.mentor) && [0, 1, 2, 3].includes(p.rhythm as number),
   match_propose: (p) => isPerson(p.mentor) && isPerson(p.mentee),
+  match_cancel: (p) => isPerson(p.mentee),
 };
 
 export async function POST(req: Request) {
@@ -92,7 +93,7 @@ export async function POST(req: Request) {
   if (!Object.hasOwn(ALLOWED, as) || !ALLOWED[as].includes(type)) return bad(`${as || "Someone"} can't do “${type}”`, 403);
   if (as === "clinic" && Object.hasOwn(CLINIC_NEEDS, type) && !CLINIC_NEEDS[type](p)) return bad(`Missing or unknown data for “${type}”`);
   addEvent(world, as as Who, type, p);
-  if (as === "clinic" && ["call", "resolve", "clinic_rhythm", "ideas_pause", "ideas_reactivate", "match_propose"].includes(type)) {
+  if (as === "clinic" && ["call", "resolve", "clinic_rhythm", "ideas_pause", "ideas_reactivate", "match_propose", "match_cancel"].includes(type)) {
     const who = String(p.person ?? p.mentor ?? p.mentee ?? "");
     world.audit.push({ t: world.clock, who: "Nurse Virtanen", what: `${type.replace("_", " ")}${Object.hasOwn(PERSON, who) ? ` · ${PERSON[who].name}` : ""}` });
   }

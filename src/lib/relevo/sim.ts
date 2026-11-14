@@ -479,6 +479,16 @@ export function evaluate(world: World, nowIn?: number): Sim {
         trace(t, "clinic", `Proposes ${name(mentor)} for ${name(mentee)} (C4 → M0)`, scripted);
         return true;
       }
+      case "match_cancel": {
+        // La clínica retira una propuesta que sigue sin respuesta (p. ej. enviada por error)
+        const mentee = str("mentee")!;
+        const prop = P[mentee].proposedMentor;
+        if (!prop || prop.status !== "pending") return false;
+        P[mentee].proposedMentor = undefined;
+        log(t, mentee, "match", `Clinic withdrew the proposal of ${name(prop.mentor)}`, "clinic");
+        trace(t, "clinic", `Withdraws the proposal of ${name(prop.mentor)} for ${name(mentee)}`, scripted);
+        return true;
+      }
       case "m0_answer": {
         const mentee = Object.values(P).find((x) => x.proposedMentor?.mentor === by && x.proposedMentor.status === "pending");
         if (!mentee) return false;

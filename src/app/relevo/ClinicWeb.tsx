@@ -412,7 +412,12 @@ function Matching({ w, matching }: { w: string; matching: Match[] }) {
               <p className="text-[17px] font-semibold">{m.name}</p>
               <p className="rv-muted text-[13px]">{m.reason}</p>
             </div>
-            {m.pending && <span className="rv-chip ml-auto bg-rv-notice text-rv-notice-ink">Proposed to {m.pending} · waiting</span>}
+            {m.pending && (
+              <span className="ml-auto flex items-center gap-2">
+                <span className="rv-chip bg-rv-notice text-rv-notice-ink">Proposed to {m.pending} · waiting</span>
+                <button className="rv-btn rv-btn-ghost rv-btn-sm" onClick={() => act(w, "clinic", "match_cancel", { mentee: m.id })}>Cancel proposal</button>
+              </span>
+            )}
           </div>
           <table className="mt-3 w-full text-left text-[13px]">
             <thead className="text-[12px] text-rv-ink2"><tr>{["Mentor", "Affinity", "Why", "Availability", "Stable days", ""].map((h) => <th key={h} className="px-2 py-1.5 font-semibold">{h}</th>)}</tr></thead>

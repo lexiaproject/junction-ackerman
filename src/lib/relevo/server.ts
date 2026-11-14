@@ -13,5 +13,5 @@ export const ALLOWED: Record<string, string[]> = {
   luis: ["onboard", "consent", "datatype", "notice", "plan", "plan_feedback", "help", "request"],
   pablo: ["m0_answer", "v1_answer", "idea", "notice", "rhythm", "help", "consent", "datatype", "copilot", "request", "leave", "plan", "plan_feedback"],
   marta: ["v1_answer", "idea", "notice", "rhythm", "help", "consent", "datatype", "copilot", "request", "leave"],
-  clinic: ["call", "alert_take", "resolve", "ideas_pause", "ideas_reactivate", "clinic_rhythm", "match_propose"],
+  clinic: ["call", "alert_take", "resolve", "ideas_pause", "ideas_reactivate", "clinic_rhythm", "match_propose", "match_cancel"],
 };
