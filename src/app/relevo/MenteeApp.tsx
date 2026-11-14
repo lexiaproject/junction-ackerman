@@ -449,6 +449,12 @@ function PlanCard({ w, as, plan, onOpen, onToast }: { w: string; as: string; pla
         </p>
       )}
       {plan.askFeedback && <Feedback w={w} as={as} plan={plan} />}
+      {plan.past && plan.feedback && (
+        // Solo "Good" le llega al mentor; "So-so" y "Didn't go" se quedan en su móvil
+        <p className="mt-3 flex items-center gap-2 text-[14px] font-semibold text-rv-teal">
+          <Icon name="check" size={18} /> {FEEDBACK[plan.feedback]}{plan.feedback === "good" ? `. ${plan.mentorName} knows.` : ""}
+        </p>
+      )}
     </div>
   );
 }

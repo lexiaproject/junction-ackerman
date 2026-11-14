@@ -124,6 +124,8 @@ export function menteeView(sim: Sim, id: PersonId) {
   const proposed = [...plans].reverse().find((p) => p.status === "proposed" && p.whenT > now);
   const feedback = [...plans].reverse().find((p) => p.status === "accepted" && now >= p.whenT && !p.feedback && now - p.whenT < 3 * DAY);
   const upcoming = [...plans].reverse().find((p) => p.status === "accepted" && p.whenT > now);
+  // Plan ya valorado: se queda un día en su móvil con lo que contestó (el mentor ve "said it went well" ese mismo día)
+  const rated = [...plans].reverse().find((p) => p.feedback && p.feedbackAt !== undefined && p.feedbackAt <= now && now - p.feedbackAt < DAY);
   const month = dateOf(dayOf(now)).slice(0, 7);
   const social = plans.filter((p) => p.status === "accepted" && dateOf(dayOf(p.whenT)).slice(0, 7) === month && p.mentor === mentorId).length;
   return {
@@ -132,7 +134,7 @@ export function menteeView(sim: Sim, id: PersonId) {
     intro: mentorId ? conv.find((n) => n.kind === "intro") ?? null : null,
     together: mentorId ? (() => { const t = together(sim, mentorId, id, s.pairSince); return t && { ...t, chainFrom: m?.mentorId ? name(m.mentorId) : null }; })() : null,
     notices, last, conversation: conv,
-    plan: proposed ? planView(proposed) : feedback ? planView(feedback) : upcoming ? planView(upcoming) : null,
+    plan: proposed ? planView(proposed) : feedback ? planView(feedback) : upcoming ? planView(upcoming) : rated ? planView(rated) : null,
     plans: plans.slice(-6).map(planView).reverse(),
     social: mentorId ? { label: `Plans with ${name(mentorId)} this month: ${social}` } : null,
     openHelp: s.openHelp,
