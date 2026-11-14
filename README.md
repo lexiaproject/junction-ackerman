@@ -4,7 +4,7 @@
 
 Relevo is a chain of TMS patients. Each person who has just finished TMS is accompanied by a peer mentor who finished
 a few months earlier, and later becomes a mentor for someone behind. Relevo quietly compares each person with their
-own usual (sleep, movement, daily rhythm, phone use). When something drifts, nobody gets an alarm: a human gets a small,
+own usual in three areas the clinic cares about: sleep, mobility and, with a watch or ring, physiology. When something drifts, nobody gets an alarm: a human gets a small,
 private nudge to reach out. **Only the clinic ever sees health data.** Mentors only receive the voice notes sent to them.
 
 ## ▶ Live demo
@@ -25,9 +25,9 @@ and answer it with a person who has been there, not with a red notification.
 
 ## The demo in 8 steps
 
-Day 0 is 7 September, the day after Luis's last TMS session. The contract numbers below (0.87, 0.758, 0.62 → 0.70, 88 %, 5 days, 2.45, 200) are checked automatically by `scripts/relevo-demo-walk.mjs` against the running app.
+Day 0 is 7 September, the day after Luis's last TMS session. The contract numbers below (0.886, 0.772, 0.62 → 0.70, 90 %, 6 days, 2.37, 1,000) are checked automatically by `scripts/relevo-demo-walk.mjs` against the running app.
 
-1. **Day 0 · Matching.** The clinic proposes a mentor for Luis: affinity **0.87** with Pablo vs **0.758** with Sara.
+1. **Day 0 · Matching.** The clinic proposes a mentor for Luis: affinity **0.886** with Pablo vs **0.772** with Sara.
    Pablo accepts and records an intro.
 2. **Day 40 · Copilot.** Luis's third voice note in a complaint loop → Pablo gets a private tip on how to reply.
    Luis sees nothing.
@@ -44,10 +44,10 @@ Day 0 is 7 September, the day after Luis's last TMS session. The contract number
 7. **Days 56-60 · Protecting the mentor.** Pablo starts to drift himself → his own mentor Marta is asked first, Pablo is
    offered a pause, and the clinic sees "Review pace". (A lighter pace is proposed after 5 days at level 1; Pablo
    reaches level 2 after 4, so the demo goes straight to the pause.)
-8. **Close · What the simulation shows.** Level 1 catches **88 %** of simulated relapses with a median of **5 days** of
-   notice and **2.45 false alarms per person-year**, on **200 synthetic people** (100 simulated relapses). Level 2 is much
-   stricter: 48 %, 1 day, 0.5 false alarms.
-   These figures come from our offline evaluation of the reference engine on synthetic data that we generated
+8. **Close · What the simulation shows.** Level 1 catches **90 %** of simulated relapses with a median of **6 days** of
+   notice and **2.37 false alarms per person-year**, on **1,000 synthetic people** (500 simulated relapses). Level 2 is much
+   stricter: 62 %, 1 day, 0.77 false alarms.
+   These figures come from `scripts/relevo-evaluate.mjs`, which runs the engine on synthetic people that we generated
    ourselves, with default thresholds. They show that the logic works as designed, **not** that it predicts relapse in
    real patients; that would need a clinical study. The demo displays them; it does not recompute them.
 
@@ -68,9 +68,10 @@ Day 0 is 7 September, the day after Luis's last TMS session. The contract number
   deterministic templates. With no key, or if it fails, the template / rule-based result is used and nothing breaks.
 
 **Simulated / MOCK (marked `// MOCK:` in the code):**
-- **Sensor data.** All sleep, mobility, rhythm, phone and physiology data is synthetic. Luis and Pablo use the exact
-  data of the reference engine; Marta, Sara and five background people are generated. Nothing connects to Apple
-  Health, Health Connect or a ring.
+- **Sensor data.** All sleep, mobility and physiology data is synthetic. Luis and Pablo use fixed synthetic data
+  tuned so the story falls on the same days; Marta, Sara and five background people are generated. Nothing connects to Apple
+  Health, Health Connect or a ring. *Less movement inside the home* is experimental and simulated: it is shown in the
+  clinic file but never used for alerts.
 - **No login and no roles.** The role comes from the URL (`?as=luis|pablo|marta`) and each demo "world" from an id
   (`?w=`). Anyone with the id can see that world. Every world is synthetic. In production: a session per role, and the
   clinic behind SSO.

@@ -509,7 +509,7 @@ export function Toggle({ on, onChange, label, disabled }: { on: boolean; onChang
   );
 }
 export const CONSENT_TEXT = {
-  data: "Share daily summaries of activity, sleep and phone use with my clinic",
+  data: "Share daily summaries of sleep and activity with my clinic",
   notes: "Automatically analyse the text of my voice notes to alert my clinic if it looks like I need urgent help",
   ideas: "Let my mentor receive ideas to accompany me, drafted with the help of AI (they never see my data or the analysis of my notes)",
 };

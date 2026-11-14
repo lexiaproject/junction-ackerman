@@ -26,6 +26,6 @@ Lista corta para quien presenta. Todo sale de los informes de la fase 1 y de DEC
 ## Qué decir si preguntan
 - "¿La IA decide algo clínico?" No: los niveles los decide una regla determinista; la crisis, una lista fija; Gemini solo
   redacta mensajes entre iguales y analiza el tono.
-- "¿Cómo sabéis que funciona?" 200 personas sintéticas generadas por nosotros: valida que la lógica hace lo que diseñamos,
+- "¿Cómo sabéis que funciona?" 1.000 personas sintéticas generadas por nosotros (90 % de recaídas detectadas, ~6 días antes): valida que la lógica hace lo que diseñamos,
   no la precisión clínica.
 - "¿Privacidad?" Solo la clínica ve datos; el paciente y el mentor nunca ven un número; consentimientos separados.

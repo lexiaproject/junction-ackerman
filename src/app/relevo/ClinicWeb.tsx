@@ -20,8 +20,10 @@ type Person = {
   domains: { key: string; label: string; s: number | null; smooth: number | null; feats: number }[];
   features: Feature[]; history: { when: string; kind: string; text: string; by: string | null }[]; notesCount: number;
   calls: { mode: string; when: string; scheduledFor: string | null; done: boolean }[]; crisisNote: { id: string; text: string } | null;
+  measures: Measure[]; weights: Record<string, number>;
 };
 type Band = { lo: number | null; mid: number | null; hi: number | null } | null;
+type Measure = { key: string; area: string; signal: string; name: string; unit: string; experimental: boolean; series: (number | null)[]; band: Band; value: number | null; z: number | null };
 type Config = { l1_R: number; l2_R: number; l3_R: number; domain_hi: number; persist_up: number; persist_down: number; weights: Record<string, number>; noticeFrom: number; noticeTo: number; catalog: Record<string, boolean> };
 type ClinicData = {
   clock: { t: number };
@@ -190,18 +192,106 @@ function Seg<T extends string | number>({ value, onChange, options }: { value: T
 }
 
 /* ---------- C2 · Ficha de persona ---------- */
-const FEATURE_CHART: Record<string, string> = {
-  tst_sd14: "sleep", mid_sd14: "sleep", waso7: "sleep", awak7: "sleep", onset_delay7: "sleep", tst_excess7: "sleep",
-  steps7: "steps", home7: "steps", entropy7: "steps", ra7: "domains", screen7: "domains", night7: "domains", latency7: "domains", reply7: "domains", rmssd7: "domains", rhr7: "domains",
-};
-const FEATURE_DOMAIN: Record<string, string> = { ra7: "ritmo", screen7: "movil_vinculo", night7: "movil_vinculo", latency7: "movil_vinculo", reply7: "movil_vinculo", rmssd7: "fisiologia", rhr7: "fisiologia" };
+// Tres áreas, las que importan a la clínica. Cada medida se dibuja dentro de su área.
+const AREAS: { key: string; label: string; note: string }[] = [
+  { key: "sueno", label: "Sleep", note: "Irregular timing is the pattern most strongly linked to relapse (RADAR-MDD)." },
+  { key: "movilidad", label: "Mobility", note: "Withdrawal, a poorer routine and less movement." },
+  { key: "fisiologia", label: "Physiology", note: "Only if they wear a watch or ring." },
+];
+const FEATURE_DOMAIN: Record<string, string> = { mid_sd14: "sueno", tst_sd14: "sueno", waso7: "sueno", awak7: "sueno", tst_excess7: "sueno", home7: "movilidad", entropy7: "movilidad", steps7: "movilidad", rooms7: "movilidad", rmssd7: "fisiologia", rhr7: "fisiologia" };
+
+/** Minigráfico de una medida: su franja habitual (sombreada), la serie de 35 días y el último valor. */
+function Spark({ m, alert }: { m: Measure; alert: boolean }) {
+  const W = 168, H = 40, pad = 3;
+  const vals = m.series.filter((v): v is number => v !== null);
+  const all = [...vals, ...(m.band ? [m.band.lo, m.band.hi].filter((v): v is number => v !== null) : [])];
+  if (!vals.length) return <svg width={W} height={H} aria-hidden />;
+  let lo = Math.min(...all), hi = Math.max(...all);
+  if (hi - lo < 1e-6) { lo -= 1; hi += 1; }
+  const x = (i: number) => pad + (i / Math.max(1, m.series.length - 1)) * (W - 2 * pad);
+  const y = (v: number) => H - pad - ((v - lo) / (hi - lo)) * (H - 2 * pad);
+  let d = "";
+  m.series.forEach((v, i) => { if (v === null) return; d += `${d && m.series[i - 1] !== null ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`; });
+  const lastI = m.series.reduce<number>((a, v, i) => (v !== null ? i : a), -1);
+  const color = m.experimental ? "#8d99a0" : alert ? LEVEL_COLOR[1] : "#0E6B5C";
+  return (
+    <svg width={W} height={H} role="img" aria-label={`${m.signal}: last 35 days`}>
+      {m.band && m.band.lo !== null && m.band.hi !== null && <rect x={pad} y={y(m.band.hi)} width={W - 2 * pad} height={Math.max(1, y(m.band.lo) - y(m.band.hi))} fill="#0E6B5C" opacity={0.09} rx={3} />}
+      {m.band?.mid !== null && m.band?.mid !== undefined && <line x1={pad} x2={W - pad} y1={y(m.band.mid)} y2={y(m.band.mid)} stroke="#0E6B5C" strokeOpacity={0.25} strokeDasharray="2 3" />}
+      <path d={d} fill="none" stroke={color} strokeWidth={1.8} strokeDasharray={m.experimental ? "4 3" : undefined} strokeLinejoin="round" strokeLinecap="round" />
+      {lastI >= 0 && <circle cx={x(lastI)} cy={y(m.series[lastI]!)} r={3} fill={color} />}
+    </svg>
+  );
+}
+
+/** Una tarjeta por área: cómo va el área frente a su umbral y, dentro, cada medida con su gráfico. */
+function AreaCards({ p, hl }: { p: Person; hl: string | null }) {
+  return (
+    <div className="mt-3 grid grid-cols-3 gap-3">
+      {AREAS.map((a) => {
+        const dom = p.domains.find((d) => d.key === a.key);
+        const ms = p.measures.filter((m) => m.area === a.key);
+        const has = ms.some((m) => !m.experimental && m.value !== null && m.z !== null);
+        const above = has && (dom?.smooth ?? 0) >= p.thresholds.domain;
+        const w = p.weights[a.key];
+        return (
+          <div key={a.key} className={`rv-card p-4 ${hl && FEATURE_DOMAIN[hl] === a.key ? "shadow-[0_0_0_2px_var(--color-rv-teal)]" : ""}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[17px] font-semibold" style={{ fontFamily: "var(--rv-display)" }}>{a.label}</p>
+                <p className="rv-muted text-[12px] leading-snug">{a.note}</p>
+              </div>
+              {has ? (
+                <span className="rv-chip shrink-0 text-[12px]" style={above ? { background: "#fdf3e7", color: LEVEL_COLOR[1] } : { background: "var(--color-rv-sage)", color: "#0E6B5C" }}>{above ? "Above their usual" : "Within their usual"}</span>
+              ) : (
+                <span className="rv-chip shrink-0 bg-rv-bg text-[12px] text-rv-ink2">No data</span>
+              )}
+            </div>
+            <p className="rv-num rv-muted mt-1 text-[11.5px]">
+              {has ? <>Area deviation <b className="text-rv-ink">{dom?.smooth ?? "—"}</b> · threshold {p.thresholds.domain}</> : "Not measured"}
+              {w !== undefined && w !== null ? <> · weight {Math.round(w * 100)}%</> : null}
+            </p>
+            {!has && a.key === "fisiologia" ? (
+              <p className="mt-3 rounded-2xl bg-rv-bg p-3 text-[13px] leading-snug">No watch or ring connected. Physiology is optional: its weight goes to sleep and mobility.</p>
+            ) : (
+              <ul className="mt-2 divide-y divide-rv-line">
+                {ms.map((m) => {
+                  const alert = !m.experimental && (m.z ?? 0) >= 1.5;
+                  return (
+                    <li key={m.key} className={`py-2 ${hl === m.key ? "-mx-2 rounded-xl bg-rv-sage px-2" : ""}`}>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="text-[13.5px] font-semibold leading-tight">
+                          {m.signal}
+                          {m.experimental && <span className="rv-chip ml-1.5 bg-rv-bg align-middle text-[10.5px] font-semibold text-rv-ink2">experimental · not used for alerts</span>}
+                        </p>
+                        {m.z !== null && <span className="rv-num shrink-0 text-[12px] font-semibold" style={{ color: alert ? LEVEL_COLOR[1] : "var(--color-rv-ink2)" }}>z {m.z > 0 ? "+" : ""}{m.z}</span>}
+                      </div>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <Spark m={m} alert={alert} />
+                        <p className="rv-num text-right text-[12px] leading-tight">
+                          {m.value === null ? <span className="rv-muted">no data</span> : <><b className="text-[14px]">{m.value}</b> <span className="rv-muted">{m.unit}</span></>}
+                          {m.band?.mid !== null && m.band?.mid !== undefined && <span className="rv-muted block">usual {m.band.mid}</span>}
+                        </p>
+                      </div>
+                      <p className="rv-muted text-[11px]">{m.name}</p>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function PersonFile({ w, now, p, onBack, onOpen }: { w: string; now: number; p: Person; onBack: () => void; onOpen: (id: string) => void }) {
   const [hl, setHl] = useState<string | null>(null);
   const [details, setDetails] = useState(false);
   const [thr, setThr] = useState<{ l1: number; l2: number; domain: number } | null>(null);
   const [note, setNote] = useState(false);
   const c = p.charts;
-  const chart = hl ? FEATURE_CHART[hl] : null;
   return (
     <>
       <button onClick={onBack} className="rv-btn rv-btn-ghost rv-btn-sm -ml-3"><Icon name="back" size={16} />Panel</button>
@@ -248,26 +338,18 @@ function PersonFile({ w, now, p, onBack, onOpen }: { w: string; now: number; p: 
             <LineChart ariaLabel="Smoothed risk index, last 35 days" labels={c.labels} lines={[{ values: c.Rs, color: "#16211C", label: "R smoothed" }]} thresholds={[{ v: p.thresholds.l1, label: `${p.thresholds.l1}`, color: LEVEL_COLOR[1] }, { v: p.thresholds.l2, label: `${p.thresholds.l2}`, color: LEVEL_COLOR[2] }, { v: p.thresholds.l3, label: `${p.thresholds.l3}`, color: LEVEL_COLOR[3] }]} yMin={0} steps={c.level} marker={c.baselineEnd} digits={2} />
           </div>
           <div className="rv-card p-4">
-            <p className="font-semibold">Sleep hours and regularity</p>
-            <LineChart ariaLabel="Sleep hours, last 35 days" highlight={chart === "sleep"} labels={c.labels} lines={[{ values: c.sleep, color: "#8fa8c8", label: "Night", width: 1.2, dots: true }, { values: c.sleepMean, color: "#24466e", label: "7-day mean" }]} band={c.sleepBand} unit=" h" digits={1} marker={c.baselineEnd} />
-            <p className="rv-muted text-[11.5px]">Band: their usual (median ± 1 robust scale). Regularity (SD 14 d): {c.sleepSd.at(-1) ?? "—"} min.</p>
-          </div>
-          <div className="rv-card p-4">
-            <p className="font-semibold">Daily steps and time at home</p>
-            <LineChart ariaLabel="Steps, last 35 days" highlight={chart === "steps"} labels={c.labels} lines={[{ values: c.steps, color: "#9cc3b8", label: "Steps", width: 1.2, dots: true }, { values: c.stepsMean, color: "#0E6B5C", label: "Steps, 7-day mean" }]} band={c.stepsBand} digits={0} height={120} marker={c.baselineEnd} />
-            <LineChart ariaLabel="Hours at home, last 35 days" highlight={chart === "steps"} labels={c.labels} lines={[{ values: c.home, color: "#7a3a14", label: "Hours at home, 7-day mean" }]} band={c.homeBand} unit=" h" digits={1} height={100} marker={c.baselineEnd} />
-          </div>
-          <div className={`rv-card p-4 ${chart === "domains" ? "shadow-[0_0_0_2px_var(--color-rv-teal)]" : ""}`}>
             <p className="mb-2 font-semibold">Current deviation by area</p>
             <DomainBars domains={p.domains} threshold={p.thresholds.domain} highlight={hl ? FEATURE_DOMAIN[hl] ?? null : null} />
+            <p className="rv-muted mt-2 text-[11.5px]">Each area compares them only with their own usual (first 4 weeks after TMS). Band in each chart below: their usual, median ± 1 robust scale.</p>
           </div>
         </div>
       )}
+      {p.consent && p.baselineDone && <AreaCards p={p} hl={hl} />}
 
       {p.baselineDone && p.consent && (
         <div className="rv-card mt-3">
           <button onClick={() => setDetails((d) => !d)} className="flex w-full items-center justify-between px-4 py-3 font-semibold" aria-expanded={details}>
-            Detailed features · 11 signals measured as 16 features
+            Detailed features · 3 areas measured as 10 features
             <Icon name="chevron" className={`transition-transform ${details ? "rotate-90" : ""}`} />
           </button>
           {details && (
@@ -477,7 +559,7 @@ function Settings({ w, config }: { w: string; config: ClinicData["config"] }) {
           <p className="font-semibold">Weights by area</p>
           {Object.entries(c.weights).map(([k, v]) => (
             <label key={k} className="flex items-center gap-3 border-t border-rv-line py-2.5">
-              <span className="w-40">{{ sueno: "Sleep", movilidad: "Mobility", ritmo: "Rhythm", movil_vinculo: "Phone & connection", fisiologia: "Physiology" }[k]}</span>
+              <span className="w-40">{({ sueno: "Sleep", movilidad: "Mobility", fisiologia: "Physiology" } as Record<string, string>)[k] ?? k}</span>
               <input type="range" min={0} max={0.5} step={0.05} value={v} onChange={(e) => setC({ ...c, weights: { ...c.weights, [k]: Number(e.target.value) } })} className="flex-1 accent-[#0E6B5C]" />
               <span className="rv-num w-10 text-right">{v.toFixed(2)}</span>
             </label>

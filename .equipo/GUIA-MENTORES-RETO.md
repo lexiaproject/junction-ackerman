@@ -20,7 +20,7 @@ escuchado su feedback (1) **el mentor no carga con la salud mental del otro** y 
 Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses después), la clínica.
 
 ### 1 · Emparejamiento y la invitación al mentor (→ 1 vez, 1 min)
-- Pulsar **E**: la capa muestra cómo se empareja por cómo empezó la última recaída. Pablo **87 %**, Sara **75,8 %**.
+- Pulsar **E**: la capa muestra cómo se empareja por cómo empezó la última recaída. Pablo **88,6 %**, Sara **77,2 %**.
 > "The clinic matches people by how their last relapse started. Pablo and Luis both started by sleeping more and
 > going out less."
 - Cerrar con **E**. En el móvil de Pablo, pulsar **I'm interested**: sale **"What accompanying means"**.
@@ -80,8 +80,10 @@ Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses despu�
 
 ## Preguntas que pueden hacer
 - **"¿Qué datos recogéis?"**
-  > "Today the prototype simulates several signals, but we're focusing on the ones that match how relapses start:
-  > sleep, activity and social contact. Everything else is optional."
+  > "Three areas, the ones clinicians told us matter: sleep (irregular timing first, the pattern most linked to relapse
+  > in RADAR-MDD; fragmented sleep; sleeping much more or less than usual), mobility (time at home, fewer places, fewer
+  > steps) and, if they wear a watch or ring, physiology (HRV and resting pulse). Movement inside the home is
+  > experimental and never used for alerts."
 - **"¿Y si el mentor recae?"** → Paso 6: pausa, ideas paradas, su mentora pregunta, la clínica asigna un mentor temporal.
 - **"¿Qué formación tienen los acompañantes?"**
   > "A short in-app training before their first buddy, the same guidelines always available in the app, reply ideas
@@ -93,7 +95,7 @@ Tres columnas: Luis (acaba de terminar el TMS), Pablo (su mentor, 4 meses despu�
   > "No. Levels come from a fixed rule that compares each person only with their own usual. Crisis detection is a
   > fixed list. The AI only helps write warm messages."
 - **"¿Está validado?"**
-  > "We tested the logic on 200 synthetic people we generated: 88 % of simulated relapses caught, about 5 days early.
+  > "We tested the logic on 1,000 synthetic people we generated: 90 % of simulated relapses caught, about 6 days early.
   > That shows the logic works as designed, not clinical accuracy. That needs a pilot with you."
 
 ## Si algo falla

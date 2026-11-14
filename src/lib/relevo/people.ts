@@ -38,9 +38,7 @@ const BASE: Record<string, [number, number]> = {
 };
 const EFFECTS: Record<string, [string, number][]> = {
   sueno: [["waso", 1], ["awak", 1], ["onset", 1]],
-  ritmo: [["ra", -1]],
   movilidad: [["steps", -1], ["home", 1], ["entropy", -1]],
-  movil_vinculo: [["screen", 1], ["night", 1], ["latency", 1]],
   fisiologia: [["rmssd", -1], ["rhr", 1]],
 };
 function simulate(o: { seed: number; onsetDay?: number; domains?: string[]; effect?: number; sleepDir?: number; startDay?: number; wearable?: boolean }): Raw {
@@ -87,12 +85,12 @@ export const PEOPLE: Person[] = [
   {
     ...common, id: "luis", name: "Luis", role: "mentee", mentorId: "pablo", tmsEnd: "2026-09-06", joinedDay: 0, raw: luisRaw as Raw, tstDirection: 1,
     wearable: "Oura Ring", hours: ["morning", "afternoon"], prefs: ["voice", "in person"], zone: "Espoo",
-    q: { sueno: 2, movilidad: 2, movil_vinculo: 1, dir_sueno: 1 }, monthsPostTms: 0.1, level0Weeks: 0,
+    q: { sueno: 2, movilidad: 2, dir_sueno: 1 }, monthsPostTms: 0.1, level0Weeks: 0,
   },
   {
     ...common, id: "pablo", name: "Pablo", role: "mentor", mentorId: "marta", menteeId: "luis", tmsEnd: "2026-05-08", joinedDay: 0, raw: pabloRaw as Raw, tstDirection: 1,
     wearable: "Oura Ring", hours: ["morning"], prefs: ["voice", "in person"], zone: "Espoo",
-    q: { sueno: 2, movilidad: 1, movil_vinculo: 2, dir_sueno: 1 }, monthsPostTms: 4, level0Weeks: 8, rhythm: 2,
+    q: { sueno: 2, movilidad: 1, dir_sueno: 1 }, monthsPostTms: 4, level0Weeks: 8, rhythm: 2,
   },
   {
     ...common, id: "marta", name: "Marta", role: "mentor", menteeId: "pablo", tmsEnd: "2025-10-20", joinedDay: 0, raw: simulate({ seed: 101 }), tstDirection: 1,
@@ -102,25 +100,25 @@ export const PEOPLE: Person[] = [
   {
     ...common, id: "sara", name: "Sara", role: "mentor", tmsEnd: "2026-03-10", joinedDay: 0, raw: simulate({ seed: 202 }), tstDirection: -1,
     wearable: null, hours: ["morning", "afternoon"], prefs: ["voice"], zone: "Helsinki",
-    q: { sueno: 2, ritmo: 1, fisiologia: 1, dir_sueno: -1 }, monthsPostTms: 6, level0Weeks: 10, rhythm: 1,
+    q: { sueno: 2, fisiologia: 1, dir_sueno: -1 }, monthsPostTms: 6, level0Weeks: 10, rhythm: 1,
   },
   // MOCK: personas de relleno para que la red parezca real (sin app en la demo)
   {
     ...common, background: true, id: "helmi", name: "Helmi", role: "mentor", menteeId: "eero", tmsEnd: "2026-02-02", joinedDay: 0, raw: simulate({ seed: 303 }), tstDirection: 1,
-    wearable: "Oura Ring", hours: ["evening"], prefs: ["voice", "in person"], zone: "Espoo", q: { movilidad: 2, movil_vinculo: 1 }, monthsPostTms: 7, level0Weeks: 20, rhythm: 2,
+    wearable: "Oura Ring", hours: ["evening"], prefs: ["voice", "in person"], zone: "Espoo", q: { movilidad: 2 }, monthsPostTms: 7, level0Weeks: 20, rhythm: 2,
   },
   {
     ...common, background: true, id: "eero", name: "Eero", role: "mentee", mentorId: "helmi", tmsEnd: "2026-08-28", joinedDay: 0,
-    raw: simulate({ seed: 404, onsetDay: 64, domains: ["sueno", "movil_vinculo"], effect: 1.8, sleepDir: -1 }), tstDirection: -1,
-    wearable: null, hours: ["evening"], prefs: ["voice"], zone: "Vantaa", q: { sueno: 2, movil_vinculo: 2, dir_sueno: -1 }, monthsPostTms: 0.3, level0Weeks: 0,
+    raw: simulate({ seed: 404, onsetDay: 64, domains: ["sueno", "movilidad"], effect: 1.8, sleepDir: -1 }), tstDirection: -1,
+    wearable: null, hours: ["evening"], prefs: ["voice"], zone: "Vantaa", q: { sueno: 2, dir_sueno: -1 }, monthsPostTms: 0.3, level0Weeks: 0,
   },
   {
     ...common, background: true, id: "sanna", name: "Sanna", role: "mentor", menteeId: "juho", tmsEnd: "2025-12-15", joinedDay: 0, raw: simulate({ seed: 505 }), tstDirection: 1,
-    wearable: "Apple Watch", hours: ["morning"], prefs: ["in person"], zone: "Helsinki", q: { sueno: 1, ritmo: 2 }, monthsPostTms: 9, level0Weeks: 26, rhythm: 1,
+    wearable: "Apple Watch", hours: ["morning"], prefs: ["in person"], zone: "Helsinki", q: { sueno: 1, movilidad: 1 }, monthsPostTms: 9, level0Weeks: 26, rhythm: 1,
   },
   {
     ...common, background: true, id: "juho", name: "Juho", role: "mentee", mentorId: "sanna", tmsEnd: "2026-08-31", joinedDay: 0, raw: simulate({ seed: 606 }), tstDirection: 1,
-    wearable: null, hours: ["morning"], prefs: ["in person"], zone: "Helsinki", q: { ritmo: 2, movilidad: 1 }, monthsPostTms: 0.2, level0Weeks: 0,
+    wearable: null, hours: ["morning"], prefs: ["in person"], zone: "Helsinki", q: { movilidad: 2 }, monthsPostTms: 0.2, level0Weeks: 0,
   },
   {
     ...common, background: true, id: "noora", name: "Noora", role: "mentee", tmsEnd: "2026-10-28", joinedDay: 52, raw: simulate({ seed: 707, startDay: 52 }), tstDirection: 1,

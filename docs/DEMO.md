@@ -34,8 +34,8 @@ The banner "Beyond the clinic" is on screen.
 
 **Step 1 · Day 0 · Matching (press 1, then E to open the layer).**
 Look at the bottom layer: "Matching by how relapses started".
-> "The clinic picks a mentor by how each person's last relapse started. Pablo scores **0.87** with Luis, Sara
-> **0.758**: Luis and Pablo both started out sleeping more and going out less."
+> "The clinic picks a mentor by how each person's last relapse started. Pablo scores **88.6 %** with Luis, Sara
+> **77.2 %**: Luis and Pablo both started out sleeping more and going out less."
 
 Press E again to close the layer. Presses 2-4 (Pablo's intro, Luis's welcome and consents, four weeks of baseline):
 keep going, one sentence: "Luis gives three separate consents, and Relevo spends four weeks learning his usual."
@@ -97,10 +97,10 @@ mentor" for Luis. Press 26: Marta writes to Pablo.
 > "Pablo is offered a pause, Luis stays supported by the clinic team, and nobody is blamed."
 
 **Step 8 · Close · What the simulation shows (press 27, E open).**
-The layer shows **88 %**, **5 days**, **2.45**.
-> "On 200 synthetic people that we generated ourselves, with 100 simulated relapses, level 1 catches 88 % of them with
-> a median of 5 days' notice and 2.45 false alarms per person per year, and a false alarm only costs a walk with the
-> mentor. Level 2, the one that reaches the clinic, is much stricter: 48 %. This proves the logic works as designed,
+The layer shows **90 %**, **6 days**, **2.37**.
+> "On 1,000 synthetic people that we generated ourselves, with 500 simulated relapses, level 1 catches 90 % of them with
+> a median of 6 days' notice and 2.37 false alarms per person per year, and a false alarm only costs a walk with the
+> mentor. Level 2, the one that reaches the clinic, is much stricter: 62 %. This proves the logic works as designed,
 > not that it predicts relapse in real patients. That needs a clinical study."
 
 ### Impact · 2:40
@@ -175,9 +175,9 @@ the copilot (only for people who turned on note analysis); it can add a crisis f
 summaries are fixed templates. Without Gemini everything still works.
 
 **"How do you know it works?"**
-Two ways, both honest about their limits. The engine is checked by 33 automated checks that compare it with our Python
-reference engine, and the 8 demo steps by an end-to-end walk. The 88 % / 5 days / 2.45 false alarms figures come from
-200 synthetic people we generated ourselves: they show the logic does what we designed, not clinical accuracy. That
+Two ways, both honest about their limits. The engine is checked by automated checks (story dates, matching, learning, privacy
+contract), and the 8 demo steps by an end-to-end walk. The 90 % / 6 days / 2.37 false alarms figures come from
+1,000 synthetic people we generated ourselves (`scripts/relevo-evaluate.mjs`): they show the logic does what we designed, not clinical accuracy. That
 would need a clinical study.
 
 **"Privacy / GDPR?"**

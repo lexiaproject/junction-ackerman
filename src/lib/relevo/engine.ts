@@ -4,13 +4,13 @@
 // Sin imports a propósito: lo usan tanto Next.js como el script de comprobación (node scripts/relevo-check.mjs).
 
 /* ---------- 0. Parámetros (la clínica los ajusta en C5) ---------- */
-export type Domain = "sueno" | "movilidad" | "ritmo" | "movil_vinculo" | "fisiologia";
-export const DOMAINS: Domain[] = ["sueno", "movilidad", "ritmo", "movil_vinculo", "fisiologia"];
+// Tres áreas, las que importan a la clínica: sueño, movilidad y fisiología (esta solo con reloj o anillo).
+// [diseño] Antes había cinco; "ritmo" y "móvil y vínculo" se retiraron a petición del equipo clínico (ver DECISIONES.md).
+export type Domain = "sueno" | "movilidad" | "fisiologia";
+export const DOMAINS: Domain[] = ["sueno", "movilidad", "fisiologia"];
 export const DOMAIN_LABEL: Record<Domain, string> = {
   sueno: "sleep",
   movilidad: "mobility",
-  ritmo: "rhythm",
-  movil_vinculo: "phone & connection",
   fisiologia: "physiology",
 };
 
@@ -49,7 +49,7 @@ export const PARAMS: Params = {
   persist_down: 5, // [diseño]
   refresh_days: 28, // [diseño]
   silence_hours: 48, // A1 [diseño]
-  weights: { sueno: 0.3, movilidad: 0.25, ritmo: 0.15, movil_vinculo: 0.2, fisiologia: 0.1 },
+  weights: { sueno: 0.5, movilidad: 0.4, fisiologia: 0.1 }, // [diseño] sin reloj ni anillo, el peso de fisiología se reparte
 };
 
 /* ---------- 1. Catálogo de rasgos (signo +1: más es peor; -1: menos es peor) ---------- */
@@ -59,16 +59,10 @@ export const FEATURES: Feature[] = [
   { key: "mid_sd14", domain: "sueno", sign: 1, minScale: 8, unit: "min" },
   { key: "waso7", domain: "sueno", sign: 1, minScale: 4, unit: "min", optional: true },
   { key: "awak7", domain: "sueno", sign: 1, minScale: 0.3, unit: "n", optional: true },
-  { key: "onset_delay7", domain: "sueno", sign: 1, minScale: 10, unit: "min" },
   { key: "tst_excess7", domain: "sueno", sign: 1, minScale: 15, unit: "min" },
-  { key: "ra7", domain: "ritmo", sign: -1, minScale: 0.01, unit: "0-1" },
   { key: "steps7", domain: "movilidad", sign: -1, minScale: 300, unit: "steps" },
   { key: "home7", domain: "movilidad", sign: 1, minScale: 0.3, unit: "h" },
   { key: "entropy7", domain: "movilidad", sign: -1, minScale: 0.02, unit: "0-1" },
-  { key: "screen7", domain: "movil_vinculo", sign: 1, minScale: 10, unit: "min" },
-  { key: "night7", domain: "movil_vinculo", sign: 1, minScale: 2, unit: "min" },
-  { key: "latency7", domain: "movil_vinculo", sign: 1, minScale: 0.5, unit: "h" },
-  { key: "reply7", domain: "movil_vinculo", sign: -1, minScale: 0.05, unit: "0-1" },
   { key: "rmssd7", domain: "fisiologia", sign: -1, minScale: 1.5, unit: "ms", optional: true },
   { key: "rhr7", domain: "fisiologia", sign: 1, minScale: 0.7, unit: "bpm", optional: true },
 ];
@@ -76,22 +70,16 @@ export const FEAT: Record<string, Feature> = Object.fromEntries(FEATURES.map((f)
 
 // Nombre legible (C2) y frase clínica de la plantilla del resumen automático (sección 9.2)
 export const FEATURE_INFO: Record<string, { name: string; signal: string; phrase: string }> = {
-  tst_sd14: { name: "Sleep duration SD (14 d)", signal: "Sleep variability", phrase: "more irregular sleep" },
-  mid_sd14: { name: "Sleep midpoint SD (14 d)", signal: "Sleep variability", phrase: "more irregular sleep schedule" },
-  waso7: { name: "Awake after sleep onset (7 d)", signal: "Fragmentation", phrase: "more time awake at night" },
-  awak7: { name: "Awakenings (7 d)", signal: "Fragmentation", phrase: "more night awakenings" },
-  onset_delay7: { name: "Sleep onset delay (7 d)", signal: "Phase", phrase: "falls asleep later" },
-  tst_excess7: { name: "Sleep vs. personal direction (7 d)", signal: "Personal direction", phrase: "sleeps more than usual" },
-  ra7: { name: "Rest-activity amplitude (7 d)", signal: "Rest-activity rhythm", phrase: "flatter daily rhythm" },
-  steps7: { name: "Steps (7 d)", signal: "Steps", phrase: "fewer steps" },
-  home7: { name: "Time at home (7 d)", signal: "Time at home", phrase: "more time at home" },
-  entropy7: { name: "Place variety (7 d)", signal: "Place variety", phrase: "goes to fewer places" },
-  screen7: { name: "Screen time (7 d)", signal: "Phone use", phrase: "more phone use" },
-  night7: { name: "Phone use 00–05 (7 d)", signal: "Phone use", phrase: "more phone use at night" },
-  latency7: { name: "Hours to reply to notes (7 d)", signal: "Connection", phrase: "takes longer to reply to their mentor" },
-  reply7: { name: "Notes replied (7 d)", signal: "Connection", phrase: "replies to fewer notes" },
-  rmssd7: { name: "Night HRV, RMSSD (7 d)", signal: "HRV & pulse", phrase: "lower night-time heart rate variability" },
-  rhr7: { name: "Night resting pulse (7 d)", signal: "HRV & pulse", phrase: "higher night-time pulse" },
+  mid_sd14: { name: "Bed & wake time variability (14 d)", signal: "Irregular timing: bed & wake times", phrase: "more irregular bed and wake times" },
+  tst_sd14: { name: "Sleep duration variability (14 d)", signal: "Irregular timing: sleep duration", phrase: "more irregular sleep" },
+  waso7: { name: "Awake after sleep onset (7 d)", signal: "Fragmented sleep: time awake", phrase: "more time awake at night" },
+  awak7: { name: "Night awakenings (7 d)", signal: "Fragmented sleep: awakenings", phrase: "more night awakenings" },
+  tst_excess7: { name: "Sleep amount vs. usual (7 d)", signal: "Much more or much less sleep", phrase: "sleeps far from their usual amount" },
+  home7: { name: "Time at home (7 d)", signal: "Withdrawal", phrase: "more time at home" },
+  entropy7: { name: "Place variety, location entropy (7 d)", signal: "Poorer routine", phrase: "goes to fewer different places" },
+  steps7: { name: "Steps (7 d)", signal: "Fewer steps", phrase: "fewer steps" },
+  rmssd7: { name: "Night HRV, RMSSD (7 d)", signal: "Lower HRV", phrase: "lower night-time heart rate variability" },
+  rhr7: { name: "Night resting pulse (7 d)", signal: "Higher resting pulse", phrase: "higher night-time pulse" },
 };
 
 export type Raw = { dates: string[]; cols: Record<string, (number | null)[]> };
@@ -111,8 +99,7 @@ function rolling(s: Series, w: number, fn: "mean" | "std", minValid: number): Se
 }
 
 const MEAN7_SOURCE: Record<string, string> = {
-  waso7: "waso", awak7: "awak", ra7: "ra", steps7: "steps", home7: "home", entropy7: "entropy", screen7: "screen",
-  night7: "night", latency7: "latency", reply7: "replied", rmssd7: "rmssd", rhr7: "rhr", onset_delay7: "onset", tst_mean7: "tst",
+  waso7: "waso", awak7: "awak", steps7: "steps", home7: "home", entropy7: "entropy", rmssd7: "rmssd", rhr7: "rhr", tst_mean7: "tst",
 };
 const SD14_KEYS = new Set(["tst_sd14", "mid_sd14"]);
 
@@ -389,11 +376,11 @@ export function rhythmProposals(levels: { date: string; level: number }[], start
 /* ---------- 8. Bandido de Thompson con arranque en frío ---------- */
 export type Action = "actividad_con_sentido" | "paseo_juntos" | "llamada_o_quedar" | "ancla_manana" | "desconexion_nocturna" | "calma_acompanada";
 export const ACTIONS: Record<Action, { domains: Domain[]; prior: number }> = {
-  actividad_con_sentido: { domains: ["ritmo", "movilidad"], prior: 0.55 }, // BA SMD -0.74 (Ekers 2014)
-  paseo_juntos: { domains: ["movilidad", "ritmo"], prior: 0.55 }, // caminar g -0.62 (Noetel 2024)
-  llamada_o_quedar: { domains: ["movil_vinculo", "movilidad"], prior: 0.5 }, // peer SMD -0.59
-  ancla_manana: { domains: ["sueno", "ritmo"], prior: 0.5 },
-  desconexion_nocturna: { domains: ["movil_vinculo", "sueno"], prior: 0.45 },
+  actividad_con_sentido: { domains: ["movilidad"], prior: 0.55 }, // BA SMD -0.74 (Ekers 2014)
+  paseo_juntos: { domains: ["movilidad"], prior: 0.55 }, // caminar g -0.62 (Noetel 2024)
+  llamada_o_quedar: { domains: ["movilidad", "sueno"], prior: 0.5 }, // peer SMD -0.59
+  ancla_manana: { domains: ["sueno"], prior: 0.5 },
+  desconexion_nocturna: { domains: ["sueno"], prior: 0.45 },
   calma_acompanada: { domains: ["fisiologia"], prior: 0.45 },
 };
 export const DIRECT_ACTIONS: Action[] = ["llamada_o_quedar", "paseo_juntos"];
@@ -513,7 +500,7 @@ export function rewardFrom(accepted: boolean, feedback: "good" | "ok" | "didnt" 
 }
 
 /* ---------- 9. Emparejamiento por huella ---------- */
-export const FP_DIMS = ["sueno", "ritmo", "movilidad", "movil_vinculo", "fisiologia", "dir_sueno"] as const;
+export const FP_DIMS = ["sueno", "movilidad", "fisiologia", "dir_sueno"] as const;
 export type Questionnaire = Partial<Record<(typeof FP_DIMS)[number], number>>;
 export const fingerprint = (q: Questionnaire) => FP_DIMS.map((d) => q[d] ?? 0);
 export function cosine(a: number[], b: number[]) {

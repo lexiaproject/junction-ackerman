@@ -125,6 +125,7 @@ export function demoView(sim: Sim) {
     trace: sim.trace.filter((e) => e.t <= now).sort((a, b) => a.t - b.t).slice(-14).reverse().map((e) => ({ when: `${dayLabel(dayOf(e.t))} ${hhmm(e.t)}`, who: e.who, text: english(e.text), scripted: !!e.scripted })),
     // Aviso al presentador (K-06): si Luis apagó algún consentimiento, la historia de la demo no ocurre
     luisConsents: { onboarded: sim.people.luis.onboarded, off: (["data", "notes", "ideas"] as const).filter((k) => !sim.people.luis.consents[k]) },
-    evaluation: { l1: { sensitivity: 0.88, lead: 5, iqr: [2, 7.25], fa: 2.45 }, l2: { sensitivity: 0.48, lead: 1, fa: 0.5 }, people: 200, relapses: 100 },
+    // Cifras de scripts/relevo-evaluate.mjs (1.000 personas sintéticas, 500 recaídas, tres áreas). Prueban la lógica, no la precisión clínica.
+    evaluation: { l1: { sensitivity: 0.9, lead: 6, iqr: [3, 10], fa: 2.37 }, l2: { sensitivity: 0.62, lead: 1, fa: 0.77 }, people: 1000, relapses: 500 },
   };
 }

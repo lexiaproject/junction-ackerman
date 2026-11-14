@@ -31,3 +31,15 @@
     `git merge --squash` (un solo commit) en vez de avance rápido: dos commits intermedios de la rama contenían el nombre de
     usuario de Windows en rutas de los informes; así el historial público de `main` no lo lleva. La rama `sesion-autonoma`
     conserva el detalle commit a commit en local. Las rutas de los informes se han anonimizado (`Users\<user>`).
+13. **Tres áreas en vez de cinco (petición del equipo clínico).** El motor mide solo **sueño** (horario irregular,
+    sueño fragmentado, dormir mucho más o mucho menos de lo habitual), **movilidad** (tiempo en casa, variedad de lugares,
+    pasos) y **fisiología** (HRV y pulso en reposo, solo con reloj o anillo). Se retiran "ritmo" y "móvil y vínculo", y el
+    rasgo "tarda en dormirse". Pesos: sueño 0,5 · movilidad 0,4 · fisiología 0,1 (sin reloj, su peso se reparte).
+    "Movimiento dentro de casa" se enseña en la ficha como **experimental** (datos simulados) y no entra en el riesgo.
+    Consecuencias: (a) el motor ya no se compara con el de Python de cinco áreas; el de TypeScript pasa a ser la
+    referencia. (b) Los datos sintéticos de Luis (su empeoramiento de sueño desde el 10/10, al 65 %) y de Pablo (HRV y
+    pulso desde el 30/10) se ajustan para que la historia caiga en los mismos días (nivel 1/2 de Luis el 24/10 y el
+    31/10; de Pablo el 2/11 y el 6/11). (c) Cifras nuevas con `scripts/relevo-evaluate.mjs` (port de evaluate.py,
+    cinco poblaciones de 200 = 1.000 personas): nivel 1 90 %, 6 días, 2,37 falsas alarmas/año; nivel 2 62 %, 1 día, 0,77.
+    Con la misma herramienta, el motor de cinco áreas daba ~92 %, 5,6 días, 2,2: detecta casi lo mismo.
+    (d) Afinidad Pablo-Luis 0,886 y Sara-Luis 0,772 (huella de tres áreas).

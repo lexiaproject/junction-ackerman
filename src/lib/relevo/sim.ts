@@ -141,8 +141,11 @@ const runCache = new Map<string, PersonRun>();
 function engineRun(id: PersonId, ps: PState, cfg: Config) {
   const person = PERSON[id];
   const pp = cfg.person[id] ?? {};
-  const params: Params = { ...PARAMS, ...cfg, ...pp, weights: cfg.weights };
-  const key = JSON.stringify([id, [...ps.crisisDays].sort(), [...ps.resolutions].sort(), [...ps.disabled].sort(), cfg.l1_R, cfg.l2_R, cfg.l3_R, cfg.domain_hi, cfg.persist_up, cfg.persist_down, cfg.weights, pp]);
+  // Mundos guardados con las cinco áreas antiguas: se usan los pesos actuales (solo sueño, movilidad y fisiología)
+  const w = cfg.weights as Record<string, number>;
+  const weights = DOMAINS.every((d) => typeof w[d] === "number") && Object.keys(w).every((k) => (DOMAINS as string[]).includes(k)) ? cfg.weights : { ...PARAMS.weights };
+  const params: Params = { ...PARAMS, ...cfg, ...pp, weights };
+  const key = JSON.stringify([id, [...ps.crisisDays].sort(), [...ps.resolutions].sort(), [...ps.disabled].sort(), cfg.l1_R, cfg.l2_R, cfg.l3_R, cfg.domain_hi, cfg.persist_up, cfg.persist_down, weights, pp]);
   let r = runCache.get(key);
   if (!r) {
     r = runPerson(person.raw, { tstDirection: person.tstDirection, crisisDays: ps.crisisDays, clinicResolutions: ps.resolutions, params, disabled: ps.disabled });
@@ -158,7 +161,6 @@ export const DATA_TYPES: Record<string, { label: string; purpose: string; cols: 
   steps: { label: "Steps", purpose: "How much you move during the day", cols: ["steps", "ra"] },
   pulse: { label: "Pulse", purpose: "Night-time heart rhythm, if you wear a watch or ring", cols: ["rmssd", "rhr"] },
   location: { label: "Approximate location", purpose: "Time out of home and variety of places, never the exact place", cols: ["home", "entropy"] },
-  phone: { label: "Phone use", purpose: "Screen time and late-night use, never what you do", cols: ["screen", "night"] },
 };
 
 /* ======================================================================================= */

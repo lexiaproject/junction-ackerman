@@ -26,9 +26,9 @@ try {
   // 1 · Día 0: emparejamiento (0,87 frente a 0,758)
   await clock(at(0, "08:10"));
   let demo = await get("/api/relevo/demo");
-  ok(demo.match.pabloLuis?.affinity === 0.87 && demo.match.saraLuis?.affinity === 0.758, `1 · Afinidad Pablo-Luis ${demo.match.pabloLuis?.affinity}, Sara-Luis ${demo.match.saraLuis?.affinity}`);
+  ok(demo.match.pabloLuis?.affinity === 0.886 && demo.match.saraLuis?.affinity === 0.772, `1 · Afinidad Pablo-Luis ${demo.match.pabloLuis?.affinity}, Sara-Luis ${demo.match.saraLuis?.affinity}`);
   let pablo = await get("/api/relevo/mentor?as=pablo");
-  ok(pablo.m0?.menteeName === "Luis" && pablo.m0?.percent === 87, `1 · Pablo ve la invitación M0 (afinidad ${pablo.m0?.percent} %)`);
+  ok(pablo.m0?.menteeName === "Luis" && pablo.m0?.percent === 89, `1 · Pablo ve la invitación M0 (afinidad ${pablo.m0?.percent} %)`);
 
   // 2 · Día 40: copiloto tras la tercera nota en bucle
   await clock(at(40, "21:15"));
@@ -97,7 +97,7 @@ try {
   await clock(at(62, "12:00"));
   demo = await get("/api/relevo/demo");
   const e = demo.evaluation;
-  ok(e.l1.sensitivity === 0.88 && e.l1.lead === 5 && e.l1.fa === 2.45 && e.people === 200, `8 · Simulación: ${e.l1.sensitivity * 100} %, ${e.l1.lead} días, ${e.l1.fa} falsas alarmas, ${e.people} personas`);
+  ok(e.l1.sensitivity === 0.9 && e.l1.lead === 6 && e.l1.fa === 2.37 && e.people === 1000, `8 · Simulación: ${e.l1.sensitivity * 100} %, ${e.l1.lead} días, ${e.l1.fa} falsas alarmas, ${e.people} personas`);
 } catch (err) {
   ok(false, `Error en el recorrido: ${err.message}`);
 }

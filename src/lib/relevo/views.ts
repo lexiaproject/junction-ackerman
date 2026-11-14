@@ -1,6 +1,6 @@
 // Lo que ve cada actor. REGLA DE ORO (sección 0.3): las vistas del acompañado y del mentor NUNCA llevan un número de
 // salud: ni nivel, ni índice, ni rasgos, ni "hemos detectado". Solo la clínica ve datos. Lo comprueba scripts/relevo-check.
-import { ACTIONS, DOMAINS, DOMAIN_LABEL, FEAT, FEATURES, FEATURE_INFO, affinity, cosine, fingerprint, type Action, type Domain } from "./engine.ts";
+import { ACTIONS, DOMAINS, DOMAIN_LABEL, FEAT, FEATURES, FEATURE_INFO, affinity, cosine, fingerprint, hashSeed, rngFrom, PARAMS, type Action, type Domain } from "./engine.ts";
 import { DAY0, LAST_DAY, PEOPLE, PERSON, type PersonId } from "./people.ts";
 import { CATALOG, COPILOT, LEVEL_LABEL, SHORT_NOTE } from "./texts.ts";
 import { DATA_TYPES, DAY, at, dateOf, dayOf, hhmm, weekdayOf, type Card, type Note, type Plan, type Sim } from "./sim.ts";
@@ -61,7 +61,7 @@ function devices(sim: Sim, id: PersonId) {
   })();
   const sleepOff = DATA_TYPES.sleep.cols.every((c) => s.disabled.has(c)) && DATA_TYPES.pulse.cols.every((c) => s.disabled.has(c));
   const rows = [
-    { id: "phone", name: "This phone", detail: "Movement, time out of home and phone use", icon: "phone", status: phoneData ? "connected" : "stale", statusText: phoneData ? "Connected" : "No data since yesterday", sync: phoneData ? "Last sync: 14 min ago" : "Last sync: yesterday", help: phoneData ? null : "Is the app allowed to run in the background?" },
+    { id: "phone", name: "This phone", detail: "Steps, time out of home and places visited", icon: "phone", status: phoneData ? "connected" : "stale", statusText: phoneData ? "Connected" : "No data since yesterday", sync: phoneData ? "Last sync: 14 min ago" : "Last sync: yesterday", help: phoneData ? null : "Is the app allowed to run in the background?" },
     p.wearable
       ? {
           id: "ring", name: p.wearable, via: "via Apple Health", detail: "Sleep, steps and pulse", icon: "ring",
@@ -219,7 +219,6 @@ function footprintPhrase(a: PersonId, b: PersonId) {
   const bits: string[] = [];
   if (both("sueno") && (qa.dir_sueno ?? 0) === (qb.dir_sueno ?? 0) && qa.dir_sueno) bits.push(qa.dir_sueno > 0 ? "sleeping more" : "sleeping less");
   if (both("movilidad")) bits.push("going out less");
-  if (both("movil_vinculo") && bits.length < 2) bits.push("answering fewer messages");
   return bits.length ? `You both started out ${bits.join(" and ")}` : "Your relapses started in a similar way";
 }
 export function matchFor(menteeId: PersonId, mentorId: PersonId) {
@@ -329,8 +328,8 @@ export function personFile(sim: Sim, id: PersonId) {
   const weeks = Math.floor((Date.parse(dateOf(day)) - Date.parse(p.tmsEnd)) / (7 * 864e5));
   const validDays = (col: string, w: number) => p.raw.cols[col].slice(Math.max(0, day - w + 1), day + 1).filter((v, i) => v !== null && !s.disabled.has(col) && i >= 0).length;
   const SRC: Record<string, [string, number]> = {
-    tst_sd14: ["tst", 14], mid_sd14: ["mid", 14], waso7: ["waso", 7], awak7: ["awak", 7], onset_delay7: ["onset", 7], tst_excess7: ["tst", 7], ra7: ["ra", 7], steps7: ["steps", 7], home7: ["home", 7],
-    entropy7: ["entropy", 7], screen7: ["screen", 7], night7: ["night", 7], latency7: ["latency", 7], reply7: ["replied", 7], rmssd7: ["rmssd", 7], rhr7: ["rhr", 7],
+    tst_sd14: ["tst", 14], mid_sd14: ["mid", 14], waso7: ["waso", 7], awak7: ["awak", 7], tst_excess7: ["tst", 7], steps7: ["steps", 7], home7: ["home", 7],
+    entropy7: ["entropy", 7], rmssd7: ["rmssd", 7], rhr7: ["rhr", 7],
   };
   const features = FEATURES.map((f) => {
     const k = f.key === "tst_excess7" ? "tst_mean7" : f.key;
@@ -363,11 +362,53 @@ export function personFile(sim: Sim, id: PersonId) {
     },
     domains: DOMAINS.map((d) => ({ key: d, label: DOMAIN_LABEL[d], s: r1(row?.s[d] ?? null), smooth: r1(row?.sSmooth[d] ?? null), feats: row?.counts?.[d] ?? 0 })),
     features, history, notesCount,
+    measures: [
+      ...MEASURE_ORDER.map((key) => {
+        const m = DISPLAY[key];
+        const z = row?.z[key];
+        const v = series(m.k, m.scale, m.d).at(-1) ?? null;
+        return { key, area: FEAT[key].domain, signal: FEATURE_INFO[key].signal, name: FEATURE_INFO[key].name, unit: m.unit, experimental: false, series: series(m.k, m.scale, m.d), band: band(m.k, m.scale, m.d), value: v, z: z === undefined ? null : r1(z, 1) };
+      }),
+      ...(() => { const r = roomsMeasure(id, s.disabled.has("steps") ? p.raw.cols.steps.map(() => null) : p.raw.cols.steps, idx); return r ? [r] : []; })(),
+    ],
+    weights: (() => {
+      const w = sim.world.config.weights as Record<string, number>;
+      return DOMAINS.every((d) => typeof w[d] === "number") && Object.keys(w).every((k) => (DOMAINS as string[]).includes(k)) ? sim.world.config.weights : PARAMS.weights;
+    })(),
     calls: sim.calls.filter((c) => c.person === id && c.t <= sim.now).map((c) => ({ mode: c.mode, when: when(sim.now, c.t), scheduledFor: c.scheduledFor ? `${dayLabel(dayOf(c.scheduledFor))} ${hhmm(c.scheduledFor)}` : null, done: !!c.done })),
     crisisNote: crisisNote && s.consents.notes ? { id: crisisNote.noteId, text: sim.notes.find((n) => n.id === crisisNote.noteId)?.text ?? "" } : null,
     raw: { R: r1(row?.R ?? null), Rs: r1(row?.Rs ?? null) },
   };
 }
+/* ---------- Medidas de cada área para la ficha (C2): serie de 35 días, franja habitual y z ---------- */
+const MEASURE_ORDER = ["mid_sd14", "tst_sd14", "waso7", "awak7", "tst_excess7", "home7", "entropy7", "steps7", "rmssd7", "rhr7"];
+const DISPLAY: Record<string, { k: string; scale: number; d: number; unit: string }> = {
+  mid_sd14: { k: "mid_sd14", scale: 1, d: 0, unit: "min" }, tst_sd14: { k: "tst_sd14", scale: 1, d: 0, unit: "min" },
+  waso7: { k: "waso7", scale: 1, d: 0, unit: "min" }, awak7: { k: "awak7", scale: 1, d: 1, unit: "per night" },
+  tst_excess7: { k: "tst_mean7", scale: 1 / 60, d: 1, unit: "h" }, home7: { k: "home7", scale: 1, d: 1, unit: "h" },
+  entropy7: { k: "entropy7", scale: 1, d: 2, unit: "" }, steps7: { k: "steps7", scale: 1, d: 0, unit: "steps" },
+  rmssd7: { k: "rmssd7", scale: 1, d: 0, unit: "ms" }, rhr7: { k: "rhr7", scale: 1, d: 1, unit: "bpm" },
+};
+// MOCK: movimiento entre habitaciones (señal experimental). En la demo no hay sensor dentro de casa: se deriva de los
+// pasos de cada día con ruido determinista. Se enseña en la ficha marcada "experimental" y NO entra en el riesgo.
+function roomsMeasure(id: string, steps: (number | null)[], idx: number[]) {
+  const rng = rngFrom(hashSeed("rooms", id));
+  const daily = steps.map((v) => (v === null ? null : 30 * Math.pow(Math.max(v, 300) / 6500, 0.6) * (0.92 + 0.16 * rng())));
+  const mean7 = daily.map((_, i) => { const w = daily.slice(Math.max(0, i - 6), i + 1).filter((v): v is number => v !== null); return w.length >= 4 ? w.reduce((a, b) => a + b, 0) / w.length : null; });
+  const base = mean7.slice(0, 28).filter((v): v is number => v !== null).sort((a, b) => a - b);
+  if (base.length < 14) return null;
+  const med = base[Math.floor(base.length / 2)];
+  const mad = [...base.map((v) => Math.abs(v - med))].sort((a, b) => a - b)[Math.floor(base.length / 2)] * 1.4826;
+  const scale = Math.max(mad, 1.5);
+  const r1 = (v: number | null) => (v === null ? null : Math.round(v * 10) / 10);
+  const last = mean7[idx[idx.length - 1]];
+  return {
+    key: "rooms7", area: "movilidad" as Domain, signal: "Less movement inside the home", name: "Room-to-room moves (7 d)", unit: "per day", experimental: true,
+    series: idx.map((i) => r1(mean7[i])), band: { lo: r1(med - scale), mid: r1(med), hi: r1(med + scale) },
+    value: r1(last), z: last === null ? null : r1(Math.max(-4, Math.min(4, -(last - med) / scale))),
+  };
+}
+
 function historyLevel(sim: Sim, id: PersonId, day: number) {
   const h = sim.people[id].history.filter((x) => x.day <= day);
   return h.length ? h[h.length - 1].level : 0;

@@ -29,8 +29,8 @@ type DemoData = {
 };
 const DAY = 1440;
 const END = 62 * DAY + 1439;
-const DOM_COLOR: Record<string, string> = { sueno: "#3b6ea8", movilidad: "#0E6B5C", ritmo: "#8a5aa8", movil_vinculo: "#b7791f", fisiologia: "#8d99a0" };
-const DOM_LABEL: Record<string, string> = { sueno: "Sleep", movilidad: "Mobility", ritmo: "Rhythm", movil_vinculo: "Phone & connection", fisiologia: "Physiology" };
+const DOM_COLOR: Record<string, string> = { sueno: "#3b6ea8", movilidad: "#0E6B5C", fisiologia: "#b7791f" };
+const DOM_LABEL: Record<string, string> = { sueno: "Sleep", movilidad: "Mobility", fisiologia: "Physiology" };
 
 export default function DemoPage() {
   const w = useWid();
@@ -402,7 +402,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
   const link = (id: string, label: string) => <button className="mt-2 font-semibold text-rv-teal underline" onClick={() => onFocus(id)}>{label}</button>;
 
   if (g === "match") {
-    const dims = ["Sleep", "Rhythm", "Mobility", "Phone", "Physiology", "Sleep dir."];
+    const dims = ["Sleep", "Mobility", "Physiology", "Sleep dir."];
     const rows: [string, number[]][] = [["Luis", data.match.luis], ["Pablo", data.match.pablo], ["Sara", data.match.sara]];
     return (
       <>
@@ -431,11 +431,11 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
     );
   }
   if (g === "baseline") {
-    const areas: [string, number][] = [["Sleep", 0.3], ["Mobility", 0.25], ["Phone & connection", 0.2], ["Rhythm", 0.15], ["Physiology", 0.1]];
+    const areas: [string, number][] = [["Sleep", 0.5], ["Mobility", 0.4], ["Physiology (watch or ring)", 0.1]];
     return (
       <>
         <Card title="Learning Luis's usual">
-          <p>Relevo doesn&apos;t compare Luis with anyone. For four weeks it learns his usual: the median and a robust scale of each of his 16 features.</p>
+          <p>Relevo doesn&apos;t compare Luis with anyone. For four weeks it learns his usual: the median and a robust scale of each of his 10 features, in three areas: sleep, mobility and, with a watch or ring, physiology.</p>
           <p className="mt-2">From day 28, each feature is measured as how far it is from <em>his</em> usual (robust z, clipped at ±4).</p>
           <Quote>The phones look exactly the same as before: there is nothing for Luis or Pablo to see.</Quote>
         </Card>
@@ -443,7 +443,7 @@ function Explain({ data, onFocus }: { data: DemoData; onFocus: (id: string | nul
           {areas.map(([n, v]) => (
             <div key={n} className="mt-2 first:mt-0">
               <div className="flex justify-between"><span>{n}</span><span className="rv-num font-semibold">{v.toFixed(2)}</span></div>
-              <div className="mt-1 h-2 rounded-full bg-white"><div className="h-full rounded-full bg-rv-teal" style={{ width: `${(v / 0.3) * 100}%` }} /></div>
+              <div className="mt-1 h-2 rounded-full bg-white"><div className="h-full rounded-full bg-rv-teal" style={{ width: `${(v / 0.5) * 100}%` }} /></div>
             </div>
           ))}
         </Card>

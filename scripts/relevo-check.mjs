@@ -1,5 +1,6 @@
-// Comprueba que el motor en TypeScript da los mismos números que el motor de referencia en Python
-// (lista de aceptación, sección 13, puntos 11-15). Uso:  node scripts/relevo-check.mjs
+// Comprueba el motor y la lista de aceptación (sección 13, puntos 1-15). Uso:  node scripts/relevo-check.mjs
+// Desde la v4 (tres áreas: sueño, movilidad y fisiología) el motor de TypeScript es la referencia: ya no se compara con el
+// motor en Python de cinco áreas. Las fechas de la historia (niveles de Luis y Pablo) se comprueban abajo.
 import fs from "node:fs";
 import {
   runPerson, rhythmProposals, banditColdStart, banditUpdate, banditProbs, affinity, fingerprint,
@@ -38,7 +39,6 @@ function compare(label, run, ref) {
 
 // 11. Luis: nivel 1 el 24/10, nivel 2 el 31/10, nivel 3 el 3/11 (crisis), vuelve a 2 el 5/11
 const luis = runPerson(luisRaw, { tstDirection: 1, crisisDays: new Set(["2026-11-03"]), clinicResolutions: new Set(["2026-11-05"]) });
-compare("Luis", luis, csv("demo_luis_engine_v3.csv"));
 const first = (run, L) => run.days.find((d) => d.level >= L)?.date;
 ok(first(luis, 1) === "2026-10-24", `Luis entra en nivel 1 el ${first(luis, 1)}`);
 ok(first(luis, 2) === "2026-10-31", `Luis entra en nivel 2 el ${first(luis, 2)}`);
@@ -49,18 +49,17 @@ console.log("     24/10:", { movilidad: d47.s.movilidad.toFixed(2), sueno: d47.s
 
 // 12. Pablo: nivel 1 el 2/11, nivel 2 el 6/11; ritmo propuesto "Pausa" el 6/11
 const pablo = runPerson(pabloRaw, { tstDirection: 1 });
-compare("Pablo", pablo, csv("demo_pablo_engine_v3.csv"));
 ok(first(pablo, 1) === "2026-11-02", `Pablo entra en nivel 1 el ${first(pablo, 1)}`);
 ok(first(pablo, 2) === "2026-11-06", `Pablo entra en nivel 2 el ${first(pablo, 2)}`);
 const props = rhythmProposals(pablo.days.map((d) => ({ date: d.date, level: d.level }))).filter((x) => x.kind === "proposal");
 ok(props.length === 1 && props[0].date === "2026-11-06" && props[0].proposal.rhythm === 0, `Ritmo propuesto a Pablo: ${JSON.stringify(props.map((x) => [x.date, x.proposal.rhythm]))}`);
 
-// 13. Afinidad Pablo-Luis = 0,87; Sara-Luis = 0,758
-const L = { id: "luis", fp: fingerprint({ sueno: 2, movilidad: 2, movil_vinculo: 1, dir_sueno: 1 }), monthsPostTms: 0.1, level0Weeks: 0, acuteRelapse: false, hours: ["manana", "tarde"], lang: "es", prefs: ["voz", "presencial"], zone: "Espoo" };
-const P = { id: "pablo", fp: fingerprint({ sueno: 2, movilidad: 1, movil_vinculo: 2, dir_sueno: 1 }), monthsPostTms: 4, level0Weeks: 8, acuteRelapse: false, hours: ["manana"], lang: "es", prefs: ["voz", "presencial"], zone: "Espoo" };
-const S = { id: "sara", fp: fingerprint({ sueno: 2, ritmo: 1, fisiologia: 1, dir_sueno: -1 }), monthsPostTms: 6, level0Weeks: 10, acuteRelapse: false, hours: ["manana", "tarde"], lang: "es", prefs: ["voz"], zone: "Helsinki" };
-ok(affinity(P, L).score === 0.87, `Afinidad Pablo-Luis ${affinity(P, L).score}`);
-ok(affinity(S, L).score === 0.758, `Afinidad Sara-Luis ${affinity(S, L).score}`);
+// 13. Afinidad Pablo-Luis = 0,886; Sara-Luis = 0,772 (huella de tres áreas + dirección del sueño)
+const L = { id: "luis", fp: fingerprint({ sueno: 2, movilidad: 2, dir_sueno: 1 }), monthsPostTms: 0.1, level0Weeks: 0, acuteRelapse: false, hours: ["manana", "tarde"], lang: "es", prefs: ["voz", "presencial"], zone: "Espoo" };
+const P = { id: "pablo", fp: fingerprint({ sueno: 2, movilidad: 1, dir_sueno: 1 }), monthsPostTms: 4, level0Weeks: 8, acuteRelapse: false, hours: ["manana"], lang: "es", prefs: ["voz", "presencial"], zone: "Espoo" };
+const S = { id: "sara", fp: fingerprint({ sueno: 2, fisiologia: 1, dir_sueno: -1 }), monthsPostTms: 6, level0Weeks: 10, acuteRelapse: false, hours: ["manana", "tarde"], lang: "es", prefs: ["voz"], zone: "Helsinki" };
+ok(affinity(P, L).score === 0.886, `Afinidad Pablo-Luis ${affinity(P, L).score}`);
+ok(affinity(S, L).score === 0.772, `Afinidad Sara-Luis ${affinity(S, L).score}`);
 
 // 14. Índices de queja de las tres notas de ejemplo: 0,57 / 0,72 / 0,78 -> A6 en la tercera
 const notes = [
@@ -144,5 +143,5 @@ ok(clinicPanel(s60).rows.find((r) => r.id === "pablo").flags.includes("Review pa
 const rows = clinicPanel(evaluate(world, at(58, "12:00"))).rows;
 ok(rows.every((r, i) => i === 0 || rows[i - 1].level > r.level || (rows[i - 1].level === r.level && rows[i - 1].daysInLevel >= r.daysInLevel)), `C1 ordenado por nivel: ${rows.slice(0, 4).map((r) => `${r.name} ${r.level}`).join(", ")}`);
 
-console.log(fails ? `\n${fails} comprobaciones fallan` : "\nTodo coincide con el motor de referencia y con la lista de aceptación");
+console.log(fails ? `\n${fails} comprobaciones fallan` : "\nTodo coincide con la lista de aceptación");
 process.exit(fails ? 1 : 0);
