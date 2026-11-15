@@ -7,7 +7,7 @@ import { evaluate, type Who } from "@/lib/relevo/sim";
 import { addEvent, loadWorld, safeAudioMime, saveAudio, saveWorld, validWid } from "@/lib/relevo/store";
 import { bad, ok } from "@/lib/relevo/server";
 
-type Body = { w?: string; as?: string; to?: string; text?: string; duration?: number; audio?: string; mime?: string; cardId?: string; kind?: string };
+type Body = { w?: string; as?: string; to?: string; text?: string; duration?: number; audio?: string; mime?: string; cardId?: string; kind?: string; written?: boolean };
 
 export async function POST(req: Request) {
   const b = ((await req.json().catch(() => null)) ?? {}) as Body;
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   // El análisis (lista fija de crisis || Gemini), el destinatario y las notas previas salen de la lectura inicial: no cambia qué se detecta.
   const fresh = await loadWorld(b.w!);
   const ev = addEvent(fresh, as as Who, "note", {
-    to, text, duration: Math.max(1, Math.min(60, Math.round(b.duration ?? 5))), audio: !!b.audio, cardId: b.cardId, kind: b.kind ?? "note", analysis,
+    to, text, duration: Math.max(1, Math.min(60, Math.round(b.duration ?? 5))), audio: !!b.audio, written: !b.audio && b.written === true, cardId: b.cardId, kind: b.kind ?? "note", analysis,
   });
   if (b.audio) await saveAudio(b.w!, ev.id, b.audio, mime);
   await saveWorld(b.w!, fresh);

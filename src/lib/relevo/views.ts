@@ -44,7 +44,7 @@ function noteView(sim: Sim, n: Note, me: string) {
   const withheld = !!n.analysis?.crisis && n.from !== me;
   return {
     id: n.id, from: n.from, fromName: name(n.from), mine: n.from === me, t: n.t, when: when(sim.now, n.t), duration: withheld ? 0 : n.duration,
-    text: withheld ? `This note was passed to ${name(n.from)}'s clinic team.` : n.text, audio: withheld ? false : n.audio, kind: n.kind, withheld,
+    text: withheld ? `This note was passed to ${name(n.from)}'s clinic team.` : n.text, audio: withheld ? false : n.audio, written: !withheld && !!n.written, kind: n.kind, withheld,
     thanked: n.thankedAt !== undefined && n.thankedAt <= sim.now,
   };
 }

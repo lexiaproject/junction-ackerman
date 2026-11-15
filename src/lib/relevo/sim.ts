@@ -59,7 +59,7 @@ export type Plan = {
   respondedAt?: number; feedback?: "good" | "ok" | "didnt"; feedbackAt?: number; reward?: number; context: Domain; RsBefore: number | null;
 };
 export type Note = {
-  id: string; from: PersonId | "clinic"; to: PersonId | "clinic"; t: number; text: string; duration: number; audio: boolean;
+  id: string; from: PersonId | "clinic"; to: PersonId | "clinic"; t: number; text: string; duration: number; audio: boolean; written?: boolean;
   kind: string; scripted: boolean; thankedAt?: number; analysis?: { indice_queja: number; afecto_negativo: number; repeticion: number; orientacion_accion: number; crisis: boolean; source: string };
 };
 export type Alert = {
@@ -604,7 +604,7 @@ export function evaluate(world: World, nowIn?: number): Sim {
         const prevTexts = sim.notes.filter((n) => (n.from === by && n.to === to) || (n.from === to && n.to === by)).map((n) => n.text);
         const stored = p.analysis as Note["analysis"] | undefined;
         const analysis = stored ?? { ...complaintIndex(text, prevTexts), source: "lexicon" };
-        const note: Note = { id, from: by, to, t, text, duration: Number(p.duration ?? Math.max(3, Math.round(text.split(" ").length / 2.4))), audio: !!p.audio, kind: str("kind") ?? "note", scripted, analysis };
+        const note: Note = { id, from: by, to, t, text, duration: Number(p.duration ?? Math.max(3, Math.round(text.split(" ").length / 2.4))), audio: !!p.audio, written: !!p.written, kind: str("kind") ?? "note", scripted, analysis };
         sim.notes.push(note);
         if (by !== "clinic") log(t, by as PersonId, "note", `Voice note to ${to === "clinic" ? "the clinic" : name(to)}`);
         if (to !== "clinic" && to !== by) log(t, to as PersonId, "note", `Voice note from ${name(by)}`);

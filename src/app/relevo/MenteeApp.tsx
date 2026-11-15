@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { PROFILE } from "@/lib/relevo/profiles";
 import { revealNames } from "@/lib/relevo/pseudo";
-import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, useLocalHelp, usePlayer, useView, type NoteV } from "./kit";
+import { Avatar, ChatComposer, Icon, Recorder, Sheet, TextNote, VoiceNote, act, useLocalHelp, usePlayer, useView, type NoteV } from "./kit";
 import { Milestones, PersonCard, type Together } from "./People";
 
 type Notice = { id: string; code: string; text: string; buttons: { id: string; label: string }[]; from: string | null; noteId: string | null };
@@ -399,25 +399,9 @@ function SupportSheet({ w, as, already, onClose, onHelp }: { w: string; as: stri
 }
 
 function ChatBar({ w, as, to, toName }: { w: string; as: string; to: string; toName: string }) {
-  const [write, setWrite] = useState(false);
   return (
     <div className="sticky bottom-0 border-t border-rv-line bg-rv-bg/95 px-4 pb-4 pt-3 backdrop-blur">
-      {write ? (
-        <>
-          <TextNote w={w} as={as} to={to} toName={toName} onSent={() => setWrite(false)} />
-          <button className="rv-btn rv-btn-ghost mt-1 w-full" onClick={() => setWrite(false)}>
-            Back to voice
-          </button>
-        </>
-      ) : (
-        <div className="flex items-center gap-3">
-          <Recorder w={w} as={as} to={to} toName={toName} compact />
-          <p className="rv-muted flex-1 text-[13px]">Hold to talk to {toName}. No need to reply.</p>
-          <button className="rv-btn rv-btn-ghost px-2" onClick={() => setWrite(true)} aria-label="Write instead">
-            <Icon name="text" />
-          </button>
-        </div>
-      )}
+      <ChatComposer w={w} as={as} to={to} toName={toName} />
     </div>
   );
 }

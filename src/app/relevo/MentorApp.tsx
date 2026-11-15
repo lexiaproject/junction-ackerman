@@ -2,7 +2,7 @@
 // App del mentor (Pablo, y Marta como mentora de Pablo): como mucho una acción al día, y protege al mentor
 // tanto como al acompañado. Nunca ve datos ni niveles de nadie, tampoco los suyos.
 import { useCallback, useEffect, useState } from "react";
-import { Avatar, Icon, Recorder, Sheet, TextNote, VoiceNote, act, useLocalHelp, usePlayer, useView, type NoteV } from "./kit";
+import { Avatar, ChatComposer, Icon, Recorder, Sheet, TextNote, VoiceNote, act, useLocalHelp, usePlayer, useView, type NoteV } from "./kit";
 import { PROFILE, inCommon } from "@/lib/relevo/profiles";
 import { Milestones, PersonCard, type Together } from "./People";
 import { CompanionGuide, TrainingCards, WorriedButton, WorriedSheet } from "./Companion";
@@ -140,11 +140,7 @@ export default function MentorApp({ w, as, resetKey }: { w: string; as: "pablo" 
                       </button>
                     )}
                     {thread === "mentee" && mentee && <WorriedButton mentee={mentee.name} onClick={() => setWorriedOpen(true)} />}
-                    <div className="flex items-center gap-3">
-                      <Recorder w={w} as={as} to={other.id} toName={other.name} compact />
-                      <p className="rv-muted flex-1 text-[13px]">Hold to talk to {other.name}</p>
-                      <button className="rv-btn rv-btn-ghost px-2" aria-label="Write instead" onClick={() => setCompose({ to: other.id, toName: other.name, title: `Note to ${other.name}` })}><Icon name="text" /></button>
-                    </div>
+                    <ChatComposer w={w} as={as} to={other.id} toName={other.name} />
                   </div>
                 </>
               );

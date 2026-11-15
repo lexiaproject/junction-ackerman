@@ -294,7 +294,7 @@ export function usePlayer(w: string | null) {
 export const fmtDur = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
 /* ---------- Burbuja / tarjeta de nota de voz (con transcripción plegable) ---------- */
-export type NoteV = { id: string; from: string; fromName: string; mine: boolean; when: string; duration: number; text: string; audio: boolean; kind?: string; withheld?: boolean; thanked?: boolean };
+export type NoteV = { id: string; from: string; fromName: string; mine: boolean; when: string; duration: number; text: string; audio: boolean; written?: boolean; kind?: string; withheld?: boolean; thanked?: boolean };
 /** onThanks: si se pasa, una nota recibida lleva un "Thanks" de un toque (un gesto sin tener que grabar nada). */
 export function VoiceNote({ note, player, bubble = false, onThanks }: { note: NoteV; player: ReturnType<typeof usePlayer>; bubble?: boolean; onThanks?: () => void }) {
   const [open, setOpen] = useState(false);
@@ -316,6 +316,28 @@ export function VoiceNote({ note, player, bubble = false, onThanks }: { note: No
     );
   const on = player.playing === note.id;
   const tone = note.mine ? "bg-rv-teal text-white" : "bg-white text-rv-ink";
+  const shape = bubble ? `${tone} rounded-[20px] ${note.mine ? "rounded-br-md" : "rounded-bl-md shadow-[0_0_0_1px_rgb(22_33_28/0.05)]"}` : "";
+  const meta = note.mine && bubble ? "text-white/90" : "rv-muted";
+  const thanks = canThank && (isThanked ? (
+    <span className="flex items-center gap-1 font-semibold text-rv-teal"><Icon name="heart" size={14} filled />Thanked</span>
+  ) : (
+    <button onClick={() => { setThanked(true); onThanks!(); }} className="-my-2 flex min-h-[36px] items-center gap-1 rounded-full px-2 font-semibold text-rv-teal hover:bg-rv-sage" aria-label={`Say thanks to ${note.fromName}`}>
+      <Icon name="heart" size={14} />Thanks
+    </button>
+  ));
+  // Mensaje escrito: se enseña como texto, sin reproductor
+  if (note.written)
+    return (
+      <div className={bubble ? `max-w-[86%] ${note.mine ? "self-end" : "self-start"}` : ""}>
+        <div className={`${shape} px-3.5 py-2.5`}>
+          <p className="whitespace-pre-wrap text-[15px] leading-snug">{revealNames(note.text)}</p>
+          <div className={`mt-1 flex items-center justify-end gap-2 text-[12px] ${meta}`}>
+            {thanks}
+            <span>{note.when}</span>
+          </div>
+        </div>
+      </div>
+    );
   return (
     <div className={bubble ? `max-w-[86%] ${note.mine ? "self-end" : "self-start"}` : ""}>
       <div className={`${bubble ? `${tone} rounded-[20px] ${note.mine ? "rounded-br-md" : "rounded-bl-md shadow-[0_0_0_1px_rgb(22_33_28/0.05)]"}` : ""} px-3 py-2.5`}>
@@ -707,7 +729,7 @@ export function TextNote({ w, as, to, toName, initial = "", cardId, kind, onSent
         if (!t.trim()) return;
         setBusy(true);
         try {
-          const r = await sendNote(w, as, to, { text: t.trim(), duration: Math.max(3, Math.round(t.split(" ").length / 2.4)) }, { cardId, kind });
+          const r = await sendNote(w, as, to, { text: t.trim(), duration: Math.max(3, Math.round(t.split(" ").length / 2.4)) }, { cardId, kind, written: true });
           setT("");
           onSent?.(r);
         } catch (e2) {
@@ -723,6 +745,51 @@ export function TextNote({ w, as, to, toName, initial = "", cardId, kind, onSent
         {busy ? "Sending…" : "Send as a written note"}
       </button>
     </form>
+  );
+}
+
+/** Barra del chat: escribe y envía un mensaje, o mantén pulsado el micrófono para grabar una nota de voz. */
+export function ChatComposer({ w, as, to, toName }: { w: string; as: string; to: string; toName: string }) {
+  const [t, setT] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = t.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    setErr("");
+    try {
+      await sendNote(w, as, to, { text, duration: Math.max(3, Math.round(text.split(" ").length / 2.4)) }, { written: true });
+      setT("");
+    } catch (e2) {
+      setErr((e2 as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div>
+      <div className="flex flex-wrap items-start gap-2">
+        <form onSubmit={send} className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-white py-1.5 pl-4 pr-1.5 shadow-[0_0_0_1px_rgb(22_33_28/0.08)] focus-within:shadow-[0_0_0_2px_var(--color-rv-teal)]" style={{ minHeight: 56 }}>
+          <input
+            className="min-w-0 flex-1 bg-transparent text-[16px] outline-none focus-visible:outline-none placeholder:text-rv-ink/45"
+            value={t}
+            onChange={(e) => setT(e.target.value)}
+            placeholder={`Message ${toName}`}
+            aria-label={`Message ${toName}`}
+            maxLength={1200}
+          />
+          {t.trim() && (
+            <button className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rv-teal text-white hover:bg-rv-teal-deep disabled:opacity-60" disabled={busy} aria-label={`Send to ${toName}`}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            </button>
+          )}
+        </form>
+        {!t.trim() && <Recorder w={w} as={as} to={to} toName={toName} compact />}
+      </div>
+      {err ? <p className="mt-1 text-[13px] text-rv-help">{err}</p> : !t && <p className="rv-muted mt-1.5 text-center text-[12.5px]">Type a message, or hold the mic to send a voice note</p>}
+    </div>
   );
 }
 
