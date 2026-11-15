@@ -49,3 +49,16 @@ next-env.d.ts
 /video/node_modules/
 /video/out/
 /video/public/music.wav
+
+# no se publica: notas internas del equipo, herramientas de Claude y restos sin usar (siguen en el portátil)
+/.equipo/
+/.claude/
+/CLAUDE.md
+/AGENTS.md
+/.mcp.json
+/public/next.svg
+/public/vercel.svg
+/public/window.svg
+/public/globe.svg
+/public/file.svg
+/scripts/demo_*_engine_v3.csv
