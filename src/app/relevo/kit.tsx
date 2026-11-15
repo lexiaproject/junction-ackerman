@@ -631,6 +631,8 @@ export function Recorder({
         type="button"
         onPointerDown={(e) => {
           e.preventDefault();
+          // Al grabar la barra crece y el botón se mueve; así no se "escapa" del puntero y solo para al soltar
+          e.currentTarget.setPointerCapture?.(e.pointerId);
           start();
         }}
         onPointerUp={stopHold}
